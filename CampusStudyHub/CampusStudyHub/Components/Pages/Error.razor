@@ -1,0 +1,26 @@
+﻿@page "/Error"
+@using System.Diagnostics
+
+<PageTitle>Error</PageTitle>
+
+<h1>Lỗi kết nối.</h1>
+<h2>Ứng dụng chưa thể xử lý yêu cầu này.</h2>
+
+@if (ShowRequestId)
+{
+    <p>
+        <strong>Request ID:</strong> <code>@RequestId</code>
+    </p>
+}
+
+<p>Hãy thử tải lại trang. Nếu lỗi lặp lại, kiểm tra log của máy chủ hoặc liên hệ người quản trị.</p>
+@code{
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId { get; set; }
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    protected override void OnInitialized() =>
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

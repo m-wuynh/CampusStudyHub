@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CampusStudyHub/CampusStudyHub.Client/CampusStudyHub.Client.csproj" />
+  <Project Path="CampusStudyHub/CampusStudyHub/CampusStudyHub.csproj" />
+  <Project Path="tests/CampusStudyHub.Checks/CampusStudyHub.Checks.csproj" />
+</Solution>

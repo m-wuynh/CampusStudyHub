@@ -1,0 +1,29 @@
+# IDE and build output
+.vs/
+**/bin/
+**/obj/
+*.user
+*.suo
+.idea/
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+# Runtime data and secrets
+**/App_Data/
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+**/appsettings.Production.json
+**/secrets.json
+*.pfx
+*.pem
+TestResults/
+artifacts/
+coverage/
+node_modules/
