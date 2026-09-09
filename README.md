@@ -1,70 +1,120 @@
-# Campus Study Hub
+﻿# Campus Study Hub
 
-Không gian học tập dành cho sinh viên: quản lý môn học, lịch học, deadline, kho tài liệu và nhóm học theo từng lớp.
+Campus Study Hub is a web application that helps university students organize their academic work in one place. It brings together subjects, class schedules, deadlines, shared learning materials, and study groups, with administration tools for managing users and reported content.
 
-## Đã có trong code base
+## 2. Problem and Objectives
 
-- Đăng nhập Google bằng cookie session; tự tạo hồ sơ từ tên, email, ảnh đại diện.
-- Hồ sơ bắt buộc gồm trường, khoa/chuyên ngành và khóa học.
-- Phân quyền `student` / `admin`, khóa tài khoản và kiểm tra quyền ở service trước khi đọc/ghi dữ liệu.
-- Dashboard: môn đang học, deadline, việc hoàn thành, giờ học, tài liệu mới và nhóm học.
-- CRUD môn học, mã mời lớp; deadline; lịch lặp hằng tuần; lọc theo ngày/tuần/tháng và môn.
-- Tài liệu dạng liên kết hoặc file PDF/TXT/DOCX/PPTX tối đa 10 MB; tìm kiếm, lọc, lưu, thống kê mở/tải, báo cáo.
-- Bài đăng nhóm học, gửi yêu cầu tham gia, chủ nhóm duyệt/từ chối, giới hạn số thành viên.
-- Trang admin: thống kê, tìm người dùng, khóa/mở khóa, ẩn/khôi phục nội dung báo cáo.
-- SQLite tự tạo tại `App_Data/campus.db`; event log cho các hành vi chính; endpoint `/health`.
-- Giao diện responsive cho mobile, tablet và desktop; có trang landing, login, pricing, privacy, terms.
-- Bộ kiểm tra nghiệp vụ độc lập và GitHub Actions tại `tests/CampusStudyHub.Checks` và `.github/workflows/ci.yml`.
+Students often manage course information across separate chats, document folders, and calendars. This makes it difficult to track deadlines, find learning resources, and coordinate group study.
 
-## Chạy lần đầu
+The project aims to:
 
-Cài .NET 8 SDK, mở PowerShell tại thư mục chứa `CampusStudyHub.slnx`, sau đó:
+- Centralize subjects, schedules, deadlines, and learning materials.
+- Help students monitor their workload and study progress.
+- Make it easier to share resources and organize study groups within a class.
+- Provide controlled access to class content and tools for content moderation.
+- Offer a responsive interface for desktop, tablet, and mobile devices.
+
+## 3. Features
+
+- **Authentication and profiles:** Google sign-in, cookie-based sessions, and student profiles with university, faculty or major, and cohort information. Demo accounts are available in Development mode.
+- **Dashboard:** An overview of subjects, upcoming deadlines, completed tasks, study hours, recent documents, and study groups.
+- **Subject management:** Create and update subjects, archive classes, and join classes using invitation codes.
+- **Schedules and deadlines:** Manage study activities, weekly recurring schedules, and deadlines, with filters by subject and day, week, or month.
+- **Learning materials:** Share links or upload PDF, TXT, DOCX, and PPTX files up to 10 MB; search, filter, bookmark, and report materials; track views and downloads.
+- **Study groups:** Create group posts, request membership, approve or reject requests, and enforce member limits.
+- **Administration:** View statistics, search users, suspend or restore accounts, and hide or restore reported content.
+- **Activity tracking:** Record key user actions and expose a `/health` endpoint.
+
+## 4. Technologies Used
+
+| Technology | Purpose |
+| --- | --- |
+| C# and .NET 8 | Application language and runtime |
+| ASP.NET Core | Web hosting, authentication, authorization, and HTTP endpoints |
+| Blazor and Razor components | User interface with Interactive Server rendering |
+| Entity Framework Core 8 | Data access and database operations |
+| SQLite | Local database storage |
+| Google OAuth and cookies | Google sign-in and session management |
+| HTML and CSS | Responsive page layout and styling |
+| GitHub Actions | Automated build and application checks |
+
+The solution also includes a Blazor WebAssembly client project referenced by the web application. The current application configures Interactive Server rendering.
+
+## 5. Installation and Running the Project
+
+### Prerequisites
+
+- .NET 8 SDK installed.
+- A local copy of this repository.
+- Google OAuth credentials only if you want to use Google sign-in.
+
+### Run locally
+
+Open a terminal in the repository root and run:
 
 ```powershell
-dotnet restore
-dotnet run --project .\CampusStudyHub\CampusStudyHub\CampusStudyHub.csproj
+dotnet restore CampusStudyHub/CampusStudyHub/CampusStudyHub.csproj
+dotnet run --project CampusStudyHub/CampusStudyHub/CampusStudyHub.csproj --launch-profile http
 ```
 
-Mở địa chỉ hiện trong terminal, thường là `http://localhost:5260`. Ở môi trường Development, trang `/login` có tài khoản demo; bật/tắt bằng `Demo:Enabled` trong `CampusStudyHub/CampusStudyHub/appsettings.Development.json`.
+Open `http://localhost:5260` in your browser. Visit `/login` and select a demo account to explore the application without configuring Google sign-in.
 
-Chạy kiểm tra nghiệp vụ:
+The `http` launch profile uses the Development environment. Demo access is controlled by `Demo:Enabled` in `CampusStudyHub/CampusStudyHub/appsettings.Development.json`.
+
+The application creates its SQLite database automatically at `CampusStudyHub/CampusStudyHub/App_Data/campus.db`. Uploaded files are stored in the `App_Data/uploads` directory. No separate database server is required.
+
+### Configure Google sign-in (optional)
+
+Create a Google OAuth client of type **Web application** and register `http://localhost:5260/signin-google` as an authorized redirect URI for the local launch profile. If you use a different address, register that application's base URL followed by `/signin-google`.
+
+Store the credentials using the web project's existing User Secrets configuration:
 
 ```powershell
-dotnet run --project .\tests\CampusStudyHub.Checks\CampusStudyHub.Checks.csproj
+dotnet user-secrets set "Authentication:Google:ClientId" "YOUR_CLIENT_ID" --project CampusStudyHub/CampusStudyHub/CampusStudyHub.csproj
+dotnet user-secrets set "Authentication:Google:ClientSecret" "YOUR_CLIENT_SECRET" --project CampusStudyHub/CampusStudyHub/CampusStudyHub.csproj
 ```
 
-## Cấu hình Google OAuth
-
-Tạo OAuth Client loại **Web application** trong Google Cloud Console. Thêm redirect URI `https://localhost:5001/signin-google` (hoặc đúng host/port mà ứng dụng in ra), rồi lưu secret bằng User Secrets, không ghi vào Git:
+Optionally, configure an administrator email and restrict sign-in to a university email domain:
 
 ```powershell
-dotnet user-secrets init --project .\CampusStudyHub\CampusStudyHub\CampusStudyHub.csproj
-dotnet user-secrets set "Authentication:Google:ClientId" "YOUR_CLIENT_ID" --project .\CampusStudyHub\CampusStudyHub\CampusStudyHub.csproj
-dotnet user-secrets set "Authentication:Google:ClientSecret" "YOUR_CLIENT_SECRET" --project .\CampusStudyHub\CampusStudyHub\CampusStudyHub.csproj
-dotnet user-secrets set "Authentication:AdminEmails:0" "admin@your-school.edu" --project .\CampusStudyHub\CampusStudyHub\CampusStudyHub.csproj
+dotnet user-secrets set "Authentication:AdminEmails:0" "admin@your-school.edu" --project CampusStudyHub/CampusStudyHub/CampusStudyHub.csproj
+dotnet user-secrets set "Authentication:AllowedDomains:0" "your-school.edu" --project CampusStudyHub/CampusStudyHub/CampusStudyHub.csproj
 ```
 
-Giới hạn email sinh viên (không bắt buộc):
+Restart the application after changing authentication settings.
+
+### Run the application checks
 
 ```powershell
-dotnet user-secrets set "Authentication:AllowedDomains:0" "your-school.edu" --project .\CampusStudyHub\CampusStudyHub\CampusStudyHub.csproj
+dotnet run --project tests/CampusStudyHub.Checks/CampusStudyHub.Checks.csproj
 ```
 
-Đăng nhập Google cần chạy HTTPS khi triển khai. Cookie, secret và file upload không được commit. Khi deploy thật, đổi `Demo:Enabled` thành `false`, dùng database/storage phù hợp và bổ sung thông tin pháp lý trong Privacy/Terms.
+## 6. Project Structure
 
-## Cấu trúc chính
-
-`Program.cs` cấu hình auth, SQLite, endpoint và seed demo. `Data/HubDb.cs` là entity/schema. `Services/HubService.cs` là nghiệp vụ và authorization. `Components/Pages/Hub.razor` chứa các màn hình học tập/admin. `wwwroot/app.css` là design system responsive.
-
-## Tự tạo repo và thêm thành viên GitHub
-
-1. Trên GitHub chọn **New repository**, đặt tên, chọn Public/Private và tạo repo trống (không tạo README/.gitignore nếu thư mục local đã có).
-2. Trong PowerShell tại thư mục dự án, chạy các lệnh Git mà GitHub hiển thị để commit và push. Kiểm tra `.gitignore` trước khi push để chắc chắn không có `App_Data`, secret hoặc file build.
-3. Muốn mời thành viên: mở repo → **Settings** → **Collaborators** (hoặc **Manage access**) → **Invite a collaborator** → nhập username/email GitHub → chọn quyền `Write` cho thành viên code → gửi lời mời. Người được mời phải chấp nhận invitation trước khi push.
-4. Mỗi thành viên clone repo, tạo branch riêng, push branch và mở Pull Request; không commit trực tiếp vào `main`. Bật branch protection/required review khi nhóm bắt đầu làm chung.
-
-Chi tiết thao tác tạo repository và mời collaborator xem tài liệu chính thức: <https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository> và <https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/repository-access-and-collaboration/inviting-collaborators-to-a-personal-repository>.
-
-## Phạm vi chưa triển khai
-
-Email nhắc deadline, thanh toán thật, chat/video real-time, AI lập kế hoạch và đồng bộ lịch ngoài là phần mở rộng. Pricing hiện chỉ mô phỏng trang giới thiệu, chưa thu tiền.
+```text
+CampusStudyHub/
+|-- CampusStudyHub.slnx                  # Solution file
+|-- README.md                           # Project documentation
+|-- .github/
+|   `-- workflows/ci.yml                 # Automated build and checks
+|-- CampusStudyHub/
+|   |-- CampusStudyHub/                  # Main ASP.NET Core web application
+|   |   |-- Components/
+|   |   |   |-- Layout/                  # Shared application layout
+|   |   |   |-- Pages/                   # Landing, login, study hub, and legal pages
+|   |   |   |-- App.razor                # Root component
+|   |   |   `-- Routes.razor             # Routing
+|   |   |-- Data/HubDb.cs                # Database context and entities
+|   |   |-- Services/HubService.cs       # Business logic and access checks
+|   |   |-- Properties/launchSettings.json
+|   |   |-- wwwroot/                     # Styles and static assets
+|   |   |-- App_Data/                    # Database and uploads (created at runtime)
+|   |   |-- Program.cs                  # Services, authentication, and endpoints
+|   |   |-- appsettings.json            # Default configuration
+|   |   `-- appsettings.Development.json # Development configuration
+|   `-- CampusStudyHub.Client/          # Referenced Blazor WebAssembly project
+|       |-- Program.cs                  # Client entry point
+|       `-- wwwroot/                    # Client configuration and static assets
+`-- tests/
+    `-- CampusStudyHub.Checks/           # Executable application checks
+```
