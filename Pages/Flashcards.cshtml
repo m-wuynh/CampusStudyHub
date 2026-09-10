@@ -1,0 +1,503 @@
+@page
+@model FlashcardsModel
+@{
+    ViewData["Title"]        = "Flashcards";
+    ViewData["PageTitle"]    = "Thẻ ghi nhớ (Flashcards)";
+    ViewData["PageSubtitle"] = "Ôn tập kiến thức &amp; chia sẻ bộ thẻ";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<div id="flashcards-view" style="max-width:1280px; margin:0 auto;">
+
+  <!-- ── Header Actions ── -->
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-black mb-0 tracking-tight" style="font-size:20px; color:var(--sh-slate-900);">
+        Kho Flashcard của tôi
+      </h2>
+      <p class="mb-0" style="font-size:12px; color:var(--sh-slate-500);">5 bộ thẻ · 120 thẻ ghi nhớ · Cập nhật gần nhất: hôm nay</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn-secondary-sh" data-bs-toggle="modal" data-bs-target="#discoverModal">
+        <i class="bi bi-compass"></i><span>Khám phá</span>
+      </button>
+      <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#newSetModal">
+        <i class="bi bi-plus-lg"></i><span>Tạo bộ thẻ</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Flashcard Sets Grid ── -->
+  <div class="row g-4" id="flashcard-sets-grid">
+
+    <!-- Set 1: Toán - Lượng giác -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="sh-card p-4 h-100 d-flex flex-column"
+           style="transition:transform .2s, box-shadow .2s;"
+           onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--sh-shadow-md)'"
+           onmouseleave="this.style.transform='';this.style.boxShadow=''">
+
+        <!-- Card Header -->
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <span class="subject-badge subject-toan mb-2 d-inline-block">Toán</span>
+            <h3 class="fw-bold mb-1" style="font-size:14px; color:var(--sh-slate-900);">
+              Lượng giác – Hàm số sin, cos, tan
+            </h3>
+            <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500);">
+              Công thức lượng giác cơ bản và nâng cao
+            </p>
+          </div>
+          <div class="dropdown">
+            <button class="btn-icon-sh" data-bs-toggle="dropdown">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" style="font-size:12px; min-width:160px;">
+              <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" data-bs-toggle="modal" data-bs-target="#newSetModal">
+                <i class="bi bi-pencil text-indigo"></i>Chỉnh sửa
+              </a></li>
+              <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="confirmDelete('Lượng giác – Hàm số sin, cos, tan')">
+                <i class="bi bi-trash3" style="color:var(--sh-rose-600);"></i>Xóa bộ thẻ
+              </a></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="d-flex align-items-center gap-3 mb-3" style="font-size:11px; color:var(--sh-slate-500);">
+          <span class="d-flex align-items-center gap-1"><i class="bi bi-layers"></i>24 thẻ</span>
+          <span class="d-flex align-items-center gap-1"><i class="bi bi-check-circle"></i>18 đã thuộc</span>
+          <span class="d-flex align-items-center gap-1"><i class="bi bi-eye"></i>132 lượt học</span>
+        </div>
+
+        <!-- Progress -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1" style="font-size:11px; color:var(--sh-slate-500);">
+            <span>Tiến độ thuộc bài</span>
+            <span class="fw-bold" style="color:var(--sh-emerald-600);">75%</span>
+          </div>
+          <div class="sh-progress" style="height:6px;">
+            <div class="sh-progress-bar emerald" style="width:75%;"></div>
+          </div>
+        </div>
+
+        <!-- Author -->
+        <div class="d-flex align-items-center gap-2 mb-4" style="font-size:11px; color:var(--sh-slate-500);">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&auto=format&fit=crop"
+               class="rounded-circle" style="width:20px; height:20px; object-fit:cover;" alt="Avatar" />
+          <span>Nguyễn Minh Anh • 07/09/2026</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-auto d-flex gap-2">
+          <button class="btn-primary-sh flex-grow-1 justify-content-center"
+                  data-bs-toggle="modal"
+                  data-bs-target="#studyModeModal">
+            <i class="bi bi-play-fill"></i>Học ngay
+          </button>
+          <button class="btn-secondary-sh"
+                  data-bs-toggle="modal"
+                  data-bs-target="#newSetModal">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Set 2: Vật lý - Điện học -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="sh-card p-4 h-100 d-flex flex-column"
+           style="transition:transform .2s, box-shadow .2s;"
+           onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--sh-shadow-md)'"
+           onmouseleave="this.style.transform='';this.style.boxShadow=''">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <span class="subject-badge subject-vatly mb-2 d-inline-block">Vật lý</span>
+            <h3 class="fw-bold mb-1" style="font-size:14px; color:var(--sh-slate-900);">Điện học – Mạch điện cơ bản</h3>
+            <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500);">Định luật Ohm, mạch nối tiếp, song song</p>
+          </div>
+          <div class="dropdown">
+            <button class="btn-icon-sh" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" style="font-size:12px; min-width:160px;">
+              <li><a class="dropdown-item d-flex align-items-center gap-2" href="#"><i class="bi bi-pencil text-indigo"></i>Chỉnh sửa</a></li>
+              <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="confirmDelete('Điện học')"><i class="bi bi-trash3" style="color:var(--sh-rose-600);"></i>Xóa bộ thẻ</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-3 mb-3" style="font-size:11px; color:var(--sh-slate-500);">
+          <span><i class="bi bi-layers me-1"></i>18 thẻ</span>
+          <span><i class="bi bi-check-circle me-1"></i>10 đã thuộc</span>
+          <span><i class="bi bi-eye me-1"></i>89 lượt</span>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1" style="font-size:11px; color:var(--sh-slate-500);">
+            <span>Tiến độ</span>
+            <span class="fw-bold" style="color:var(--sh-emerald-600);">56%</span>
+          </div>
+          <div class="sh-progress"><div class="sh-progress-bar emerald" style="width:56%;"></div></div>
+        </div>
+        <div class="mt-auto d-flex gap-2">
+          <button class="btn-primary-sh flex-grow-1 justify-content-center"
+                  data-bs-toggle="modal" data-bs-target="#studyModeModal">
+            <i class="bi bi-play-fill"></i>Học ngay
+          </button>
+          <button class="btn-secondary-sh"><i class="bi bi-pencil"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Set 3: Hóa học -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="sh-card p-4 h-100 d-flex flex-column"
+           style="transition:transform .2s, box-shadow .2s;"
+           onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--sh-shadow-md)'"
+           onmouseleave="this.style.transform='';this.style.boxShadow=''">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <span class="subject-badge subject-hoahoc mb-2 d-inline-block">Hóa học</span>
+            <h3 class="fw-bold mb-1" style="font-size:14px; color:var(--sh-slate-900);">Hợp chất hữu cơ – Phân loại</h3>
+            <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500);">Alkane, Alkene, Alcohol và dẫn xuất</p>
+          </div>
+          <div class="dropdown">
+            <button class="btn-icon-sh" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" style="font-size:12px;">
+              <li><a class="dropdown-item d-flex align-items-center gap-2" href="#"><i class="bi bi-pencil text-indigo"></i>Chỉnh sửa</a></li>
+              <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="confirmDelete('Hóa hữu cơ')"><i class="bi bi-trash3" style="color:var(--sh-rose-600);"></i>Xóa</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-3 mb-3" style="font-size:11px; color:var(--sh-slate-500);">
+          <span><i class="bi bi-layers me-1"></i>30 thẻ</span>
+          <span><i class="bi bi-check-circle me-1"></i>12 đã thuộc</span>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1" style="font-size:11px; color:var(--sh-slate-500);">
+            <span>Tiến độ</span>
+            <span class="fw-bold" style="color:var(--sh-emerald-600);">40%</span>
+          </div>
+          <div class="sh-progress"><div class="sh-progress-bar emerald" style="width:40%;"></div></div>
+        </div>
+        <div class="mt-auto d-flex gap-2">
+          <button class="btn-primary-sh flex-grow-1 justify-content-center"
+                  data-bs-toggle="modal" data-bs-target="#studyModeModal">
+            <i class="bi bi-play-fill"></i>Học ngay
+          </button>
+          <button class="btn-secondary-sh"><i class="bi bi-pencil"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Set 4: Tiếng Anh -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="sh-card p-4 h-100 d-flex flex-column"
+           style="transition:transform .2s, box-shadow .2s;"
+           onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--sh-shadow-md)'"
+           onmouseleave="this.style.transform='';this.style.boxShadow=''">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <span class="subject-badge subject-tienganh mb-2 d-inline-block">Tiếng Anh</span>
+            <h3 class="fw-bold mb-1" style="font-size:14px; color:var(--sh-slate-900);">Từ vựng IELTS – Band 6.0+</h3>
+            <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500);">Academic vocabulary cho kỳ thi IELTS</p>
+          </div>
+          <div class="dropdown">
+            <button class="btn-icon-sh" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" style="font-size:12px;">
+              <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Chỉnh sửa</a></li>
+              <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete('IELTS Vocab')"><i class="bi bi-trash3 me-2"></i>Xóa</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="d-flex gap-3 mb-3" style="font-size:11px; color:var(--sh-slate-500);">
+          <span><i class="bi bi-layers me-1"></i>48 thẻ</span>
+          <span><i class="bi bi-check-circle me-1"></i>30 đã thuộc</span>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1" style="font-size:11px; color:var(--sh-slate-500);">
+            <span>Tiến độ</span><span class="fw-bold" style="color:var(--sh-emerald-600);">63%</span>
+          </div>
+          <div class="sh-progress"><div class="sh-progress-bar emerald" style="width:63%;"></div></div>
+        </div>
+        <div class="mt-auto d-flex gap-2">
+          <button class="btn-primary-sh flex-grow-1 justify-content-center"
+                  data-bs-toggle="modal" data-bs-target="#studyModeModal">
+            <i class="bi bi-play-fill"></i>Học ngay
+          </button>
+          <button class="btn-secondary-sh"><i class="bi bi-pencil"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Set 5: Sinh học -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="sh-card p-4 h-100 d-flex flex-column"
+           style="transition:transform .2s, box-shadow .2s;"
+           onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--sh-shadow-md)'"
+           onmouseleave="this.style.transform='';this.style.boxShadow=''">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <span class="subject-badge subject-sinhhoc mb-2 d-inline-block">Sinh học</span>
+            <h3 class="fw-bold mb-1" style="font-size:14px; color:var(--sh-slate-900);">Di truyền học – Quy luật Mendel</h3>
+            <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500);">Phân ly, liên kết và di truyền giới tính</p>
+          </div>
+          <div class="dropdown">
+            <button class="btn-icon-sh" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" style="font-size:12px;">
+              <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Chỉnh sửa</a></li>
+              <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash3 me-2"></i>Xóa</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="d-flex gap-3 mb-3" style="font-size:11px; color:var(--sh-slate-500);">
+          <span><i class="bi bi-layers me-1"></i>20 thẻ</span>
+          <span><i class="bi bi-check-circle me-1"></i>8 đã thuộc</span>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1" style="font-size:11px; color:var(--sh-slate-500);">
+            <span>Tiến độ</span><span class="fw-bold" style="color:var(--sh-emerald-600);">40%</span>
+          </div>
+          <div class="sh-progress"><div class="sh-progress-bar emerald" style="width:40%;"></div></div>
+        </div>
+        <div class="mt-auto d-flex gap-2">
+          <button class="btn-primary-sh flex-grow-1 justify-content-center"
+                  data-bs-toggle="modal" data-bs-target="#studyModeModal">
+            <i class="bi bi-play-fill"></i>Học ngay
+          </button>
+          <button class="btn-secondary-sh"><i class="bi bi-pencil"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add New Set card -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <button class="w-100 h-100 sh-card p-4 border-dashed d-flex flex-column align-items-center justify-content-center gap-3 text-center"
+              style="min-height:200px; border:2px dashed var(--sh-slate-200); background:transparent; cursor:pointer; transition:all .15s;"
+              data-bs-toggle="modal" data-bs-target="#newSetModal"
+              onmouseenter="this.style.borderColor='var(--sh-indigo-400)';this.style.background='var(--sh-indigo-50)'"
+              onmouseleave="this.style.borderColor='var(--sh-slate-200)';this.style.background='transparent'">
+        <div style="width:48px;height:48px;background:var(--sh-indigo-100);border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--sh-indigo-600);">
+          <i class="bi bi-plus-lg" style="font-size:20px;"></i>
+        </div>
+        <div>
+          <p class="mb-0 fw-bold" style="font-size:13px; color:var(--sh-slate-700);">Tạo bộ thẻ mới</p>
+          <p class="mb-0" style="font-size:11px; color:var(--sh-slate-400);">Thêm môn học mới vào kho</p>
+        </div>
+      </button>
+    </div>
+
+  </div><!-- /row -->
+</div>
+
+<!-- ── Study Mode Modal ── -->
+<div class="modal fade" id="studyModeModal" tabindex="-1" aria-labelledby="studyModeModalLabel">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="border-radius:20px;">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title fw-bold" id="studyModeModalLabel" style="font-size:14px;">
+            🎯 Chế độ học: Lượng giác – sin, cos, tan
+          </h5>
+          <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500);">Nhấn vào thẻ để lật và xem đáp án</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-4">
+        <!-- Progress Bar -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span id="study-card-progress" style="font-size:12px; color:var(--sh-slate-500); font-weight:600;">1 / 3</span>
+          <span style="font-size:11px; color:var(--sh-slate-400);">Nhấn thẻ để lật xem đáp án</span>
+        </div>
+        <div class="sh-progress mb-4" style="height:4px;">
+          <div id="study-progress-bar" class="sh-progress-bar indigo" style="width:33.3%;"></div>
+        </div>
+
+        <!-- Flashcard Slides -->
+        <div class="study-card-slide">
+          <div class="flashcard-flip-container" style="cursor:pointer;" title="Nhấn để lật">
+            <div class="flashcard-flip-inner">
+              <div class="flashcard-face front">
+                <p style="font-size:11px; opacity:.7; margin-bottom:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em;">CÂU HỎI</p>
+                <p style="font-size:18px; font-weight:700; line-height:1.6;">sin²x + cos²x = ?</p>
+                <p style="font-size:11px; opacity:.6; margin-top:16px;">Nhấn để xem đáp án</p>
+              </div>
+              <div class="flashcard-face back">
+                <p style="font-size:11px; opacity:.7; margin-bottom:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em;">ĐÁP ÁN</p>
+                <p style="font-size:28px; font-weight:900;">= 1</p>
+                <p style="font-size:13px; opacity:.85; margin-top:8px;">Đây là hệ thức lượng giác cơ bản nhất – Định lý Pythagorean trong lượng giác.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="study-card-slide" style="display:none;">
+          <div class="flashcard-flip-container" style="cursor:pointer;">
+            <div class="flashcard-flip-inner">
+              <div class="flashcard-face front">
+                <p style="font-size:11px; opacity:.7; margin-bottom:12px; font-weight:600;">CÂU HỎI</p>
+                <p style="font-size:18px; font-weight:700; line-height:1.6;">tan x = ?</p>
+              </div>
+              <div class="flashcard-face back">
+                <p style="font-size:11px; opacity:.7; margin-bottom:12px; font-weight:600;">ĐÁP ÁN</p>
+                <p style="font-size:24px; font-weight:900;">sin x / cos x</p>
+                <p style="font-size:12px; opacity:.8; margin-top:8px;">Điều kiện: cos x ≠ 0 (x ≠ π/2 + kπ)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="study-card-slide" style="display:none;">
+          <div class="flashcard-flip-container" style="cursor:pointer;">
+            <div class="flashcard-flip-inner">
+              <div class="flashcard-face front">
+                <p style="font-size:11px; opacity:.7; margin-bottom:12px; font-weight:600;">CÂU HỎI</p>
+                <p style="font-size:18px; font-weight:700; line-height:1.6;">sin(A + B) = ?</p>
+              </div>
+              <div class="flashcard-face back">
+                <p style="font-size:11px; opacity:.7; margin-bottom:12px; font-weight:600;">ĐÁP ÁN</p>
+                <p style="font-size:16px; font-weight:800;">sinA·cosB + cosA·sinB</p>
+                <p style="font-size:11px; opacity:.75; margin-top:8px;">Công thức cộng của sin – Cần thuộc lòng cho kỳ thi!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="modal-footer justify-content-between">
+        <button id="card-prev-btn" class="btn-secondary-sh">
+          <i class="bi bi-arrow-left"></i>Trước
+        </button>
+        <div class="d-flex gap-2">
+          <button class="btn-secondary-sh"
+                  style="background:var(--sh-rose-50); color:var(--sh-rose-700); border-color:var(--sh-rose-100);"
+                  onclick="showToast('Đã đánh dấu chưa thuộc', 'info')">
+            <i class="bi bi-x-circle"></i>Chưa thuộc
+          </button>
+          <button class="btn-secondary-sh"
+                  style="background:var(--sh-emerald-50); color:var(--sh-emerald-700); border-color:var(--sh-emerald-100);"
+                  onclick="showToast('Tuyệt vời! Đã đánh dấu thuộc bài', 'success')">
+            <i class="bi bi-check-circle"></i>Đã thuộc
+          </button>
+        </div>
+        <button id="card-next-btn" class="btn-primary-sh">
+          Tiếp <i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── New/Edit Set Modal ── -->
+<div class="modal fade" id="newSetModal" tabindex="-1" aria-labelledby="newSetModalLabel">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="newSetModalLabel" style="font-size:14px;">
+          <i class="bi bi-layers me-2 text-indigo"></i>Tạo bộ Flashcard mới
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 mb-4">
+          <div class="col-sm-6">
+            <label class="sh-label" for="set-name-input">Tên bộ thẻ</label>
+            <input id="set-name-input" type="text" class="sh-input" placeholder="Ví dụ: Lượng giác nâng cao" />
+          </div>
+          <div class="col-sm-3">
+            <label class="sh-label" for="set-subject-input">Môn học</label>
+            <select id="set-subject-input" class="sh-input">
+              <option>Toán</option>
+              <option>Vật lý</option>
+              <option>Hóa học</option>
+              <option>Ngữ văn</option>
+              <option>Tiếng Anh</option>
+              <option>Sinh học</option>
+              <option>Lịch sử</option>
+              <option>Tin học</option>
+            </select>
+          </div>
+          <div class="col-sm-3 d-flex align-items-end">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="set-public-check" />
+              <label class="form-check-label" for="set-public-check" style="font-size:12px; color:var(--sh-slate-600);">
+                Chia sẻ công khai
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <p class="fw-bold mb-2" style="font-size:12px; color:var(--sh-slate-600);">Các thẻ trong bộ:</p>
+
+        <div id="cards-container" class="space-y-3">
+          <div class="row g-2 p-3 rounded-3" style="background:var(--sh-slate-50); border:1px solid var(--sh-slate-200);">
+            <div class="col-sm-1 d-flex align-items-center">
+              <span class="fw-bold" style="font-size:12px; color:var(--sh-slate-400);">#1</span>
+            </div>
+            <div class="col-sm-5">
+              <input type="text" class="sh-input" placeholder="Câu hỏi..." />
+            </div>
+            <div class="col-sm-5">
+              <input type="text" class="sh-input" placeholder="Đáp án..." />
+            </div>
+            <div class="col-sm-1 d-flex align-items-center">
+              <button class="btn-icon-sh danger"><i class="bi bi-trash3"></i></button>
+            </div>
+          </div>
+
+          <div class="row g-2 p-3 rounded-3" style="background:var(--sh-slate-50); border:1px solid var(--sh-slate-200);">
+            <div class="col-sm-1 d-flex align-items-center">
+              <span class="fw-bold" style="font-size:12px; color:var(--sh-slate-400);">#2</span>
+            </div>
+            <div class="col-sm-5">
+              <input type="text" class="sh-input" placeholder="Câu hỏi..." />
+            </div>
+            <div class="col-sm-5">
+              <input type="text" class="sh-input" placeholder="Đáp án..." />
+            </div>
+            <div class="col-sm-1 d-flex align-items-center">
+              <button class="btn-icon-sh danger"><i class="bi bi-trash3"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-secondary-sh mt-3"
+                onclick="addCardRow()"
+                style="width:100%; justify-content:center;">
+          <i class="bi bi-plus-lg"></i>Thêm thẻ mới
+        </button>
+      </div>
+      <div class="modal-footer gap-2">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn-primary-sh"
+                data-bs-dismiss="modal"
+                onclick="showToast('Đã tạo bộ flashcard thành công!', 'success')">
+          <i class="bi bi-floppy me-1"></i>Lưu bộ thẻ
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+let cardCount = 2;
+function addCardRow() {
+  cardCount++;
+  const container = document.getElementById('cards-container');
+  const div = document.createElement('div');
+  div.className = 'row g-2 p-3 rounded-3';
+  div.style.cssText = 'background:var(--sh-slate-50); border:1px solid var(--sh-slate-200); margin-top:12px;';
+  div.innerHTML = `
+    <div class="col-sm-1 d-flex align-items-center">
+      <span class="fw-bold" style="font-size:12px;color:var(--sh-slate-400);">#${cardCount}</span>
+    </div>
+    <div class="col-sm-5"><input type="text" class="sh-input" placeholder="Câu hỏi..." /></div>
+    <div class="col-sm-5"><input type="text" class="sh-input" placeholder="Đáp án..." /></div>
+    <div class="col-sm-1 d-flex align-items-center">
+      <button class="btn-icon-sh danger" onclick="this.closest('.row').remove()"><i class="bi bi-trash3"></i></button>
+    </div>
+  `;
+  container.appendChild(div);
+}
+</script>
+}

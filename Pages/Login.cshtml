@@ -1,0 +1,261 @@
+@page
+@model LoginModel
+@{
+    Layout = null; /* Login page không dùng layout chung */
+    ViewData["Title"] = "Đăng nhập";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Đăng nhập vào Study Hub - Nền tảng học tập thông minh dành cho học sinh THPT." />
+  <title>Đăng nhập — Study Hub</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+        crossorigin="anonymous" />
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="~/css/site.css" />
+  <style>
+    .login-page {
+      min-height: 100vh;
+      background-color: var(--sh-slate-50);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+    .login-card {
+      background: #fff;
+      border: 1px solid var(--sh-slate-200);
+      border-radius: 20px;
+      box-shadow: var(--sh-shadow-sm);
+      padding: 32px 40px;
+      width: 100%;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+    @@media (max-width: 480px) {
+      .login-card { padding: 24px 20px; }
+    }
+    .sh-input-login {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--sh-slate-50);
+      border: 1px solid var(--sh-slate-300);
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--sh-slate-900);
+      outline: none;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .sh-input-login:focus {
+      background: #fff;
+      border-color: var(--sh-indigo-600);
+      box-shadow: 0 0 0 3px var(--sh-indigo-100);
+    }
+    .sh-input-login::placeholder { color: var(--sh-slate-400); }
+  </style>
+</head>
+<body class="login-page">
+
+  <div style="max-width:440px; margin:0 auto; width:100%;">
+
+    <!-- ── Brand ── -->
+    <div class="d-flex justify-content-center align-items-center gap-3 mb-4">
+      <div class="sidebar-brand-logo" style="width:48px; height:48px; border-radius:14px;">
+        <i class="bi bi-book-fill" style="font-size:22px;"></i>
+      </div>
+      <div>
+        <h1 class="mb-0 fw-black tracking-tight" style="font-size:22px; color:var(--sh-slate-900);">Study Hub</h1>
+        <p class="mb-0" style="font-size:10px; color:var(--sh-indigo-600); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">
+          Dành cho học sinh THPT
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Auth Mode Title ── -->
+    <div class="text-center mb-4">
+      <h2 id="auth-mode-title" class="fw-bold mb-1" style="font-size:18px; color:var(--sh-slate-900);">
+        Chào mừng bạn trở lại!
+      </h2>
+      <p id="auth-mode-desc" class="mb-0" style="font-size:12px; color:var(--sh-slate-500); max-width:340px; margin:0 auto; line-height:1.6;">
+        Đăng nhập để tiếp tục quản lý ghi chú, flashcard và thời khóa biểu của bạn
+      </p>
+    </div>
+
+    <!-- ── Card ── -->
+    <div class="login-card">
+
+      <!-- ════ LOGIN FORM ════ -->
+      <div id="login-form-section">
+        <form id="login-form" asp-action="Login" asp-controller="Account" method="post">
+          @Html.AntiForgeryToken()
+
+          <!-- Email -->
+          <div class="mb-3">
+            <label class="sh-label" for="login-email-input">Email / Tên đăng nhập</label>
+            <input id="login-email-input"
+                   name="Email"
+                   type="email"
+                   class="sh-input-login"
+                   placeholder="vidu: minhanh.nguyen@thpt.edu.vn"
+                   value="minhanh.nguyen@thpt-hanoi.edu.vn"
+                   required />
+          </div>
+
+          <!-- Password -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="sh-label mb-0" for="login-password-input">Mật khẩu</label>
+              <button type="button"
+                      class="border-0 bg-transparent fw-semibold"
+                      style="font-size:11px; color:var(--sh-indigo-600);"
+                      onclick="showToast('Gợi ý: Mật khẩu mặc định là StudyHub@2026', 'info')">
+                Quên mật khẩu?
+              </button>
+            </div>
+            <div class="position-relative">
+              <input id="login-password-input"
+                     name="Password"
+                     type="password"
+                     class="sh-input-login"
+                     placeholder="Nhập mật khẩu..."
+                     value="StudyHub@2026"
+                     style="padding-right:40px;"
+                     required />
+              <button id="toggle-password-btn"
+                      type="button"
+                      class="border-0 bg-transparent position-absolute end-0 top-50 translate-middle-y pe-3"
+                      style="color:var(--sh-slate-400);">
+                <i id="toggle-password-icon" class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Remember Me -->
+          <div class="d-flex align-items-center gap-2 mb-4">
+            <input id="remember-me-checkbox"
+                   name="RememberMe"
+                   type="checkbox"
+                   class="form-check-input mt-0"
+                   checked
+                   style="width:16px; height:16px; border-color:var(--sh-slate-300);" />
+            <label for="remember-me-checkbox"
+                   class="mb-0"
+                   style="font-size:12px; color:var(--sh-slate-600); cursor:pointer;">
+              Ghi nhớ đăng nhập
+            </label>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="d-flex flex-column gap-2">
+            <button id="login-submit-btn"
+                    type="submit"
+                    class="btn-primary-sh w-100 justify-content-center py-2">
+              <span>Đăng nhập</span>
+              <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+
+            <button id="demo-login-quick-btn"
+                    type="button"
+                    class="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                    style="background:var(--sh-indigo-50); color:var(--sh-indigo-700); border:1px solid var(--sh-indigo-200); border-radius:12px; font-size:12px; font-weight:600; cursor:pointer; transition:background .15s;">
+              <i class="bi bi-stars"></i>
+              <span>Vào ngay với tài khoản mẫu (1-Click)</span>
+            </button>
+          </div>
+        </form>
+      </div>
+      <!-- ── /LOGIN FORM ── -->
+
+      <!-- ════ REGISTER FORM ════ -->
+      <div id="register-form-section" style="display:none;">
+        <form id="register-form" asp-action="Register" asp-controller="Account" method="post">
+          @Html.AntiForgeryToken()
+
+          <!-- Full name -->
+          <div class="mb-3">
+            <label class="sh-label" for="reg-name-input">Họ và tên</label>
+            <input id="reg-name-input" name="FullName" type="text"
+                   class="sh-input-login" placeholder="Nguyễn Văn A" required />
+          </div>
+
+          <!-- Email -->
+          <div class="mb-3">
+            <label class="sh-label" for="reg-email-input">Email học sinh</label>
+            <input id="reg-email-input" name="Email" type="email"
+                   class="sh-input-login" placeholder="hocsinh@thpt.edu.vn" required />
+          </div>
+
+          <!-- Password pair -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="sh-label" for="reg-password-input">Mật khẩu</label>
+              <input id="reg-password-input" name="Password" type="password"
+                     class="sh-input-login" placeholder="••••••••" required />
+            </div>
+            <div class="col-6">
+              <label class="sh-label" for="reg-confirm-password-input">Nhập lại MK</label>
+              <input id="reg-confirm-password-input" name="ConfirmPassword" type="password"
+                     class="sh-input-login" placeholder="••••••••" required />
+            </div>
+          </div>
+
+          <!-- Grade -->
+          <div class="mb-4">
+            <label class="sh-label" for="reg-grade-select">Khối lớp</label>
+            <select id="reg-grade-select" name="Grade" class="sh-input-login">
+              <option value="Lớp 10">Lớp 10 (Khối 10)</option>
+              <option value="Lớp 11" selected>Lớp 11 (Khối 11)</option>
+              <option value="Lớp 12">Lớp 12 (Khối 12 - Ôn thi THPTQG)</option>
+            </select>
+          </div>
+
+          <button id="register-submit-btn"
+                  type="submit"
+                  class="btn-primary-sh w-100 justify-content-center py-2">
+            Tạo tài khoản học tập
+          </button>
+        </form>
+      </div>
+      <!-- ── /REGISTER FORM ── -->
+
+      <!-- Toggle Login/Register -->
+      <div class="mt-4 pt-3" style="border-top:1px solid var(--sh-slate-100); text-align:center;">
+        <p class="mb-0" style="font-size:12px; color:var(--sh-slate-600);">
+          <span id="toggle-auth-mode-text">Chưa có tài khoản?</span>
+          <button id="toggle-auth-mode-btn"
+                  type="button"
+                  class="border-0 bg-transparent fw-bold ms-1"
+                  style="color:var(--sh-indigo-600); font-size:12px; cursor:pointer;">
+            Đăng ký miễn phí
+          </button>
+        </p>
+      </div>
+
+    </div>
+    <!-- ── /Card ── -->
+
+    <!-- Badge ASP.NET -->
+    <div class="text-center mt-4">
+      <span class="d-inline-flex align-items-center gap-1 px-3 py-1"
+            style="background:#fff; border:1px solid var(--sh-slate-200); border-radius:100px; font-size:11px; color:var(--sh-slate-500); box-shadow:var(--sh-shadow-xs);">
+        <i class="bi bi-shield-check" style="color:#059669;"></i>
+        Mô hình nguyên mẫu giao diện cho ASP.NET Core &amp; Razor Pages
+      </span>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="sh-toast-container" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmVl6dNqyPMFKbzVbQq+rS4BVQP"
+          crossorigin="anonymous"></script>
+  <script src="~/js/site.js"></script>
+</body>
+</html>

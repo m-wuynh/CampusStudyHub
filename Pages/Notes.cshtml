@@ -1,0 +1,359 @@
+@page
+@model NotesModel
+@{
+    ViewData["Title"]        = "Ghi chú";
+    ViewData["PageTitle"]    = "Ghi chú &amp; Tài liệu học";
+    ViewData["PageSubtitle"] = "Tổ chức bài học theo môn và định dạng";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<div id="notes-view" style="max-width:1280px; margin:0 auto;">
+
+  <!-- ── Filter Bar ── -->
+  <div class="sh-card p-3 mb-4">
+    <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-3">
+
+      <!-- Subject Tabs -->
+      <div class="d-flex align-items-center gap-2 overflow-auto pb-1 pb-sm-0 flex-nowrap">
+        <button class="subject-filter-btn btn-primary-sh" data-subject="all" style="white-space:nowrap; font-size:12px; padding:6px 12px;">
+          Tất cả môn (8)
+        </button>
+        <button class="subject-filter-btn btn-secondary-sh" data-subject="Toán" style="white-space:nowrap; font-size:12px; padding:6px 12px;">Toán</button>
+        <button class="subject-filter-btn btn-secondary-sh" data-subject="Vật lý" style="white-space:nowrap; font-size:12px; padding:6px 12px;">Vật lý</button>
+        <button class="subject-filter-btn btn-secondary-sh" data-subject="Hóa học" style="white-space:nowrap; font-size:12px; padding:6px 12px;">Hóa học</button>
+        <button class="subject-filter-btn btn-secondary-sh" data-subject="Ngữ văn" style="white-space:nowrap; font-size:12px; padding:6px 12px;">Ngữ văn</button>
+        <button class="subject-filter-btn btn-secondary-sh" data-subject="Tiếng Anh" style="white-space:nowrap; font-size:12px; padding:6px 12px;">Tiếng Anh</button>
+        <button class="subject-filter-btn btn-secondary-sh" data-subject="Sinh học" style="white-space:nowrap; font-size:12px; padding:6px 12px;">Sinh học</button>
+        <button class="subject-filter-btn btn-secondary-sh" data-subject="Lịch sử" style="white-space:nowrap; font-size:12px; padding:6px 12px;">Lịch sử</button>
+        <button class="subject-filter-btn btn-secondary-sh" data-subject="Tin học" style="white-space:nowrap; font-size:12px; padding:6px 12px;">Tin học</button>
+      </div>
+
+      <!-- Search + New -->
+      <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <div class="position-relative" style="width:220px;">
+          <i class="bi bi-search position-absolute" style="left:10px; top:50%; transform:translateY(-50%); color:var(--sh-slate-400); font-size:12px;"></i>
+          <input id="notes-search-input"
+                 type="text"
+                 placeholder="Tìm kiếm bài ghi..."
+                 class="sh-input"
+                 style="padding-left:32px; font-size:12px;" />
+        </div>
+        <button id="create-note-btn"
+                class="btn-primary-sh flex-shrink-0"
+                data-bs-toggle="modal"
+                data-bs-target="#noteEditorModal">
+          <i class="bi bi-plus-lg"></i><span>Tạo ghi chú</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Split Layout ── -->
+  <div class="notes-layout">
+
+    <!-- LEFT: Note List -->
+    <div id="notes-list-panel" class="notes-list-panel">
+      <div class="p-3 d-flex justify-content-between align-items-center"
+           style="border-bottom:1px solid var(--sh-slate-100); background:var(--sh-slate-50);">
+        <span style="font-size:11px; font-weight:700; color:var(--sh-slate-600); text-transform:uppercase; letter-spacing:.06em;">
+          Danh sách ghi chú (8)
+        </span>
+        <span style="font-size:11px; color:var(--sh-slate-400);">Tự động lưu</span>
+      </div>
+
+      <div class="overflow-auto p-2" style="max-height:calc(100vh - 260px);">
+
+        @* Note Card 1 *@
+        <div class="note-card active" data-note-id="note-1" data-subject="Toán">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <div class="d-flex align-items-center gap-1">
+              <span class="subject-badge subject-toan">Toán</span>
+              <i class="bi bi-pin-angle-fill" style="color:var(--sh-amber-500); font-size:11px;"></i>
+            </div>
+            <span class="font-monospace" style="font-size:10px; color:var(--sh-slate-400);">09-07</span>
+          </div>
+          <h4 class="note-title mb-1" style="font-size:12px; font-weight:700; color:var(--sh-indigo-900);">
+            Lượng giác – Công thức cơ bản sin, cos, tan
+          </h4>
+          <p class="note-preview mb-0 line-clamp-2" style="font-size:11px; color:var(--sh-slate-500); line-height:1.5;">
+            Các hệ thức lượng giác cơ bản: sin²x + cos²x = 1, tan x = sin x / cos x...
+          </p>
+          <div class="d-flex flex-wrap gap-1 mt-2">
+            <span style="font-size:9px; background:#fff; border:1px solid var(--sh-slate-200); color:var(--sh-slate-500); padding:2px 6px; border-radius:4px;">#Lý thuyết</span>
+            <span style="font-size:9px; background:#fff; border:1px solid var(--sh-slate-200); color:var(--sh-slate-500); padding:2px 6px; border-radius:4px;">#Ghi nhớ</span>
+          </div>
+        </div>
+
+        @* Note Card 2 *@
+        <div class="note-card" data-note-id="note-2" data-subject="Vật lý" style="margin-top:4px;">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <span class="subject-badge subject-vatly">Vật lý</span>
+            <span class="font-monospace" style="font-size:10px; color:var(--sh-slate-400);">09-06</span>
+          </div>
+          <h4 class="note-title mb-1" style="font-size:12px; font-weight:700; color:var(--sh-slate-800);">
+            Định luật Newton và ứng dụng trong cơ học
+          </h4>
+          <p class="note-preview mb-0 line-clamp-2" style="font-size:11px; color:var(--sh-slate-500); line-height:1.5;">
+            Định luật I: Quán tính. Định luật II: F = ma. Định luật III: Phản lực...
+          </p>
+          <div class="d-flex flex-wrap gap-1 mt-2">
+            <span style="font-size:9px; background:#fff; border:1px solid var(--sh-slate-200); color:var(--sh-slate-500); padding:2px 6px; border-radius:4px;">#Newton</span>
+            <span style="font-size:9px; background:#fff; border:1px solid var(--sh-slate-200); color:var(--sh-slate-500); padding:2px 6px; border-radius:4px;">#Cơ học</span>
+          </div>
+        </div>
+
+        @* Note Card 3 *@
+        <div class="note-card" data-note-id="note-3" data-subject="Hóa học" style="margin-top:4px;">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <span class="subject-badge subject-hoahoc">Hóa học</span>
+            <span class="font-monospace" style="font-size:10px; color:var(--sh-slate-400);">09-05</span>
+          </div>
+          <h4 class="note-title mb-1" style="font-size:12px; font-weight:700; color:var(--sh-slate-800);">
+            Hợp chất hữu cơ – Phân loại và tính chất
+          </h4>
+          <p class="note-preview mb-0 line-clamp-2" style="font-size:11px; color:var(--sh-slate-500); line-height:1.5;">
+            Hydrocarbon: Alkane, Alkene, Alkyne. Dẫn xuất: Alcohol, Acid carboxylic...
+          </p>
+        </div>
+
+        @* Note Card 4 *@
+        <div class="note-card" data-note-id="note-4" data-subject="Tiếng Anh" style="margin-top:4px;">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <span class="subject-badge subject-tienganh">Tiếng Anh</span>
+            <span class="font-monospace" style="font-size:10px; color:var(--sh-slate-400);">09-04</span>
+          </div>
+          <h4 class="note-title mb-1" style="font-size:12px; font-weight:700; color:var(--sh-slate-800);">
+            Grammar: Conditional Sentences Types 1, 2, 3
+          </h4>
+          <p class="note-preview mb-0 line-clamp-2" style="font-size:11px; color:var(--sh-slate-500); line-height:1.5;">
+            Type 1: Real condition. If + present simple, will/can + base verb...
+          </p>
+        </div>
+
+        @* Note Card 5 *@
+        <div class="note-card" data-note-id="note-5" data-subject="Ngữ văn" style="margin-top:4px;">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <span class="subject-badge subject-nguvan">Ngữ văn</span>
+            <span class="font-monospace" style="font-size:10px; color:var(--sh-slate-400);">09-03</span>
+          </div>
+          <h4 class="note-title mb-1" style="font-size:12px; font-weight:700; color:var(--sh-slate-800);">
+            Phân tích tác phẩm Vợ Nhặt – Kim Lân
+          </h4>
+          <p class="note-preview mb-0 line-clamp-2" style="font-size:11px; color:var(--sh-slate-500); line-height:1.5;">
+            Giá trị nhân đạo: tình yêu thương, niềm tin vào tương lai dù trong hoàn cảnh đói kém...
+          </p>
+        </div>
+
+      </div>
+    </div><!-- /notes-list-panel -->
+
+    <!-- RIGHT: Note Detail -->
+    <div id="notes-detail-panel" class="sh-card d-flex flex-column overflow-hidden">
+
+      <!-- Note Details (shown by default for note-1) -->
+      <div class="note-detail" data-note-id="note-1">
+        <!-- Header -->
+        <div class="p-4 d-flex justify-content-between align-items-start gap-3"
+             style="border-bottom:1px solid var(--sh-slate-100); background:var(--sh-slate-50);">
+          <div class="overflow-hidden flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="subject-badge subject-toan">Toán</span>
+              <span class="d-flex align-items-center gap-1" style="font-size:11px; color:var(--sh-slate-400);">
+                <i class="bi bi-calendar3"></i>Cập nhật: 07/09/2026
+              </span>
+            </div>
+            <h2 class="fw-bold mb-0" style="font-size:16px; color:var(--sh-slate-900);">
+              Lượng giác – Công thức cơ bản sin, cos, tan
+            </h2>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            <button class="btn-secondary-sh"
+                    data-bs-toggle="modal"
+                    data-bs-target="#noteEditorModal"
+                    style="font-size:11px; padding:6px 12px;">
+              <i class="bi bi-pencil"></i><span>Chỉnh sửa</span>
+            </button>
+            <button class="btn-icon-sh danger"
+                    onclick="confirmDelete('Lượng giác – Công thức cơ bản')"
+                    title="Xóa ghi chú">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="p-4 p-sm-5 overflow-auto" style="max-height:calc(100vh - 290px); font-size:13px; color:var(--sh-slate-800); line-height:1.8;">
+          <h3 style="font-size:14px; font-weight:700; color:var(--sh-slate-900); border-bottom:1px solid var(--sh-slate-100); padding-bottom:8px; margin-top:8px;">
+            Các hệ thức cơ bản
+          </h3>
+          <p>Trong tam giác vuông và đường tròn đơn vị, các hàm lượng giác được định nghĩa như sau:</p>
+          <ul style="line-height:2;">
+            <li><strong>sin x</strong> = tung độ điểm trên đường tròn</li>
+            <li><strong>cos x</strong> = hoành độ điểm trên đường tròn</li>
+            <li><strong>tan x</strong> = sin x / cos x (khi cos x ≠ 0)</li>
+            <li><strong>cot x</strong> = cos x / sin x (khi sin x ≠ 0)</li>
+          </ul>
+
+          <h3 style="font-size:14px; font-weight:700; color:var(--sh-slate-900); border-bottom:1px solid var(--sh-slate-100); padding-bottom:8px; margin-top:16px;">
+            Hệ thức Pythagorean
+          </h3>
+          <p>Đây là hệ thức quan trọng nhất trong lượng giác:</p>
+          <div class="p-3 rounded-3 mb-3" style="background:var(--sh-indigo-50); border:1px solid var(--sh-indigo-200);">
+            <code style="font-size:14px; color:var(--sh-indigo-800); font-weight:700;">sin²x + cos²x = 1</code>
+          </div>
+          <ul style="line-height:2;">
+            <li>1 + tan²x = 1/cos²x</li>
+            <li>1 + cot²x = 1/sin²x</li>
+          </ul>
+
+          <h3 style="font-size:14px; font-weight:700; color:var(--sh-slate-900); border-bottom:1px solid var(--sh-slate-100); padding-bottom:8px; margin-top:16px;">
+            Công thức cộng
+          </h3>
+          <ul style="line-height:2;">
+            <li>sin(A+B) = sinA·cosB + cosA·sinB</li>
+            <li>cos(A+B) = cosA·cosB − sinA·sinB</li>
+            <li>sin(A−B) = sinA·cosB − cosA·sinB</li>
+            <li>cos(A−B) = cosA·cosB + sinA·sinB</li>
+          </ul>
+
+          <!-- Tags -->
+          <div class="mt-5 pt-3 d-flex align-items-center gap-2 flex-wrap"
+               style="border-top:1px solid var(--sh-slate-100);">
+            <span class="d-flex align-items-center gap-1" style="font-size:11px; color:var(--sh-slate-400);">
+              <i class="bi bi-tag"></i> Thẻ liên quan:
+            </span>
+            <span style="padding:2px 10px; background:var(--sh-slate-100); color:var(--sh-slate-600); border-radius:6px; font-size:11px; font-weight:500;">#Lý thuyết</span>
+            <span style="padding:2px 10px; background:var(--sh-slate-100); color:var(--sh-slate-600); border-radius:6px; font-size:11px; font-weight:500;">#Ghi nhớ</span>
+            <span style="padding:2px 10px; background:var(--sh-slate-100); color:var(--sh-slate-600); border-radius:6px; font-size:11px; font-weight:500;">#Lượng giác</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state (hidden by default) -->
+      <div id="note-empty-state"
+           class="d-flex flex-column align-items-center justify-content-center p-5 text-center"
+           style="display:none !important; min-height:300px;">
+        <i class="bi bi-book" style="font-size:48px; color:var(--sh-slate-300);"></i>
+        <h3 class="fw-bold mt-3" style="font-size:14px; color:var(--sh-slate-800);">Chưa chọn ghi chú nào</h3>
+        <p class="mb-3" style="font-size:12px; color:var(--sh-slate-500); max-width:300px;">
+          Hãy chọn một ghi chú từ danh sách bên trái hoặc tạo ghi chú mới để bắt đầu học.
+        </p>
+        <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#noteEditorModal">
+          <i class="bi bi-plus-lg"></i>Tạo ghi chú đầu tiên
+        </button>
+      </div>
+
+    </div><!-- /notes-detail-panel -->
+
+  </div><!-- /notes-layout -->
+</div>
+
+<!-- ── Note Editor Modal ── -->
+<div class="modal fade" id="noteEditorModal" tabindex="-1" aria-labelledby="noteEditorModalLabel">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="noteEditorModalLabel" style="font-size:14px;">
+          <i class="bi bi-pencil-square me-2 text-indigo"></i>Chỉnh sửa ghi chú
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="note-editor-form">
+          <!-- Title + Subject -->
+          <div class="row g-3 mb-3">
+            <div class="col-sm-8">
+              <label class="sh-label" for="note-edit-title">Tiêu đề ghi chú</label>
+              <input id="note-edit-title" type="text" class="sh-input"
+                     placeholder="Ví dụ: Định luật Newton, Công thức lượng giác..." />
+            </div>
+            <div class="col-sm-4">
+              <label class="sh-label" for="note-edit-subject">Môn học</label>
+              <select id="note-edit-subject" class="sh-input">
+                <option>Toán</option>
+                <option>Vật lý</option>
+                <option>Hóa học</option>
+                <option>Ngữ văn</option>
+                <option>Tiếng Anh</option>
+                <option>Sinh học</option>
+                <option>Lịch sử</option>
+                <option>Tin học</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Formatting Toolbar -->
+          <div class="d-flex flex-wrap align-items-center gap-1 p-2 mb-2 rounded-3"
+               style="background:var(--sh-slate-50); border:1px solid var(--sh-slate-200);">
+            <button type="button" class="btn-icon-sh" title="In đậm" onclick="applyFormat('**','**')">
+              <i class="bi bi-type-bold"></i>
+            </button>
+            <button type="button" class="btn-icon-sh" title="In nghiêng" onclick="applyFormat('*','*')">
+              <i class="bi bi-type-italic"></i>
+            </button>
+            <button type="button" class="btn-icon-sh" title="Gạch chân" onclick="applyFormat('<u>','</u>')">
+              <i class="bi bi-type-underline"></i>
+            </button>
+            <div style="width:1px; height:20px; background:var(--sh-slate-200); margin:0 4px;"></div>
+            <button type="button" class="btn-icon-sh" title="Tiêu đề H1" onclick="applyFormat('### ')">
+              <i class="bi bi-type-h1"></i>
+            </button>
+            <button type="button" class="btn-icon-sh" title="Tiêu đề H2" onclick="applyFormat('#### ')">
+              <i class="bi bi-type-h2"></i>
+            </button>
+            <div style="width:1px; height:20px; background:var(--sh-slate-200); margin:0 4px;"></div>
+            <button type="button" class="btn-icon-sh" title="Danh sách" onclick="applyFormat('- ')">
+              <i class="bi bi-list-ul"></i>
+            </button>
+            <button type="button" class="btn-icon-sh" title="Đánh số" onclick="applyFormat('1. ')">
+              <i class="bi bi-list-ol"></i>
+            </button>
+            <div style="width:1px; height:20px; background:var(--sh-slate-200); margin:0 4px;"></div>
+            <button type="button" class="btn-icon-sh" id="pin-toggle-btn" title="Ghim lên đầu">
+              <i class="bi bi-pin-angle"></i>
+            </button>
+          </div>
+
+          <!-- Content -->
+          <div class="mb-3">
+            <label class="sh-label" for="note-editor-textarea">Nội dung bài học</label>
+            <textarea id="note-editor-textarea"
+                      class="sh-input font-monospace"
+                      rows="10"
+                      placeholder="Viết nội dung bài học tại đây... Hỗ trợ định dạng tiêu đề, danh sách, công thức..."></textarea>
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <label class="sh-label" for="note-edit-tags">Thẻ từ khóa (phân cách bằng dấu phẩy)</label>
+            <input id="note-edit-tags" type="text" class="sh-input"
+                   placeholder="Ví dụ: Ôn thi giữa kỳ, Công thức, Động lực học" />
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer gap-2">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn-primary-sh"
+                data-bs-dismiss="modal"
+                onclick="showToast('Đã lưu ghi chú thành công!', 'success')">
+          <i class="bi bi-floppy me-1"></i>Lưu ghi chú
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+function applyFormat(prefix, suffix = '') {
+  const ta = document.getElementById('note-editor-textarea');
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const selected = ta.value.substring(s, e) || 'Văn bản mẫu';
+  const replacement = prefix + selected + suffix;
+  ta.value = ta.value.substring(0, s) + replacement + ta.value.substring(e);
+  ta.focus();
+  ta.setSelectionRange(s + prefix.length, s + prefix.length + selected.length);
+}
+</script>
+}
