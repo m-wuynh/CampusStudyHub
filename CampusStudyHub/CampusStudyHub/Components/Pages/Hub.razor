@@ -1,0 +1,211 @@
+@page "/dashboard"
+@page "/subjects"
+@page "/subjects/{SubjectId:int}"
+@page "/calendar"
+@page "/deadlines"
+@page "/documents"
+@page "/study-groups"
+@page "/analytics"
+@page "/profile"
+@page "/settings"
+@page "/admin"
+@page "/admin/users"
+@page "/admin/reports"
+@page "/admin/documents"
+@page "/admin/analytics"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject HubService HubService
+@inject NavigationManager Nav
+@inject IWebHostEnvironment Environment
+@inject ILogger<Hub> Logger
+
+<PageTitle>@Title — Campus Study Hub</PageTitle>
+@if (data is null)
+{
+    <h1>@Title</h1><p role="status">@(error ?? "Đang tải không gian học tập…")</p>
+}
+else
+{
+    <div class="page-heading"><div><span class="eyebrow">HỌC TẬP CÓ KẾ HOẠCH</span><h1>@Title<span class="heading-dot">.</span></h1><p>@Subtitle</p></div><span class="date-pill">@DateTime.Today.ToString("dd / MM / yyyy")</span></div>
+    @if (error is not null) { <div class="notice error" role="alert">@error</div> }
+    @if (message is not null) { <div class="notice" role="status">@message</div> }
+    @if (data.Me.University == "" || data.Me.Faculty == "" || data.Me.Cohort == "")
+    {
+        <div class="notice">Hoàn thiện trường, khoa và khóa học trước khi bắt đầu. <a href="/profile">Cập nhật hồ sơ →</a></div>
+    }
+    @if (section is "profile" or "settings")
+    {
+        <section class="card prose"><h2>@data.Me.Name</h2><p>@data.Me.Email · @(data.Me.IsAdmin ? "Quản trị viên" : "Sinh viên")</p>
+        @if (HubService.SafeUrl(data.Me.Avatar)) { <img class="avatar" src="@data.Me.Avatar" alt="Ảnh đại diện" referrerpolicy="no-referrer" /> }
+        <EditForm Model="profile" OnValidSubmit="SaveProfile"><DataAnnotationsValidator /><ValidationSummary />
+            <label>Trường<InputText @bind-Value="profile.University" /></label><label>Khoa / chuyên ngành<InputText @bind-Value="profile.Faculty" /></label><label>Khóa học<InputText @bind-Value="profile.Cohort" /></label><button disabled="@busy">Lưu hồ sơ</button>
+        </EditForm><hr /><form method="post" action="/auth/logout" data-enhance="false"><AntiforgeryToken /><button class="secondary" type="submit">Đăng xuất</button></form>
+        @if (data.Me.IsAdmin) { <p><a href="/admin">Mở trang quản trị →</a></p> }
+        </section>
+    }
+    else if (section == "admin")
+    {
+        @if (!data.Me.IsAdmin) { <div class="empty"><h2>Bạn không có quyền quản trị</h2><a href="/dashboard">Về tổng quan</a></div> }
+        else
+        {
+            <div class="stats"><article class="card"><span>Người dùng</span><strong>@data.Users.Count</strong></article><article class="card"><span>Báo cáo chưa xử lý</span><strong>@data.Reports.Count(x => x.ResolvedBy is null)</strong></article><article class="card"><span>Tài khoản bị khóa</span><strong>@data.Users.Count(x => x.Suspended)</strong></article></div>
+            <section class="card"><h2>Kiểm duyệt nội dung</h2><label>Lý do xử lý<input @bind="moderationReason" maxlength="1000" placeholder="Nhập lý do trước khi ẩn / khôi phục" /></label>
+            @if (!data.Reports.Any()) { <p class="muted">Chưa có báo cáo nào.</p> }
+            @foreach (var report in data.Reports)
+            {
+                <div class="list-row"><div><b>@report.Item.Title</b><p>@report.Reason</p><small>@(report.Item.Hidden ? "Đang ẩn" : "Đang hiển thị") · @report.Resolution</small></div><div class="actions"><button disabled="@busy" @onclick="() => Run(() => HubService.Moderate(report.Id, moderationReason, true))">Ẩn</button><button class="secondary" disabled="@busy" @onclick="() => Run(() => HubService.Moderate(report.Id, moderationReason, false))">Khôi phục / bỏ báo cáo</button></div></div>
+            }</section>
+            <section class="card"><h2>Người dùng</h2><label>Tìm tên, email, trường hoặc khoa<input @bind="search" @bind:event="oninput" /></label>
+            @foreach (var user in data.Users.Where(x => $"{x.Name} {x.Email} {x.University} {x.Faculty}".Contains(search, StringComparison.OrdinalIgnoreCase)))
+            {
+                <div class="list-row"><div><b>@user.Name</b><p>@user.Email · @user.University · @(user.IsAdmin ? "admin" : "student")</p></div>@if (user.Id != data.Me.Id) { <button class="secondary" disabled="@busy" @onclick="() => Run(() => HubService.Suspend(user.Id))">@(user.Suspended ? "Mở khóa" : "Khóa tài khoản")</button> }</div>
+            }</section>
+        }
+    }
+    else if (section is "dashboard" or "analytics")
+    {
+        var deadlines = data.Items.Where(x => x.Kind == "deadline").ToList();
+        var pending = deadlines.Where(x => !x.Done).OrderBy(x => x.When).ToList();
+        var weekStart = DateTime.Today.AddDays(-((int)DateTime.Today.DayOfWeek + 6) % 7);
+        var completed = deadlines.Where(x => x.CompletedAt >= weekStart && x.CompletedAt < weekStart.AddDays(7)).ToList();
+        <div class="stats"><article class="card"><span>Môn đang học</span><strong>@data.Subjects.Count <small>môn</small></strong><a href="/subjects">Không gian lớp học ↗</a></article><article class="card"><span>Việc chưa hoàn thành</span><strong>@pending.Count <small>deadline</small></strong><a href="/deadlines">@pending.Count(x => x.When < DateTime.Now) việc quá hạn ↗</a></article><article class="card"><span>Hoàn thành tuần này</span><strong>@completed.Count <small>nhiệm vụ</small></strong><span class="muted">@(completed.Count == 0 ? "—" : $"{completed.Count(x => x.CompletedAt <= x.When) * 100 / completed.Count}%") đúng hạn</span></article><article class="card"><span>Lịch học mỗi tuần</span><strong>@data.Items.Where(x => x.Kind == "schedule").Sum(x => x.Hours) <small>giờ</small></strong><a href="/calendar">Xem lịch học ↗</a></article></div>
+        <div class="dashboard-grid"><section class="card"><div class="section-heading"><h2>Ưu tiên tiếp theo</h2><a href="/deadlines">Xem tất cả →</a></div>
+            @if (!pending.Any()) { <div class="empty">Bạn đã hoàn thành mọi deadline. Thêm nhiệm vụ mới khi cần nhé.</div> }
+            @foreach (var item in pending.Take(5)) { <div class="list-row"><div><span class="tag">@item.Subject.Code</span><h3>@item.Title</h3><small class="@(item.When < DateTime.Now ? "danger" : "muted")">@item.When.ToString("dd/MM/yyyy HH:mm") · @(item.When < DateTime.Now ? "Quá hạn" : item.When < DateTime.Now.AddDays(2) ? "Sắp đến hạn" : "Sắp tới")</small></div><button class="secondary" disabled="@busy" @onclick='() => Run(() => HubService.Act(item.Id, "done"))'>✓ Xong</button></div> }
+        </section><section class="card accent-card"><span class="eyebrow">TIẾT HỌC TIẾP THEO</span>
+            @{ var next = data.Items.Where(x => x.Kind == "schedule").OrderBy(NextClass).FirstOrDefault(); }
+            @if (next is not null) { <h2>@next.Title</h2><p>@NextClass(next).ToString("dd/MM • HH:mm")</p><p>@next.Subject.Name</p><span>@next.Hours giờ · lặp mỗi tuần</span> } else { <h2>Lịch học đang trống</h2><p>Thêm lịch để bắt đầu một tuần có kế hoạch.</p> }
+            <a href="/calendar" class="button secondary">Mở lịch học →</a>
+        </section></div>
+        <div class="dashboard-grid"><section class="card"><h2>Tài liệu mới trong lớp</h2>@foreach (var item in data.Items.Where(x => x.Kind == "document").OrderByDescending(x => x.CreatedAt).Take(4)) { <div class="list-row"><div><b>@item.Title</b><p>@item.Subject.Name</p></div><a href="@($"/documents/{item.Id}/open")" target="_blank" rel="noopener">Mở ↗</a></div> }<a href="/documents">Đến kho tài liệu →</a></section><section class="card"><h2>Cùng nhau học tốt hơn</h2>@foreach (var group in data.Items.Where(x => x.Kind == "group").Take(3)) { <p><b>@group.Title</b><br /><span class="muted">@group.Subject.Name</span></p> }<a href="/study-groups">Khám phá nhóm học →</a></section></div>
+        @if (section == "analytics") { <section class="card"><h2>Hoạt động gần đây</h2><p class="muted">100 sự kiện mới nhất của tài khoản. Giờ sự kiện hiển thị theo máy chủ.</p>@foreach (var ev in data.Events.Take(30)) { <div class="list-row"><span>@ev.Name</span><small>@ev.At.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></div> }</section> }
+    }
+    else if (section == "subjects" && SubjectId is null)
+    {
+        <div class="toolbar"><button @onclick="() => subjectDraft = new()">+ Tạo môn học</button><label>Mã tham gia lớp<input @bind="inviteCode" placeholder="Ví dụ: CAMPUSDEMO" /></label><button class="secondary" disabled="@busy" @onclick="() => Run(() => HubService.JoinSubject(inviteCode))">Tham gia</button></div>
+        @if (subjectDraft is not null)
+        {
+            <section class="card"><h2>@(subjectDraft.Id == 0 ? "Môn học mới" : "Chỉnh sửa môn học")</h2><EditForm Model="subjectDraft" OnValidSubmit="SaveSubject"><DataAnnotationsValidator /><ValidationSummary /><div class="form-grid"><label>Tên môn<InputText @bind-Value="subjectDraft.Name" /></label><label>Mã môn<InputText @bind-Value="subjectDraft.Code" /></label><label>Giảng viên<InputText @bind-Value="subjectDraft.Lecturer" /></label><label>Lớp<InputText @bind-Value="subjectDraft.ClassName" /></label><label>Màu đại diện<input type="color" @bind="subjectDraft.Color" /></label></div><div class="actions"><button disabled="@busy">Lưu môn học</button><button type="button" class="secondary" @onclick="() => subjectDraft = null">Hủy</button></div></EditForm></section>
+        }
+        <div class="cards">@foreach (var subject in data.Subjects) { <article class="card subject-card" style="border-top-color:@subject.Color"><span class="tag">@subject.Code</span><h2><a href="@($"/subjects/{subject.Id}")">@subject.Name</a></h2><p>@subject.Lecturer · @subject.ClassName</p><p class="small">Mã mời: <b>@subject.InviteCode</b></p>@if (subject.OwnerId == data.Me.Id) { <button class="secondary" @onclick="() => EditSubject(subject)">Chỉnh sửa</button> }</article> }</div>
+        @if (!data.Subjects.Any()) { <div class="empty">Chưa có môn học. Tạo môn đầu tiên hoặc nhập mã do bạn cùng lớp chia sẻ.</div> }
+    }
+    else
+    {
+        @if (SubjectId is not null) { <div class="notice">Lịch, deadline, tài liệu và nhóm của @data.Subjects.FirstOrDefault(x => x.Id == SubjectId)?.Name. <a href="/subjects">← Tất cả môn</a></div> }
+        <div class="toolbar"><label>Tìm kiếm<input @bind="search" @bind:event="oninput" placeholder="Tên hoặc ghi chú…" /></label><label>Môn học<select @bind="filterSubject"><option value="0">Tất cả môn học</option>@foreach (var subject in data.Subjects) { <option value="@subject.Id">@subject.Name</option> }</select></label>
+        @if (section == "documents") { <label>Loại<select @bind="filterType"><option value="">Tất cả</option><option>Bài giảng</option><option>Đề thi</option><option>Tham khảo</option></select></label> }
+        @if (section is "documents" or "study-groups") { <label class="check"><input type="checkbox" @bind="onlySaved" /> Đã lưu</label> }
+        @if (section == "calendar") { <label>Ngày<input type="date" @bind="calendarDate" /></label><label>Chế độ<select @bind="calendarView"><option value="day">Ngày</option><option value="week">Tuần</option><option value="month">Tháng</option></select></label> }
+        <button @onclick="NewItem" disabled="@(!data.Subjects.Any())">+ Thêm mới</button></div>
+        @if (draft is not null)
+        {
+            <section class="card"><h2>@(draft.Id == 0 ? "Thêm nội dung" : "Chỉnh sửa")</h2><EditForm Model="draft" OnValidSubmit="SaveItem"><DataAnnotationsValidator /><ValidationSummary /><div class="form-grid">
+                @if (SubjectId is not null && draft.Id == 0) { <label>Loại<select @bind="draft.Kind"><option value="deadline">Deadline</option><option value="schedule">Lịch học</option><option value="document">Tài liệu</option><option value="group">Nhóm học</option></select></label> }
+                <label>Môn học<InputSelect @bind-Value="draft.SubjectId">@foreach (var subject in data.Subjects) { <option value="@subject.Id">@subject.Name</option> }</InputSelect></label><label>Tiêu đề<InputText @bind-Value="draft.Title" /></label>
+                @if (draft.Kind != "document") { <label>Ngày và giờ (giờ địa phương)<input type="datetime-local" @bind="draft.When" /></label> }
+                @if (draft.Kind == "schedule") { <label>Số giờ / buổi<InputNumber @bind-Value="draft.Hours" /></label><p class="muted">Lặp hằng tuần từ ngày đã chọn. Ghi phòng học vào tiêu đề hoặc ghi chú.</p> }
+                @if (draft.Kind is "document" or "group") { <label>@(draft.Kind == "document" ? "Liên kết tài liệu" : "Liên kết liên hệ / phòng học")<InputText @bind-Value="draft.Url" placeholder="https://…" /></label> }
+                @if (draft.Kind == "document") { <label>Loại tài liệu<InputSelect @bind-Value="draft.DocumentType"><option>Bài giảng</option><option>Đề thi</option><option>Tham khảo</option></InputSelect></label><label>File PDF, TXT, DOCX, PPTX (tối đa 10 MB)<InputFile OnChange="SelectFile" accept=".pdf,.txt,.docx,.pptx" /></label> }
+                @if (draft.Kind == "group") { <label>Số thành viên (bao gồm chủ nhóm)<InputNumber @bind-Value="draft.Capacity" /></label> }
+                <label class="wide">@(draft.Kind == "group" ? "Mục tiêu, hình thức online/offline và cách liên hệ" : "Ghi chú")<InputTextArea @bind-Value="draft.Notes" /></label>
+            </div><div class="actions"><button disabled="@busy">@(busy ? "Đang lưu…" : "Lưu nội dung")</button><button type="button" class="secondary" @onclick="() => draft = null">Hủy</button></div></EditForm></section>
+        }
+        @if (reportItem is not null) { <section class="card"><h2>Báo cáo: @reportItem.Title</h2><label>Lý do<textarea @bind="reportReason" maxlength="1000"></textarea></label><div class="actions"><button disabled="@busy" @onclick="SendReport">Gửi báo cáo</button><button class="secondary" @onclick="() => reportItem = null">Hủy</button></div></section> }
+        @if (deleteItem is not null) { <section class="notice"><p>Ẩn “@deleteItem.Title” khỏi danh sách?</p><button disabled="@busy" @onclick="DeleteItem">Xác nhận ẩn</button><button class="secondary" @onclick="() => deleteItem = null">Hủy</button></section> }
+        @if (section == "calendar")
+        {
+            <div class="calendar-grid">@foreach (var day in CalendarDays()) { <section class="card calendar-day"><h3>@day.ToString("ddd, dd/MM", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))</h3>@foreach (var item in Filtered().Where(x => OccursOn(x, day))) { <div class="calendar-event"><span class="tag">@item.Subject.Code</span><b>@item.When.ToString("HH:mm") · @item.Title</b><small>@(item.Kind == "schedule" ? "Lịch lặp hằng tuần" : "Deadline")</small><button class="secondary" @onclick="() => EditItem(item)">Sửa</button><button class="secondary" @onclick="() => deleteItem = item">Ẩn</button></div> }</section> }</div>
+        }
+        else
+        {
+            var visible = Filtered().ToList();
+            @if (!visible.Any()) { <div class="empty"><span class="icon-tile">◫</span><h2>Chưa có nội dung phù hợp</h2><p>Thử đổi bộ lọc hoặc thêm nội dung đầu tiên cho môn học của bạn.</p></div> }
+            <div class="item-list">@foreach (var item in visible.Take(pageSize))
+            {
+                <article class="card"><div class="section-heading"><span class="tag">@item.Subject.Code · @KindLabel(item.Kind)</span>@if (item.Done) { <span class="tag green">Đã hoàn thành</span> }</div><h2>@item.Title</h2><p class="pre-line">@item.Notes</p>
+                @if (item.Kind != "document") { <p class="small @(item.Kind == "deadline" && !item.Done && item.When < DateTime.Now ? "danger" : "muted")">@item.When.ToString("dd/MM/yyyy HH:mm") @(item.Kind == "schedule" ? "· lặp hằng tuần" : "")</p> }
+                @if (item.Kind == "document") { <p class="small muted">@item.DocumentType · @item.Views lượt mở · @item.Downloads lượt tải</p> }
+                <div class="actions">
+                @if (item.Kind == "deadline") { <button disabled="@busy" @onclick='() => Run(() => HubService.Act(item.Id, "done"))'>@(item.Done ? "Đánh dấu chưa xong" : "✓ Hoàn thành")</button> }
+                @if (item.Kind == "document") { <a class="button" href="@($"/documents/{item.Id}/open")" target="_blank" rel="noopener">Mở tài liệu ↗</a>@if (item.FilePath != "") { <a class="button secondary" href="@($"/documents/{item.Id}/open?download=true")" target="_blank" rel="noopener">Tải file</a> } }
+                @if (item.Kind == "group") { <span class="tag">@(1 + data.Requests.Count(x => x.ItemId == item.Id && x.Status == "accepted")) / @item.Capacity thành viên</span>@if (item.OwnerId != data.Me.Id) { var request = data.Requests.FirstOrDefault(x => x.ItemId == item.Id && x.StudentId == data.Me.Id); <button disabled="@(busy || request is not null)" @onclick='() => Run(() => HubService.Act(item.Id, "join"))'>@(request is null ? "Xin tham gia" : RequestLabel(request.Status))</button> }@if (HubService.SafeUrl(item.Url)) { <a href="@item.Url" target="_blank" rel="noopener">Liên hệ ↗</a> } }
+                @if (item.Kind is "document" or "group") { <button class="secondary" disabled="@busy" @onclick='() => Run(() => HubService.Act(item.Id, "bookmark"))'>@(data.Bookmarks.Contains(item.Id) ? "★ Đã lưu" : "☆ Lưu")</button><button class="secondary" @onclick="() => reportItem = item">Báo cáo</button> }
+                @if (item.OwnerId == data.Me.Id) { <button class="secondary" @onclick="() => EditItem(item)">Sửa</button><button class="secondary" @onclick="() => deleteItem = item">Ẩn</button> }
+                </div>
+                @if (item.Kind == "group" && item.OwnerId == data.Me.Id) { @foreach (var request in data.Requests.Where(x => x.ItemId == item.Id && x.Status == "pending")) { <div class="list-row"><span>Yêu cầu từ @request.StudentId</span><div class="actions"><button disabled="@busy" @onclick="() => Run(() => HubService.ReviewRequest(item.Id, request.StudentId, true))">Duyệt</button><button class="secondary" disabled="@busy" @onclick="() => Run(() => HubService.ReviewRequest(item.Id, request.StudentId, false))">Từ chối</button></div></div> } }
+                </article>
+            }</div>
+            @if (visible.Count > pageSize) { <button class="secondary" @onclick="() => pageSize += 20">Xem thêm</button> }
+        }
+    }
+}
+
+@code {
+    [Parameter] public int? SubjectId { get; set; }
+    private HubSnapshot? data;
+    private Student profile = new();
+    private Subject? subjectDraft;
+    private StudyItem? draft, reportItem, deleteItem;
+    private IBrowserFile? upload;
+    private string section = "dashboard", search = "", inviteCode = "", filterType = "", calendarView = "week", reportReason = "", moderationReason = "";
+    private string? error, message;
+    private bool busy, onlySaved;
+    private int filterSubject, pageSize = 20;
+    private DateTime calendarDate = DateTime.Today;
+    private string Title => section switch { "dashboard" => $"Chào {data?.Me.Name ?? "bạn"}", "subjects" => "Môn học của tôi", "calendar" => "Lịch học", "deadlines" => "Deadline", "documents" => "Kho tài liệu", "study-groups" => "Tìm bạn cùng học", "analytics" => "Thống kê học tập", "profile" => "Hồ sơ sinh viên", "settings" => "Cài đặt tài khoản", "admin" => "Quản trị hệ thống", _ => "Campus Study Hub" };
+    private string Subtitle => section == "dashboard" ? "Một ngày mới, thêm một bước tiến. Đây là kế hoạch học tập của bạn." : "Mọi thứ bạn cần, được sắp xếp trong một không gian.";
+    protected override async Task OnParametersSetAsync()
+    {
+        section = Nav.ToBaseRelativePath(Nav.Uri).Split('/')[0].Split('?')[0];
+        filterSubject = SubjectId ?? 0; search = ""; draft = null; subjectDraft = null; reportItem = null; deleteItem = null; error = null; message = null;
+        await Load();
+    }
+    private async Task Load()
+    {
+        try { data = await HubService.Load(); profile = new Student { University = data.Me.University, Faculty = data.Me.Faculty, Cohort = data.Me.Cohort }; }
+        catch (UnauthorizedAccessException ex) { data = null; error = ex.Message; }
+        catch (Exception ex) { Logger.LogError(ex, "Load failed"); error = "Không tải được dữ liệu. Hãy tải lại trang."; }
+    }
+    private async Task Run(Func<Task> action)
+    {
+        if (busy) return; busy = true; error = null; message = null;
+        try { await action(); await Load(); message = "Đã cập nhật thành công."; }
+        catch (ValidationException ex) { error = ex.Message; }
+        catch (UnauthorizedAccessException) { error = "Bạn không có quyền thực hiện thao tác này. Hãy kiểm tra tài khoản."; }
+        catch (Exception ex) { Logger.LogError(ex, "Operation failed"); error = "Không thể lưu thay đổi. Dữ liệu có thể đã thay đổi; hãy tải lại và thử lại."; }
+        finally { busy = false; }
+    }
+    private Task SaveProfile() => Run(() => HubService.Profile(profile));
+    private Task SaveSubject() => Run(async () => { await HubService.SaveSubject(subjectDraft!); subjectDraft = null; });
+    private void EditSubject(Subject s) => subjectDraft = new() { Id = s.Id, Name = s.Name, Code = s.Code, Lecturer = s.Lecturer, ClassName = s.ClassName, Color = s.Color };
+    private void NewItem() { upload = null; draft = new() { SubjectId = filterSubject != 0 ? filterSubject : data!.Subjects.First().Id, Kind = section switch { "calendar" => "schedule", "documents" => "document", "study-groups" => "group", _ => "deadline" } }; }
+    private void EditItem(StudyItem i) { upload = null; draft = new() { Id = i.Id, SubjectId = i.SubjectId, Kind = i.Kind, Title = i.Title, Notes = i.Notes, When = i.When, Hours = i.Hours, Url = i.Url, Capacity = i.Capacity, DocumentType = i.DocumentType }; }
+    private void SelectFile(InputFileChangeEventArgs e) { upload = e.File; }
+    private Task SaveItem() => Run(async () =>
+    {
+        string? path = null;
+        try
+        {
+            if (upload is not null && draft!.Kind == "document")
+            {
+                var extension = Path.GetExtension(upload.Name).ToLowerInvariant();
+                if (!new[] { ".pdf", ".txt", ".docx", ".pptx" }.Contains(extension) || upload.Size > 10 * 1024 * 1024) throw new ValidationException("File phải là PDF, TXT, DOCX hoặc PPTX, tối đa 10 MB.");
+                var directory = Path.Combine(Environment.ContentRootPath, "App_Data", "uploads"); Directory.CreateDirectory(directory);
+                path = Path.Combine(directory, Guid.NewGuid().ToString("N") + extension);
+                await using (var target = File.Create(path)) { await using var source = upload.OpenReadStream(10 * 1024 * 1024); await source.CopyToAsync(target); }
+            }
+            await HubService.SaveItem(draft!, path is null ? null : Path.GetFileName(path), upload is null ? null : Path.GetFileName(upload.Name));
+            draft = null; upload = null;
+        }
+        catch { if (path is not null && File.Exists(path)) File.Delete(path); throw; }
+    });
+    private Task SendReport() => Run(async () => { await HubService.Act(reportItem!.Id, "report", reportReason); reportItem = null; reportReason = ""; });
+    private Task DeleteItem() => Run(async () => { await HubService.Act(deleteItem!.Id, "delete"); deleteItem = null; });
+    private IEnumerable<StudyItem> Filtered() => data!.Items.Where(x => (filterSubject == 0 || x.SubjectId == filterSubject) && (SubjectId is not null || section switch { "calendar" => x.Kind is "schedule" or "deadline", "deadlines" => x.Kind == "deadline", "documents" => x.Kind == "document", "study-groups" => x.Kind == "group", _ => true }) && (x.Title + " " + x.Notes).Contains(search, StringComparison.OrdinalIgnoreCase) && (filterType == "" || section != "documents" || x.DocumentType == filterType) && (!onlySaved || section is not ("documents" or "study-groups") || data.Bookmarks.Contains(x.Id))).OrderBy(x => x.Done).ThenBy(x => x.When);
+    private IEnumerable<DateTime> CalendarDays() { var start = calendarView == "month" ? new DateTime(calendarDate.Year, calendarDate.Month, 1) : calendarView == "week" ? calendarDate.AddDays(-((int)calendarDate.DayOfWeek + 6) % 7) : calendarDate; return Enumerable.Range(0, calendarView == "month" ? DateTime.DaysInMonth(start.Year, start.Month) : calendarView == "week" ? 7 : 1).Select(x => start.AddDays(x)); }
+    private static bool OccursOn(StudyItem item, DateTime day) => item.Kind == "schedule" ? day.Date >= item.When.Date && day.DayOfWeek == item.When.DayOfWeek : item.When.Date == day.Date;
+    private static DateTime NextClass(StudyItem item) { var next = item.When; if (next >= DateTime.Now) return next; var weeks = Math.Floor((DateTime.Now - next).TotalDays / 7); next = next.AddDays(weeks * 7); return next < DateTime.Now ? next.AddDays(7) : next; }
+    private static string KindLabel(string kind) => kind switch { "deadline" => "Deadline", "schedule" => "Lịch học", "document" => "Tài liệu", _ => "Nhóm học" };
+    private static string RequestLabel(string status) => status switch { "accepted" => "Đã tham gia", "rejected" => "Đã từ chối", _ => "Đang chờ duyệt" };
+}

@@ -1,0 +1,10 @@
+@page "/privacy"
+@page "/terms"
+@page "/pricing"
+@inject NavigationManager Nav
+<PageTitle>Thông tin — Campus Study Hub</PageTitle>
+<section class="card prose">
+@if (Nav.Uri.Contains("privacy")) { <h1>Chính sách riêng tư · bản mẫu</h1><p>Ứng dụng lưu tên, email, ảnh từ Google và hồ sơ bạn cung cấp để quản lý việc học. Lịch và deadline là dữ liệu cá nhân. Tài liệu và nhóm học được chia sẻ với thành viên môn học. Admin được xem tài khoản và nội dung báo cáo để kiểm duyệt.</p><p>Hoạt động như đăng nhập, hoàn thành deadline và tải tài liệu được lưu để thống kê. Không lưu mật khẩu Google. Liên hệ người quản trị triển khai để yêu cầu xuất hoặc xóa dữ liệu.</p><p>Trước khi công khai, nhóm triển khai cần bổ sung thông tin đơn vị vận hành, địa chỉ liên hệ, thời hạn lưu dữ liệu và quy trình xử lý yêu cầu.</p> }
+else if (Nav.Uri.Contains("terms")) { <h1>Điều khoản sử dụng · bản mẫu</h1><p>Chỉ đăng tài liệu bạn có quyền chia sẻ. Không đăng nội dung vi phạm, dữ liệu cá nhân của người khác hoặc đường dẫn độc hại. Người quản trị có thể ẩn nội dung bị báo cáo và khóa tài khoản vi phạm.</p><p>Ứng dụng hỗ trợ tổ chức học tập; người dùng cần tự kiểm tra lịch và thời hạn chính thức từ trường. Nhóm triển khai cần hoàn thiện điều khoản và kênh liên hệ trước khi đưa vào sử dụng công khai.</p> }
+else { <h1>Học tập cơ bản, miễn phí</h1><p>Môn học, lịch, deadline, tài liệu và nhóm học được sử dụng miễn phí trong phiên bản này. Chưa triển khai gói trả phí hoặc thanh toán.</p><a class="button" href="/login">Bắt đầu →</a> }
+</section>
