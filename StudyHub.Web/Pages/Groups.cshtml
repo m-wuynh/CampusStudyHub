@@ -1,0 +1,439 @@
+@page
+@model GroupsModel
+@{
+    ViewData["Title"]        = "Nhóm học tập";
+    ViewData["PageTitle"]    = "Nhóm học tập";
+    ViewData["PageSubtitle"] = "Cùng trao đổi kiến thức với bạn cùng lớp";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<div id="groups-view" style="max-width:1280px; margin:0 auto;">
+
+  <!-- ── Header ── -->
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-black mb-0 tracking-tight" style="font-size:20px; color:var(--sh-slate-900);">Nhóm học tập của tôi</h2>
+      <p class="mb-0" style="font-size:12px; color:var(--sh-slate-500);">3 nhóm đang tham gia · Cùng ôn tập và chia sẻ tài liệu</p>
+    </div>
+    <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#newGroupModal">
+      <i class="bi bi-plus-lg"></i>Tạo nhóm mới
+    </button>
+  </div>
+
+  <!-- ── Tabs ── -->
+  <ul class="nav nav-tabs mb-4" style="border-bottom:2px solid var(--sh-slate-200);">
+    <li class="nav-item">
+      <button class="nav-link active fw-bold px-4"
+              style="font-size:12px; color:var(--sh-indigo-600); border-bottom:2px solid var(--sh-indigo-600); border-top:0; border-left:0; border-right:0; background:transparent;"
+              onclick="switchTab(this,'my-groups')">
+        Nhóm của tôi (3)
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link fw-semibold px-4"
+              style="font-size:12px; color:var(--sh-slate-500); border:0; background:transparent;"
+              onclick="switchTab(this,'discover-groups')">
+        Khám phá nhóm
+      </button>
+    </li>
+  </ul>
+
+  <!-- My Groups -->
+  <div id="my-groups">
+    <div class="row g-4">
+
+      <!-- Group 1 -->
+      <div class="col-12 col-lg-6">
+        <div class="sh-card overflow-hidden">
+          <!-- Group Header -->
+          <div class="p-4" style="background:linear-gradient(135deg,#eef2ff,#e0e7ff); border-bottom:1px solid var(--sh-slate-200);">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="subject-badge subject-toan">Toán</span>
+                  <span class="px-2 py-0 rounded-full fw-bold"
+                        style="font-size:10px; background:rgba(79,70,229,.1); color:var(--sh-indigo-700);">
+                    Trưởng nhóm
+                  </span>
+                </div>
+                <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">Toán Chuyên sâu 11A1</h3>
+                <p class="mb-0 mt-1" style="font-size:11px; color:var(--sh-slate-600);">Ôn luyện và giải đề thi thử giữa kỳ cho lớp 11A1</p>
+              </div>
+              <div class="dropdown">
+                <button class="btn-icon-sh" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" style="font-size:12px;">
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Chỉnh sửa nhóm</a></li>
+                  <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i>Rời nhóm</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4">
+            <!-- Stats -->
+            <div class="d-flex align-items-center gap-4 mb-4" style="font-size:11px; color:var(--sh-slate-500);">
+              <span class="d-flex align-items-center gap-1"><i class="bi bi-people"></i>8 thành viên</span>
+              <span class="d-flex align-items-center gap-1"><i class="bi bi-file-earmark-text"></i>12 tài liệu</span>
+              <span class="d-flex align-items-center gap-1"><i class="bi bi-layers"></i>5 bộ thẻ</span>
+            </div>
+
+            <!-- Members -->
+            <div class="d-flex align-items-center gap-2 mb-4">
+              <div class="d-flex" style="margin-right:4px;">
+                @foreach (var i in new[] {
+                  "photo-1534528741775-53994a69daeb",
+                  "photo-1535713875002-d1d0cf377fde",
+                  "photo-1438761681033-6461ffad8d80",
+                  "photo-1580489944761-15a19d654956"
+                })
+                {
+                  <img src="https://images.unsplash.com/@(i)?w=60&auto=format&fit=crop"
+                       class="rounded-circle object-fit-cover"
+                       style="width:28px;height:28px;border:2px solid #fff;margin-left:-8px;"
+                       alt="Member" />
+                }
+              </div>
+              <span style="font-size:11px; color:var(--sh-slate-500);">+4 thành viên khác</span>
+            </div>
+
+            <!-- Latest Announcement -->
+            <div class="p-3 rounded-3 mb-3"
+                 style="background:var(--sh-indigo-50); border:1px solid var(--sh-indigo-200);">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&auto=format&fit=crop"
+                     class="rounded-circle" style="width:20px;height:20px;object-fit:cover;" alt="" />
+                <span class="fw-bold" style="font-size:11px; color:var(--sh-indigo-800);">Nguyễn Minh Anh</span>
+                <span style="font-size:10px; color:var(--sh-slate-400);">• hôm nay</span>
+              </div>
+              <p class="mb-0" style="font-size:11px; color:var(--sh-indigo-700);">
+                📢 Nhóm mình họp vào CN 13/09 lúc 14h để ôn đề thi thử giữa kỳ. Mọi người chuẩn bị chương 1-3 nhé!
+              </p>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button class="btn-primary-sh flex-grow-1 justify-content-center"
+                      data-bs-toggle="modal" data-bs-target="#groupDetailModal">
+                <i class="bi bi-arrow-right-circle"></i>Vào nhóm
+              </button>
+              <button class="join-group-btn btn-secondary-sh"
+                      data-member="true">
+                Đã tham gia
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group 2 -->
+      <div class="col-12 col-lg-6">
+        <div class="sh-card overflow-hidden">
+          <div class="p-4" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5); border-bottom:1px solid var(--sh-slate-200);">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="subject-badge subject-hoahoc">Hóa học</span>
+                  <span class="px-2 py-0 rounded-full fw-bold"
+                        style="font-size:10px; background:rgba(16,185,129,.12); color:var(--sh-emerald-700);">
+                    Thành viên
+                  </span>
+                </div>
+                <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">Hóa học hữu cơ – Nhóm ôn thi</h3>
+                <p class="mb-0 mt-1" style="font-size:11px; color:var(--sh-slate-600);">Ôn tập Hóa hữu cơ, giải bài tập theo chủ đề</p>
+              </div>
+              <div class="dropdown">
+                <button class="btn-icon-sh" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" style="font-size:12px;">
+                  <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i>Rời nhóm</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <div class="d-flex gap-4 mb-4" style="font-size:11px; color:var(--sh-slate-500);">
+              <span><i class="bi bi-people me-1"></i>12 thành viên</span>
+              <span><i class="bi bi-file-earmark-text me-1"></i>8 tài liệu</span>
+            </div>
+            <div class="p-3 rounded-3 mb-3"
+                 style="background:var(--sh-emerald-50); border:1px solid var(--sh-emerald-200);">
+              <p class="mb-0" style="font-size:11px; color:var(--sh-emerald-700);">
+                📚 Đã cập nhật bài giải mới cho chủ đề Polymer. Mọi người tham khảo nhé!
+              </p>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn-primary-sh flex-grow-1 justify-content-center"
+                      data-bs-toggle="modal" data-bs-target="#groupDetailModal">
+                <i class="bi bi-arrow-right-circle"></i>Vào nhóm
+              </button>
+              <button class="join-group-btn btn-secondary-sh" data-member="true">Đã tham gia</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group 3 -->
+      <div class="col-12 col-lg-6">
+        <div class="sh-card overflow-hidden">
+          <div class="p-4" style="background:linear-gradient(135deg,#fffbeb,#fef3c7); border-bottom:1px solid var(--sh-slate-200);">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="subject-badge subject-tienganh">Tiếng Anh</span>
+                  <span class="px-2 py-0 rounded-full fw-bold"
+                        style="font-size:10px; background:rgba(245,158,11,.15); color:var(--sh-amber-700);">
+                    Thành viên
+                  </span>
+                </div>
+                <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">Tiếng Anh – IELTS Prep Group</h3>
+                <p class="mb-0 mt-1" style="font-size:11px; color:var(--sh-slate-600);">Luyện 4 kỹ năng và chia sẻ tài liệu IELTS</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <div class="d-flex gap-4 mb-4" style="font-size:11px; color:var(--sh-slate-500);">
+              <span><i class="bi bi-people me-1"></i>20 thành viên</span>
+              <span><i class="bi bi-file-earmark-text me-1"></i>25 tài liệu</span>
+            </div>
+            <div class="p-3 rounded-3 mb-3"
+                 style="background:var(--sh-amber-50); border:1px solid var(--sh-amber-200);">
+              <p class="mb-0" style="font-size:11px; color:var(--sh-amber-700);">
+                🎧 Luyện listening với đề Cambridge 17 – Mời cả nhóm cùng thử!
+              </p>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn-primary-sh flex-grow-1 justify-content-center"
+                      data-bs-toggle="modal" data-bs-target="#groupDetailModal">
+                <i class="bi bi-arrow-right-circle"></i>Vào nhóm
+              </button>
+              <button class="join-group-btn btn-secondary-sh" data-member="true">Đã tham gia</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /my-groups -->
+
+  <!-- Discover Groups -->
+  <div id="discover-groups" style="display:none;">
+    <div class="row g-4">
+      <!-- Discover cards with join buttons -->
+      <div class="col-12 col-sm-6 col-xl-4">
+        <div class="sh-card p-4 h-100 d-flex flex-column">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="subject-badge subject-vatly">Vật lý</span>
+            <span style="font-size:10px; color:var(--sh-slate-400);">46 thành viên</span>
+          </div>
+          <h3 class="fw-bold mb-1" style="font-size:14px;">Vật lý Cơ học – Nhóm luyện đề</h3>
+          <p class="mb-3" style="font-size:11px; color:var(--sh-slate-500); flex-grow:1;">
+            Tập trung giải đề thi cơ học, điện học và quang học.
+          </p>
+          <button class="join-group-btn btn-primary-sh w-100 justify-content-center" data-member="false">
+            Tham gia
+          </button>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-xl-4">
+        <div class="sh-card p-4 h-100 d-flex flex-column">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="subject-badge subject-lichsu">Lịch sử</span>
+            <span style="font-size:10px; color:var(--sh-slate-400);">15 thành viên</span>
+          </div>
+          <h3 class="fw-bold mb-1" style="font-size:14px;">Lịch sử Việt Nam – Ôn thi THPTQG</h3>
+          <p class="mb-3" style="font-size:11px; color:var(--sh-slate-500); flex-grow:1;">
+            Ôn tập lịch sử theo chủ đề, giai đoạn và sự kiện quan trọng.
+          </p>
+          <button class="join-group-btn btn-primary-sh w-100 justify-content-center" data-member="false">
+            Tham gia
+          </button>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-xl-4">
+        <div class="sh-card p-4 h-100 d-flex flex-column">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="subject-badge subject-sinhhoc">Sinh học</span>
+            <span style="font-size:10px; color:var(--sh-slate-400);">22 thành viên</span>
+          </div>
+          <h3 class="fw-bold mb-1" style="font-size:14px;">Sinh học – Di truyền và Tiến hóa</h3>
+          <p class="mb-3" style="font-size:11px; color:var(--sh-slate-500); flex-grow:1;">
+            Chuyên sâu về di truyền học, gen và cơ chế tiến hóa.
+          </p>
+          <button class="join-group-btn btn-primary-sh w-100 justify-content-center" data-member="false">
+            Tham gia
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Group Detail Modal ── -->
+<div class="modal fade" id="groupDetailModal" tabindex="-1" aria-labelledby="groupDetailModalLabel">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#eef2ff,#e0e7ff);">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="subject-badge subject-toan">Toán</span>
+          </div>
+          <h5 class="modal-title fw-bold" id="groupDetailModalLabel" style="font-size:16px; color:var(--sh-slate-900);">
+            Toán Chuyên sâu 11A1
+          </h5>
+          <p class="mb-0" style="font-size:11px; color:var(--sh-slate-600);">8 thành viên · Tạo ngày 01/08/2026</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="row g-4">
+          <!-- Announcements -->
+          <div class="col-12 col-lg-7">
+            <h6 class="fw-bold mb-3" style="font-size:12px; color:var(--sh-slate-500); text-transform:uppercase; letter-spacing:.06em;">
+              Thông báo nhóm
+            </h6>
+            <div class="space-y-3">
+              <div class="p-3 rounded-3" style="background:var(--sh-indigo-50); border:1px solid var(--sh-indigo-200);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&auto=format&fit=crop"
+                       class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" alt="" />
+                  <span class="fw-bold" style="font-size:12px; color:var(--sh-indigo-800);">Nguyễn Minh Anh (Trưởng nhóm)</span>
+                  <span style="font-size:10px; color:var(--sh-slate-400);">• hôm nay</span>
+                </div>
+                <p class="mb-0 fw-semibold" style="font-size:12px; color:var(--sh-indigo-900);">📢 Lịch họp nhóm tuần này</p>
+                <p class="mb-0 mt-1" style="font-size:11px; color:var(--sh-indigo-700);">
+                  Họp vào CN 13/09 lúc 14h tại phòng học nhóm A12. Agenda: ôn chương 1-3, giải đề thi thử.
+                </p>
+              </div>
+
+              <div class="p-3 rounded-3" style="background:var(--sh-slate-50); border:1px solid var(--sh-slate-200);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60&auto=format&fit=crop"
+                       class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" alt="" />
+                  <span class="fw-bold" style="font-size:12px; color:var(--sh-slate-800);">Trần Văn Bình</span>
+                  <span style="font-size:10px; color:var(--sh-slate-400);">• 2 ngày trước</span>
+                </div>
+                <p class="mb-0 fw-semibold" style="font-size:12px; color:var(--sh-slate-900);">📄 Chia sẻ bài giải đề thử HK1</p>
+                <p class="mb-0 mt-1" style="font-size:11px; color:var(--sh-slate-600);">
+                  Mình đã upload bài giải đề thi thử HK1 năm 2025. Mọi người tham khảo nhé!
+                </p>
+              </div>
+            </div>
+
+            <!-- Post announcement -->
+            <div class="mt-3">
+              <textarea class="sh-input" rows="2"
+                        placeholder="Viết thông báo cho cả nhóm..."></textarea>
+              <button class="btn-primary-sh mt-2"
+                      onclick="showToast('Đã đăng thông báo thành công!', 'success')">
+                <i class="bi bi-send"></i>Đăng thông báo
+              </button>
+            </div>
+          </div>
+
+          <!-- Members + Shared Resources -->
+          <div class="col-12 col-lg-5">
+            <h6 class="fw-bold mb-3" style="font-size:12px; color:var(--sh-slate-500); text-transform:uppercase; letter-spacing:.06em;">
+              Thành viên (8)
+            </h6>
+            <div class="space-y-2">
+              @foreach (var member in new[] {
+                new { name="Nguyễn Minh Anh", role="Trưởng nhóm", img="1534528741775-53994a69daeb", isLeader=true },
+                new { name="Trần Văn Bình", role="Phó nhóm", img="1535713875002-d1d0cf377fde", isLeader=false },
+                new { name="Lê Thị Cẩm", role="Thành viên", img="1438761681033-6461ffad8d80", isLeader=false },
+                new { name="Phạm Quốc Đạt", role="Thành viên", img="1580489944761-15a19d654956", isLeader=false },
+              })
+              {
+                <div class="d-flex align-items-center gap-2 p-2 rounded-3 @(member.isLeader ? "bg-indigo-50" : "")">
+                  <img src="https://images.unsplash.com/photo-@(member.img)?w=60&auto=format&fit=crop"
+                       class="rounded-circle" style="width:32px;height:32px;object-fit:cover;border:2px solid #fff;" alt="@member.name" />
+                  <div class="flex-grow-1 overflow-hidden">
+                    <p class="mb-0 fw-bold truncate" style="font-size:12px; color:var(--sh-slate-900);">@member.name</p>
+                    <p class="mb-0" style="font-size:10px; color:var(--sh-slate-500);">@member.role</p>
+                  </div>
+                  @if (member.isLeader) {
+                    <i class="bi bi-star-fill" style="color:var(--sh-amber-500); font-size:12px;"></i>
+                  }
+                </div>
+              }
+            </div>
+
+            <h6 class="fw-bold mb-2 mt-4" style="font-size:12px; color:var(--sh-slate-500); text-transform:uppercase; letter-spacing:.06em;">
+              Tài liệu được chia sẻ
+            </h6>
+            <div class="space-y-2">
+              <a href="/Notes" class="d-flex align-items-center gap-2 p-2 rounded-3 text-decoration-none"
+                 style="background:var(--sh-slate-50); border:1px solid var(--sh-slate-100);">
+                <i class="bi bi-file-earmark-text" style="color:var(--sh-indigo-600);"></i>
+                <span class="truncate" style="font-size:11px; color:var(--sh-slate-700);">Lượng giác – Công thức cơ bản</span>
+              </a>
+              <a href="/Flashcards" class="d-flex align-items-center gap-2 p-2 rounded-3 text-decoration-none"
+                 style="background:var(--sh-slate-50); border:1px solid var(--sh-slate-100);">
+                <i class="bi bi-layers" style="color:var(--sh-emerald-600);"></i>
+                <span class="truncate" style="font-size:11px; color:var(--sh-slate-700);">Flashcard: Đại số tổ hợp (24 thẻ)</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── New Group Modal ── -->
+<div class="modal fade" id="newGroupModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" style="font-size:14px;"><i class="bi bi-people me-2"></i>Tạo nhóm học tập mới</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="sh-label" for="group-name">Tên nhóm</label>
+          <input id="group-name" type="text" class="sh-input" placeholder="Ví dụ: Toán nâng cao 11A1" />
+        </div>
+        <div class="mb-3">
+          <label class="sh-label" for="group-subject">Môn học chính</label>
+          <select id="group-subject" class="sh-input">
+            <option>Toán</option><option>Vật lý</option><option>Hóa học</option>
+            <option>Ngữ văn</option><option>Tiếng Anh</option><option>Sinh học</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="sh-label" for="group-desc">Mô tả nhóm</label>
+          <textarea id="group-desc" class="sh-input" rows="3" placeholder="Mục tiêu và hoạt động của nhóm..."></textarea>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="group-public" checked />
+          <label class="form-check-label" for="group-public" style="font-size:12px; color:var(--sh-slate-600);">
+            Cho phép học sinh khác tìm thấy và tham gia nhóm
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer gap-2">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn-primary-sh"
+                data-bs-dismiss="modal"
+                onclick="showToast('Đã tạo nhóm học tập thành công!', 'success')">
+          <i class="bi bi-people me-1"></i>Tạo nhóm
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+function switchTab(btn, tabId) {
+  document.querySelectorAll('.nav-link').forEach(b => {
+    b.style.cssText = 'font-size:12px;color:var(--sh-slate-500);border:0;background:transparent;';
+    b.classList.remove('active');
+  });
+  btn.style.cssText = 'font-size:12px;font-weight:700;color:var(--sh-indigo-600);border-bottom:2px solid var(--sh-indigo-600);border-top:0;border-left:0;border-right:0;background:transparent;padding:8px 16px;';
+  document.getElementById('my-groups').style.display = tabId === 'my-groups' ? 'block' : 'none';
+  document.getElementById('discover-groups').style.display = tabId === 'discover-groups' ? 'block' : 'none';
+}
+</script>
+}

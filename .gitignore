@@ -1,29 +1,22 @@
-# IDE and build output
+# Node
+node_modules/
+build/
+dist/
+coverage/
+
+# .NET / Visual Studio
 .vs/
-**/bin/
-**/obj/
+bin/
+obj/
 *.user
 *.suo
-.idea/
-# OS/editor noise
+
+# OS
 .DS_Store
-Thumbs.db
+
+# Logs
 *.log
-*.tmp
-# Runtime data and secrets
-**/App_Data/
-*.db
-*.db-shm
-*.db-wal
-.env
-.env.*
+
+# Environment
+.env*
 !.env.example
-**/appsettings.Local.json
-**/appsettings.Production.json
-**/secrets.json
-*.pfx
-*.pem
-TestResults/
-artifacts/
-coverage/
-node_modules/

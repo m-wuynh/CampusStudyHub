@@ -1,0 +1,385 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"]        = "Study Hub";
+    ViewData["PageTitle"]    = "Bảng điều khiển học tập";
+    ViewData["PageSubtitle"] = "Tổng hợp tiến độ &amp; hoạt động hôm nay";
+}
+
+<div id="dashboard-view" class="pb-5" style="max-width:1280px; margin:0 auto;">
+
+  <!-- ── 1. Welcome Hero ── -->
+  <div id="dashboard-welcome-card" class="welcome-hero mb-4">
+    <div class="position-relative" style="z-index:2; max-width:680px;">
+      <div class="welcome-pill">
+        <span>📅 Thứ Tư, 09 tháng 09, 2026</span>
+        <span>•</span>
+        <span>Học kỳ 1</span>
+      </div>
+      <h2 class="fw-black tracking-tight mb-2" style="font-size:clamp(20px,3vw,28px);">
+        Chào buổi sáng, Nguyễn Minh Anh 👋
+      </h2>
+      <p class="mb-0" style="font-size:13px; color:rgba(255,255,255,0.85); line-height:1.7;">
+        Sẵn sàng tiếp tục buổi học hôm nay chưa? Bạn có
+        <strong style="text-decoration:underline; text-decoration-color:#fbbf24;">3 nhiệm vụ</strong>
+        cần hoàn thành và
+        <strong style="text-decoration:underline; text-decoration-color:#f87171;">1 bài kiểm tra</strong>
+        sắp tới vào thứ Sáu.
+      </p>
+    </div>
+    <div class="position-absolute end-0 bottom-0 top-0 d-none d-sm-flex align-items-center"
+         style="opacity:.08; pointer-events:none; padding-right:16px;">
+      <i class="bi bi-mortarboard-fill" style="font-size:160px; color:#fff;"></i>
+    </div>
+  </div>
+
+  <!-- ── 2. Stats Grid ── -->
+  <div id="dashboard-overview-stats" class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <span style="font-size:11px; font-weight:600; color:var(--sh-slate-500);">Nhiệm vụ hôm nay</span>
+          <div class="stat-icon-wrap" style="background:var(--sh-blue-50); color:var(--sh-blue-600);">
+            <i class="bi bi-calendar3"></i>
+          </div>
+        </div>
+        <div class="d-flex align-items-baseline gap-2 mt-3">
+          <span class="fw-black" style="font-size:24px; color:var(--sh-slate-900);">4</span>
+          <span style="font-size:11px; color:var(--sh-slate-500); font-weight:500;">bài tập / lịch hẹn</span>
+        </div>
+        <p class="mb-0 mt-1" style="font-size:11px; color:var(--sh-blue-600); font-weight:500;">Đã lên lịch đầy đủ</p>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <span style="font-size:11px; font-weight:600; color:var(--sh-slate-500);">Đã hoàn thành</span>
+          <div class="stat-icon-wrap" style="background:var(--sh-emerald-50); color:var(--sh-emerald-600);">
+            <i class="bi bi-check-circle"></i>
+          </div>
+        </div>
+        <div class="d-flex align-items-baseline gap-2 mt-3">
+          <span class="fw-black" style="font-size:24px; color:var(--sh-emerald-600);">1</span>
+          <span style="font-size:11px; color:var(--sh-slate-500); font-weight:500;">/ 4 nhiệm vụ</span>
+        </div>
+        <div class="sh-progress mt-2" style="height:6px;">
+          <div class="sh-progress-bar emerald" style="width:25%;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <span style="font-size:11px; font-weight:600; color:var(--sh-slate-500);">Kỳ thi sắp tới</span>
+          <div class="stat-icon-wrap" style="background:var(--sh-rose-50); color:var(--sh-rose-600);">
+            <i class="bi bi-alarm"></i>
+          </div>
+        </div>
+        <div class="mt-3">
+          <span class="fw-black" style="font-size:18px; color:var(--sh-slate-900);">Vật lý 15p</span>
+        </div>
+        <p class="mb-0 mt-1 d-flex align-items-center gap-1"
+           style="font-size:11px; color:var(--sh-rose-600); font-weight:700;">
+          <i class="bi bi-clock-history"></i>Còn 2 ngày (11/09)
+        </p>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <span style="font-size:11px; font-weight:600; color:var(--sh-slate-500);">ĐTB Hiện tại</span>
+          <div class="stat-icon-wrap" style="background:var(--sh-indigo-50); color:var(--sh-indigo-600);">
+            <i class="bi bi-graph-up-arrow"></i>
+          </div>
+        </div>
+        <div class="d-flex align-items-baseline gap-2 mt-3">
+          <span class="fw-black" style="font-size:24px; color:var(--sh-indigo-600);">8.4</span>
+          <span style="font-size:12px; color:var(--sh-slate-400); font-weight:500;">/ 10</span>
+        </div>
+        <p class="mb-0 mt-1" style="font-size:11px; color:var(--sh-emerald-600); font-weight:700;">
+          Xếp loại: Học sinh Giỏi
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3. Quick Actions ── -->
+  <div id="dashboard-quick-actions" class="sh-card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3 class="mb-0 fw-bold"
+          style="font-size:11px; color:var(--sh-slate-500); text-transform:uppercase; letter-spacing:.07em;">
+        Thao tác nhanh (Quick Actions)
+      </h3>
+    </div>
+    <div class="row g-2">
+      <div class="col-6 col-sm-3">
+        <a asp-page="/Notes" class="quick-action-btn indigo text-decoration-none">
+          <i class="bi bi-plus-lg"></i><span>Thêm Ghi chú</span>
+        </a>
+      </div>
+      <div class="col-6 col-sm-3">
+        <a asp-page="/Flashcards" class="quick-action-btn emerald text-decoration-none">
+          <i class="bi bi-plus-lg"></i><span>Tạo Flashcard</span>
+        </a>
+      </div>
+      <div class="col-6 col-sm-3">
+        <a asp-page="/Calendar" class="quick-action-btn amber text-decoration-none">
+          <i class="bi bi-plus-lg"></i><span>Thêm Lịch học</span>
+        </a>
+      </div>
+      <div class="col-6 col-sm-3">
+        <a asp-page="/Grades" class="quick-action-btn rose text-decoration-none">
+          <i class="bi bi-plus-lg"></i><span>Nhập Điểm số</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. Discipline + Academic Progress ── -->
+  <div class="row g-4 mb-4">
+    <!-- Discipline Card -->
+    <div class="col-12 col-lg-8">
+      <div class="sh-card p-4 p-sm-5 h-100">
+        <div class="d-flex flex-column flex-sm-row justify-content-between gap-3 pb-3"
+             style="border-bottom:1px solid var(--sh-slate-100);">
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h3 class="mb-0 fw-bold" style="font-size:15px; color:var(--sh-slate-900);">Kỷ luật học tập hôm nay</h3>
+              <span class="d-flex align-items-center gap-1 px-2 rounded-full fw-bold"
+                    style="font-size:11px; background:var(--sh-amber-100); color:var(--sh-amber-800); border:1px solid var(--sh-amber-200);">
+                <i class="bi bi-fire" style="color:var(--sh-amber-600);"></i>Streak: 5 ngày
+              </span>
+            </div>
+            <p class="mb-0 mt-1" style="font-size:11px; color:var(--sh-slate-500);">
+              Hoàn thành các nhiệm vụ để duy trì chuỗi học
+            </p>
+          </div>
+          <div class="d-flex align-items-center gap-3">
+            <div class="text-end">
+              <span class="fw-bold" style="font-size:13px;">1 / 4</span>
+              <span style="font-size:11px; color:var(--sh-slate-500); margin-left:4px;">nhiệm vụ</span>
+            </div>
+            <div class="rounded-circle border d-flex align-items-center justify-content-center fw-black"
+                 style="width:52px;height:52px;border-width:4px !important;border-color:var(--sh-emerald-100) !important;font-size:12px;color:var(--sh-emerald-600);">
+              25%
+            </div>
+          </div>
+        </div>
+        <div class="mt-4">
+          <div class="d-flex justify-content-between mb-1" style="font-size:11px;font-weight:500;color:var(--sh-slate-600);">
+            <span>Tiến độ hoàn thành hôm nay</span>
+            <span class="fw-bold" style="color:var(--sh-emerald-600);">25%</span>
+          </div>
+          <div class="sh-progress" style="height:10px;">
+            <div class="sh-progress-bar gradient" style="width:25%;"></div>
+          </div>
+        </div>
+        <div class="mt-4">
+          <p class="mb-2" style="font-size:11px;font-weight:700;color:var(--sh-slate-500);">Danh sách việc cần làm:</p>
+          <div class="event-item completed mb-2">
+            <div class="d-flex align-items-center gap-3 flex-grow-1">
+              <button type="button" class="event-check-toggle border-0 bg-transparent p-0">
+                <i class="bi bi-check-square-fill text-success" style="font-size:18px;"></i>
+              </button>
+              <div>
+                <p class="mb-0 fw-semibold text-decoration-line-through" style="font-size:12px;color:var(--sh-slate-400);">Ôn tập Toán – Hàm số và đồ thị</p>
+                <p class="mb-0" style="font-size:11px;color:var(--sh-slate-500);">07:00 - 08:30 • Phòng học nhà</p>
+              </div>
+            </div>
+            <span class="cat-badge study">Tự học</span>
+          </div>
+          <div class="event-item mb-2">
+            <div class="d-flex align-items-center gap-3 flex-grow-1">
+              <button type="button" class="event-check-toggle border-0 bg-transparent p-0">
+                <i class="bi bi-square" style="font-size:18px;color:var(--sh-slate-400);"></i>
+              </button>
+              <div>
+                <p class="mb-0 fw-semibold" style="font-size:12px;color:var(--sh-slate-900);">Làm bài tập Vật lý chương 2</p>
+                <p class="mb-0" style="font-size:11px;color:var(--sh-slate-500);">09:00 - 10:30 • Thư viện trường</p>
+              </div>
+            </div>
+            <span class="cat-badge homework">Bài tập</span>
+          </div>
+          <div class="event-item mb-2">
+            <div class="d-flex align-items-center gap-3 flex-grow-1">
+              <button type="button" class="event-check-toggle border-0 bg-transparent p-0">
+                <i class="bi bi-square" style="font-size:18px;color:var(--sh-slate-400);"></i>
+              </button>
+              <div>
+                <p class="mb-0 fw-semibold" style="font-size:12px;color:var(--sh-slate-900);">Học nhóm Hóa học – Hữu cơ</p>
+                <p class="mb-0" style="font-size:11px;color:var(--sh-slate-500);">14:00 - 16:00 • Phòng học nhóm B3</p>
+              </div>
+            </div>
+            <span class="cat-badge group">Học nhóm</span>
+          </div>
+          <div class="event-item">
+            <div class="d-flex align-items-center gap-3 flex-grow-1">
+              <button type="button" class="event-check-toggle border-0 bg-transparent p-0">
+                <i class="bi bi-square" style="font-size:18px;color:var(--sh-slate-400);"></i>
+              </button>
+              <div>
+                <p class="mb-0 fw-semibold" style="font-size:12px;color:var(--sh-slate-900);">Ôn Tiếng Anh – Speaking practice</p>
+                <p class="mb-0" style="font-size:11px;color:var(--sh-slate-500);">20:00 - 21:00 • Tại nhà</p>
+              </div>
+            </div>
+            <span class="cat-badge study">Tự học</span>
+          </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-4 pt-3"
+             style="border-top:1px solid var(--sh-slate-100);font-size:11px;">
+          <span style="color:var(--sh-slate-500);">Mẹo: Đạt 100% để duy trì streak lên 6 ngày!</span>
+          <a asp-page="/Calendar" class="d-flex align-items-center gap-1 fw-bold text-decoration-none"
+             style="color:var(--sh-indigo-600);">Xem lịch đầy đủ <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Academic Progress -->
+    <div class="col-12 col-lg-4">
+      <div class="sh-card p-4 p-sm-5 h-100 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-center pb-3"
+             style="border-bottom:1px solid var(--sh-slate-100);">
+          <h3 class="mb-0 fw-bold" style="font-size:15px;color:var(--sh-slate-900);">Mục tiêu học tập</h3>
+          <a asp-page="/Grades" class="fw-bold text-decoration-none" style="font-size:12px;color:var(--sh-indigo-600);">Chi tiết</a>
+        </div>
+        <div class="mt-4 p-3 rounded-3" style="background:var(--sh-slate-50);border:1px solid var(--sh-slate-200);">
+          <div class="d-flex justify-content-between">
+            <div>
+              <span style="font-size:11px;color:var(--sh-slate-500);">ĐTB Hiện tại</span>
+              <div class="fw-black" style="font-size:26px;color:var(--sh-slate-900);">8.4</div>
+            </div>
+            <div class="text-end">
+              <span style="font-size:11px;color:var(--sh-slate-500);">Mục tiêu kỳ 1</span>
+              <div class="fw-black" style="font-size:26px;color:var(--sh-indigo-600);">8.8</div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="d-flex justify-content-between mb-1" style="font-size:11px;color:var(--sh-slate-500);">
+              <span>Tiến trình đạt mục tiêu</span>
+              <span class="fw-bold" style="color:var(--sh-indigo-600);">95%</span>
+            </div>
+            <div class="sh-progress"><div class="sh-progress-bar indigo" style="width:95%;"></div></div>
+          </div>
+        </div>
+        <div class="mt-4 space-y-2 flex-grow-1">
+          <div class="p-2 rounded-3" style="border:1px solid var(--sh-slate-100);">
+            <div class="d-flex justify-content-between" style="font-size:11px;">
+              <span class="fw-semibold" style="color:var(--sh-slate-800);">Đạt 9.0 môn Toán HK1</span>
+              <span class="fw-bold font-monospace" style="color:var(--sh-slate-600);">8.4/9.0</span>
+            </div>
+            <div class="sh-progress mt-2"><div class="sh-progress-bar indigo" style="width:93%;"></div></div>
+          </div>
+          <div class="p-2 rounded-3 mt-2" style="border:1px solid var(--sh-slate-100);">
+            <div class="d-flex justify-content-between" style="font-size:11px;">
+              <span class="fw-semibold" style="color:var(--sh-slate-800);">Vật lý 8.5 điểm</span>
+              <span class="fw-bold font-monospace" style="color:var(--sh-slate-600);">7.8/8.5</span>
+            </div>
+            <div class="sh-progress mt-2"><div class="sh-progress-bar emerald" style="width:92%;"></div></div>
+          </div>
+        </div>
+        <a asp-page="/Grades" class="btn-secondary-sh w-100 justify-content-center mt-4">
+          Quản lý bảng điểm &amp; mục tiêu
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. Upcoming + Recent Materials ── -->
+  <div class="row g-4">
+    <div class="col-12 col-lg-6">
+      <div class="sh-card p-4 p-sm-5 h-100">
+        <div class="d-flex justify-content-between align-items-start pb-3"
+             style="border-bottom:1px solid var(--sh-slate-100);">
+          <div>
+            <h3 class="mb-0 fw-bold" style="font-size:15px;color:var(--sh-slate-900);">Sắp diễn ra (Upcoming)</h3>
+            <p class="mb-0 mt-1" style="font-size:11px;color:var(--sh-slate-500);">Bài tập, kỳ thi và buổi học nhóm tuần này</p>
+          </div>
+          <a asp-page="/Calendar" class="fw-bold text-decoration-none flex-shrink-0"
+             style="font-size:12px;color:var(--sh-indigo-600);">
+            Xem lịch <i class="bi bi-arrow-right"></i>
+          </a>
+        </div>
+        <div class="mt-4">
+          <div class="p-3 rounded-3 d-flex align-items-start gap-3 mb-3"
+               style="background:var(--sh-slate-50);border:1px solid var(--sh-slate-100);">
+            <div class="p-2 rounded-3 flex-shrink-0" style="background:var(--sh-rose-100);color:var(--sh-rose-700);">
+              <i class="bi bi-alarm"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h4 class="mb-0 fw-bold" style="font-size:12px;color:var(--sh-slate-900);">Kiểm tra 15p Vật lý – Chương Điện</h4>
+              <p class="mb-1" style="font-size:11px;color:var(--sh-slate-500);">Đề ngắn, tập trung công thức điện trở</p>
+              <div class="d-flex gap-2" style="font-size:11px;color:var(--sh-slate-600);">
+                <span>📅 2026-09-11</span><span>• 08:45</span>
+              </div>
+            </div>
+            <span class="cat-badge exam">Kiểm tra</span>
+          </div>
+          <div class="p-3 rounded-3 d-flex align-items-start gap-3 mb-3"
+               style="background:var(--sh-slate-50);border:1px solid var(--sh-slate-100);">
+            <div class="p-2 rounded-3 flex-shrink-0" style="background:var(--sh-violet-100);color:var(--sh-violet-700);">
+              <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h4 class="mb-0 fw-bold" style="font-size:12px;color:var(--sh-slate-900);">Nộp bài tập Hóa học Chương 4</h4>
+              <p class="mb-1" style="font-size:11px;color:var(--sh-slate-500);">Hợp chất hữu cơ và cân bằng phương trình</p>
+              <span style="font-size:11px;color:var(--sh-slate-600);">📅 2026-09-12</span>
+            </div>
+            <span class="cat-badge homework">Bài tập</span>
+          </div>
+          <div class="p-3 rounded-3 d-flex align-items-start gap-3"
+               style="background:var(--sh-slate-50);border:1px solid var(--sh-slate-100);">
+            <div class="p-2 rounded-3 flex-shrink-0" style="background:var(--sh-emerald-100);color:var(--sh-emerald-700);">
+              <i class="bi bi-people"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h4 class="mb-0 fw-bold" style="font-size:12px;color:var(--sh-slate-900);">Họp nhóm Toán Chuyên sâu 11A1</h4>
+              <p class="mb-1" style="font-size:11px;color:var(--sh-slate-500);">Ôn tập và giải đề thi thử giữa kỳ 1</p>
+              <span style="font-size:11px;color:var(--sh-slate-600);">📅 2026-09-13 • 14:00</span>
+            </div>
+            <span class="cat-badge group">Học nhóm</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="sh-card p-4 p-sm-5 h-100">
+        <div class="d-flex justify-content-between align-items-start pb-3"
+             style="border-bottom:1px solid var(--sh-slate-100);">
+          <div>
+            <h3 class="mb-0 fw-bold" style="font-size:15px;color:var(--sh-slate-900);">Tài liệu &amp; Thẻ học gần đây</h3>
+            <p class="mb-0 mt-1" style="font-size:11px;color:var(--sh-slate-500);">Ôn tập nhanh với 1 cú click</p>
+          </div>
+          <a asp-page="/Flashcards" class="fw-bold text-decoration-none"
+             style="font-size:12px;color:var(--sh-indigo-600);">Kho thẻ (5) <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="mt-4">
+          @foreach (var item in new[] {
+            new { subject="Toán", css="subject-toan", title="Lượng giác – Hàm số sin, cos, tan", count=24, done=18, pct=75 },
+            new { subject="Vật lý", css="subject-vatly", title="Điện học – Công thức mạch điện", count=18, done=10, pct=56 },
+            new { subject="Hóa học", css="subject-hoahoc", title="Hợp chất hữu cơ – Phân loại", count=30, done=12, pct=40 },
+          })
+          {
+            <div class="p-3 rounded-3 d-flex justify-content-between align-items-center gap-3 mb-3"
+                 style="border:1px solid var(--sh-slate-200);">
+              <div class="overflow-hidden flex-grow-1">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="subject-badge @item.css">@item.subject</span>
+                  <span style="font-size:11px;color:var(--sh-slate-400);">@item.count thẻ</span>
+                </div>
+                <h4 class="mb-1 fw-bold truncate" style="font-size:12px;color:var(--sh-slate-900);">@item.title</h4>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="sh-progress" style="width:100px;">
+                    <div class="sh-progress-bar emerald" style="width:@item.pct%;"></div>
+                  </div>
+                  <span style="font-size:10px;color:var(--sh-slate-500);">@item.done/@item.count (@item.pct%)</span>
+                </div>
+              </div>
+              <a asp-page="/Flashcards" class="btn-primary-sh flex-shrink-0" style="font-size:11px;padding:6px 12px;">Học ngay</a>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

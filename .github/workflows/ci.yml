@@ -1,18 +1,26 @@
 name: Build and check
+
 on:
   push:
     branches: [main]
   pull_request:
+
 permissions:
   contents: read
+
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
-      - run: dotnet restore tests/CampusStudyHub.Checks/CampusStudyHub.Checks.csproj
-      - run: dotnet build tests/CampusStudyHub.Checks/CampusStudyHub.Checks.csproj --no-restore --configuration Release
-      - run: dotnet run --project tests/CampusStudyHub.Checks --no-build --configuration Release
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore StudyHub.Web/StudyHub.Web.csproj
+
+      - name: Build
+        run: dotnet build StudyHub.Web/StudyHub.Web.csproj --no-restore --configuration Release

@@ -1,0 +1,217 @@
+@page
+@model SettingsModel
+@{
+    ViewData["Title"]        = "Cài đặt";
+    ViewData["PageTitle"]    = "Cài đặt tài khoản";
+    ViewData["PageSubtitle"] = "Tùy chỉnh thông tin và giao diện học tập";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<div id="settings-view" style="max-width:800px; margin:0 auto;">
+
+  <!-- ── Profile Section ── -->
+  <div class="sh-card p-4 p-sm-5 mb-4">
+    <h2 class="fw-bold mb-4" style="font-size:16px; color:var(--sh-slate-900); border-bottom:1px solid var(--sh-slate-100); padding-bottom:12px;">
+      <i class="bi bi-person-circle me-2 text-indigo"></i>Thông tin cá nhân
+    </h2>
+
+    <div class="row g-4">
+      <!-- Avatar -->
+      <div class="col-12 col-sm-3 d-flex flex-column align-items-center gap-3">
+        <img id="avatar-preview"
+             src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+             alt="Avatar"
+             class="rounded-3 object-fit-cover"
+             style="width:96px; height:96px; border:3px solid var(--sh-indigo-200);" />
+        <div class="text-center">
+          <p class="mb-0 fw-bold" style="font-size:13px; color:var(--sh-slate-900);">Nguyễn Minh Anh</p>
+          <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500);">Lớp 11A1 (Chuyên Tự Nhiên)</p>
+        </div>
+        <button class="btn-secondary-sh"
+                style="font-size:11px; padding:6px 12px;"
+                onclick="showToast('Tính năng upload ảnh sẽ có trong phiên bản tiếp theo', 'info')">
+          <i class="bi bi-camera"></i>Đổi ảnh
+        </button>
+      </div>
+
+      <!-- Form -->
+      <div class="col-12 col-sm-9">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label class="sh-label" for="settings-name">Họ và tên</label>
+            <input id="settings-name" type="text" class="sh-input"
+                   value="Nguyễn Minh Anh" />
+          </div>
+          <div class="col-sm-6">
+            <label class="sh-label" for="settings-email">Email học sinh</label>
+            <input id="settings-email" type="email" class="sh-input"
+                   value="minhanh.nguyen@thpt-hanoi.edu.vn" />
+          </div>
+          <div class="col-sm-6">
+            <label class="sh-label" for="settings-grade">Lớp / Khóa học</label>
+            <input id="settings-grade" type="text" class="sh-input"
+                   value="Lớp 11A1 (Chuyên Tự Nhiên)" />
+          </div>
+          <div class="col-sm-6">
+            <label class="sh-label" for="settings-school">Trường học</label>
+            <input id="settings-school" type="text" class="sh-input"
+                   value="Trường THPT Chuyên Hà Nội - Amsterdam" />
+          </div>
+          <div class="col-sm-6">
+            <label class="sh-label" for="settings-target-gpa">GPA Mục tiêu (0–10)</label>
+            <input id="settings-target-gpa" type="number" min="0" max="10" step="0.1"
+                   class="sh-input" value="8.8" />
+          </div>
+          <div class="col-sm-6">
+            <label class="sh-label" for="avatar-url-input">URL ảnh đại diện</label>
+            <input id="avatar-url-input" type="url" class="sh-input"
+                   placeholder="https://example.com/avatar.jpg" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Appearance ── -->
+  <div class="sh-card p-4 p-sm-5 mb-4">
+    <h2 class="fw-bold mb-4" style="font-size:16px; color:var(--sh-slate-900); border-bottom:1px solid var(--sh-slate-100); padding-bottom:12px;">
+      <i class="bi bi-palette me-2 text-indigo"></i>Giao diện
+    </h2>
+
+    <div class="space-y-3">
+      <!-- Dark Mode -->
+      <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
+           style="background:var(--sh-slate-50); border:1px solid var(--sh-slate-200);">
+        <div>
+          <p class="mb-0 fw-semibold" style="font-size:13px; color:var(--sh-slate-900);">Chế độ tối (Dark mode)</p>
+          <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500);">Bảo vệ mắt khi học buổi tối</p>
+        </div>
+        <div class="form-check form-switch settings-toggle mb-0">
+          <input class="form-check-input" type="checkbox" id="dark-mode-toggle" style="width:44px; height:22px;"
+                 onchange="showToast('Dark mode sẽ có trong phiên bản tiếp theo', 'info')" />
+        </div>
+      </div>
+
+      <!-- Compact Mode -->
+      <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
+           style="background:var(--sh-slate-50); border:1px solid var(--sh-slate-200);">
+        <div>
+          <p class="mb-0 fw-semibold" style="font-size:13px; color:var(--sh-slate-900);">Giao diện thu gọn</p>
+          <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500);">Hiển thị nhiều nội dung hơn trong một màn hình</p>
+        </div>
+        <div class="form-check form-switch settings-toggle mb-0">
+          <input class="form-check-input" type="checkbox" id="compact-mode-toggle" style="width:44px; height:22px;" />
+        </div>
+      </div>
+
+      <!-- Font size -->
+      <div class="p-3 rounded-3" style="background:var(--sh-slate-50); border:1px solid var(--sh-slate-200);">
+        <p class="mb-2 fw-semibold" style="font-size:13px; color:var(--sh-slate-900);">Cỡ chữ</p>
+        <div class="d-flex gap-2">
+          @foreach (var size in new[] { ("Nhỏ", "12px", false), ("Vừa", "14px", true), ("Lớn", "16px", false) })
+          {
+            <button class="@(size.Item3 ? "btn-primary-sh" : "btn-secondary-sh")"
+                    style="font-size:@size.Item2; padding:6px 16px;"
+                    onclick="document.querySelectorAll('.font-size-btn').forEach(b=>b.className='btn-secondary-sh'); this.className='btn-primary-sh'; showToast('Đã đổi cỡ chữ sang @size.Item1', 'success')">
+              @size.Item1
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Notifications ── -->
+  <div class="sh-card p-4 p-sm-5 mb-4">
+    <h2 class="fw-bold mb-4" style="font-size:16px; color:var(--sh-slate-900); border-bottom:1px solid var(--sh-slate-100); padding-bottom:12px;">
+      <i class="bi bi-bell me-2 text-indigo"></i>Thông báo
+    </h2>
+
+    <div class="space-y-3">
+      @{
+        var notifSettings = new[]
+        {
+          new { label="Nhắc nhở lịch học", desc="Nhận thông báo trước 30 phút", def=true },
+          new { label="Bài tập sắp hết hạn", desc="Nhắc nhở 1 ngày trước hạn nộp", def=true },
+          new { label="Thông báo từ nhóm học tập", desc="Khi có thông báo mới từ nhóm", def=true },
+          new { label="Nhắc nhở Flashcard", desc="Ôn tập thẻ ghi nhớ hằng ngày", def=false },
+          new { label="Kết quả học tập tuần", desc="Tóm tắt tiến độ mỗi cuối tuần", def=true },
+        };
+      }
+      @foreach (var n in notifSettings)
+      {
+        <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
+             style="background:var(--sh-slate-50); border:1px solid var(--sh-slate-200);">
+          <div>
+            <p class="mb-0 fw-semibold" style="font-size:13px; color:var(--sh-slate-900);">@n.label</p>
+            <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500);">@n.desc</p>
+          </div>
+          <div class="form-check form-switch settings-toggle mb-0">
+            <input class="form-check-input" type="checkbox" @(n.def ? "checked" : "")
+                   style="width:44px; height:22px;" />
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ── Security ── -->
+  <div class="sh-card p-4 p-sm-5 mb-4">
+    <h2 class="fw-bold mb-4" style="font-size:16px; color:var(--sh-slate-900); border-bottom:1px solid var(--sh-slate-100); padding-bottom:12px;">
+      <i class="bi bi-shield-check me-2 text-indigo"></i>Bảo mật tài khoản
+    </h2>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="sh-label" for="old-password">Mật khẩu hiện tại</label>
+        <input id="old-password" type="password" class="sh-input" placeholder="••••••••" />
+      </div>
+      <div class="col-sm-6">
+        <label class="sh-label" for="new-password">Mật khẩu mới</label>
+        <input id="new-password" type="password" class="sh-input" placeholder="••••••••" />
+      </div>
+      <div class="col-sm-6">
+        <label class="sh-label" for="confirm-password">Xác nhận mật khẩu mới</label>
+        <input id="confirm-password" type="password" class="sh-input" placeholder="••••••••" />
+      </div>
+      <div class="col-sm-6 d-flex align-items-end">
+        <button class="btn-secondary-sh w-100 justify-content-center"
+                onclick="showToast('Đã gửi yêu cầu đổi mật khẩu. Kiểm tra email của bạn.', 'success')">
+          <i class="bi bi-key"></i>Đổi mật khẩu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Danger Zone ── -->
+  <div class="sh-card p-4 p-sm-5 mb-4" style="border-color:var(--sh-rose-200);">
+    <h2 class="fw-bold mb-3" style="font-size:16px; color:var(--sh-rose-700); border-bottom:1px solid var(--sh-rose-100); padding-bottom:12px;">
+      <i class="bi bi-exclamation-triangle me-2"></i>Vùng nguy hiểm
+    </h2>
+    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 p-3 rounded-3"
+         style="background:var(--sh-rose-50); border:1px solid var(--sh-rose-200);">
+      <div>
+        <p class="mb-0 fw-bold" style="font-size:13px; color:var(--sh-rose-800);">Xóa tài khoản học tập</p>
+        <p class="mb-0" style="font-size:11px; color:var(--sh-rose-700);">
+          Tất cả dữ liệu (ghi chú, flashcard, lịch học) sẽ bị xóa vĩnh viễn.
+        </p>
+      </div>
+      <button class="flex-shrink-0"
+              style="padding:8px 16px; background:var(--sh-rose-600); color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;"
+              onclick="confirmDelete('toàn bộ tài khoản')">
+        <i class="bi bi-trash3 me-1"></i>Xóa tài khoản
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Save Button ── -->
+  <div class="d-flex justify-content-end gap-3 mb-5">
+    <button class="btn-secondary-sh" onclick="showToast('Đã hoàn tác các thay đổi', 'info')">
+      Hủy thay đổi
+    </button>
+    <button id="save-settings-btn" class="btn-primary-sh" style="padding:10px 28px;">
+      <i class="bi bi-floppy me-1"></i>Lưu cài đặt
+    </button>
+  </div>
+
+</div>
