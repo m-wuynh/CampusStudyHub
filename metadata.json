@@ -1,0 +1,6 @@
+{
+  "name": "Study Hub",
+  "description": "Nền tảng tiện ích học tập trực quan dành cho học sinh THPT: Ghi chú, Flashcard, Thời khóa biểu, Nhóm học tập và Theo dõi mục tiêu học tập.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
