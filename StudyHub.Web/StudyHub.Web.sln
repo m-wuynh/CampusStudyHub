@@ -5,6 +5,10 @@ VisualStudioVersion = 17.14.37301.10 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudyHub.Web", "StudyHub.Web.csproj", "{B49F7B49-6540-D962-758F-62366AC1013E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudyHub.Business", "..\StudyHub.Business\StudyHub.Business.csproj", "{D77539B2-73C5-4D8D-A284-8B872091B3B4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudyHub.Data", "..\StudyHub.Data\StudyHub.Data.csproj", "{8F228A92-3408-4A39-AC11-1F2B1C418CBF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{B49F7B49-6540-D962-758F-62366AC1013E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B49F7B49-6540-D962-758F-62366AC1013E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B49F7B49-6540-D962-758F-62366AC1013E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D77539B2-73C5-4D8D-A284-8B872091B3B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D77539B2-73C5-4D8D-A284-8B872091B3B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D77539B2-73C5-4D8D-A284-8B872091B3B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D77539B2-73C5-4D8D-A284-8B872091B3B4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F228A92-3408-4A39-AC11-1F2B1C418CBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F228A92-3408-4A39-AC11-1F2B1C418CBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F228A92-3408-4A39-AC11-1F2B1C418CBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F228A92-3408-4A39-AC11-1F2B1C418CBF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

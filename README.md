@@ -1,10 +1,26 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
 
 # Campus Study Hub
 
-Ứng dụng React/Vite hỗ trợ quản lý ghi chú, flashcards, lịch học, điểm số và nhóm học tập.
+Ứng dụng hỗ trợ quản lý ghi chú, flashcards, lịch học, điểm số và nhóm học tập. Repo gồm bản React/Vite và ứng dụng ASP.NET Core Razor Pages trong `StudyHub.Web`.
+
+## Kiến trúc ASP.NET Core 3 layer
+
+```text
+StudyHub.Web       Presentation: Razor Pages, JavaScript, Minimal API, DI
+       │
+       ├──────────────► StudyHub.Business
+       │                Business: entity, DTO, interface, nghiệp vụ
+       │                       ▲
+       ▼                       │
+StudyHub.Data ─────────────────┘
+Data Access: Repository đọc/ghi JSON
+```
+
+Chạy bản ASP.NET Core:
+
+```powershell
+dotnet run --project StudyHub.Web/StudyHub.Web.csproj --launch-profile https
+```
 
 ## Feature nhóm học tập
 
@@ -16,7 +32,6 @@
 - Chat box riêng cho từng nhóm: chỉ thành viên được đọc/gửi, hỗ trợ Enter để gửi, Shift + Enter để xuống dòng, tự cuộn tới tin mới và đồng bộ giữa các tab cùng trình duyệt.
 - Dữ liệu nhóm và tin nhắn được lưu trong `localStorage` (khóa `study-hub-groups-v3`) để không mất khi tải lại trang. Đây là tầng demo frontend; khi nối backend cần thay `localStorage` bằng API, database và SignalR/WebSocket để nhiều thiết bị nhận tin nhắn theo thời gian thực.
 
-View your app in AI Studio: https://ai.studio/apps/81721623-9e94-4837-ad00-91408623b5ef
 
 ## Run Locally
 
