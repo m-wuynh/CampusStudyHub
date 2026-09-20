@@ -1,4 +1,4 @@
-namespace StudyHub.Business.Contracts;
+namespace StudyHub.BLL.Contracts;
 
 public sealed record GroupSummaryResponse(
     string Id,

@@ -1,6 +1,6 @@
-using StudyHub.Business.Contracts;
+using StudyHub.BLL.Contracts;
 
-namespace StudyHub.Business.Services;
+namespace StudyHub.BLL.Services;
 
 public interface IStudyGroupService
 {

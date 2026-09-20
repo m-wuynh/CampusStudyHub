@@ -90,10 +90,26 @@
 
   async function loadGroups() {
     const groups = await requestJson(apiUrl);
+    const serverIds = new Set(groups.map(group => group.id));
+    document.querySelectorAll('[data-group-card]').forEach(card => {
+      if (!serverIds.has(card.dataset.groupId)) {
+        (card.closest('[class*="col-"]') || card).remove();
+      }
+    });
+
     for (const group of groups) {
-      const card = findGroupCard(group.id) || (group.isMember && group.isOwner ? createGroupCard(group) : null);
+      const card = findGroupCard(group.id) || createGroupCard(group);
       setMembership(card, group);
     }
+
+    const memberCount = groups.filter(group => group.isMember).length;
+    const discoverCount = groups.filter(group => !group.isMember && group.isPublic).length;
+    const summary = document.getElementById('my-groups-summary');
+    const memberTab = document.getElementById('my-groups-tab');
+    const discoverTab = document.getElementById('discover-groups-tab');
+    if (summary) summary.textContent = `${memberCount} nhóm đang tham gia · Dữ liệu từ SQL Server`;
+    if (memberTab) memberTab.textContent = `Nhóm của tôi (${memberCount})`;
+    if (discoverTab) discoverTab.textContent = `Khám phá nhóm (${discoverCount})`;
   }
 
   groupsView.addEventListener('click', async event => {

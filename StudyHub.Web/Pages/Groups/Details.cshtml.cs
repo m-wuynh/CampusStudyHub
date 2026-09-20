@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using StudyHub.Business.Contracts;
-using StudyHub.Business.Services;
+using StudyHub.BLL.Contracts;
+using StudyHub.BLL.Services;
 
 namespace StudyHub.Web.Pages;
 
