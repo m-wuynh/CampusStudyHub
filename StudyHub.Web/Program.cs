@@ -1,11 +1,15 @@
-using StudyHub.Web.Models;
-using StudyHub.Web.Services;
+using StudyHub.Business.Contracts;
+using StudyHub.Business.Repositories;
+using StudyHub.Business.Services;
+using StudyHub.Data.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddSingleton<StudyGroupService>();
+var groupDataFile = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "study-groups.json");
+builder.Services.AddSingleton<IStudyGroupRepository>(_ => new JsonStudyGroupRepository(groupDataFile));
+builder.Services.AddSingleton<IStudyGroupService, StudyGroupService>();
 
 var app = builder.Build();
 
@@ -29,21 +33,21 @@ app.MapRazorPages()
 
 var groupApi = app.MapGroup("/api/groups");
 
-groupApi.MapGet("", (StudyGroupService groups) => Results.Ok(groups.GetGroups()));
+groupApi.MapGet("", (IStudyGroupService groups) => Results.Ok(groups.GetGroups()));
 
-groupApi.MapGet("/{groupId}", (string groupId, StudyGroupService groups) =>
+groupApi.MapGet("/{groupId}", (string groupId, IStudyGroupService groups) =>
 {
     var group = groups.GetGroup(groupId);
     return group is null ? Results.NotFound() : Results.Ok(group);
 });
 
-groupApi.MapPost("/{groupId}/join", (string groupId, StudyGroupService groups) =>
+groupApi.MapPost("/{groupId}/join", (string groupId, IStudyGroupService groups) =>
 {
     var group = groups.Join(groupId);
     return group is null ? Results.NotFound() : Results.Ok(group);
 });
 
-groupApi.MapDelete("/{groupId}/join", (string groupId, StudyGroupService groups) =>
+groupApi.MapDelete("/{groupId}/join", (string groupId, IStudyGroupService groups) =>
 {
     try
     {
@@ -56,7 +60,7 @@ groupApi.MapDelete("/{groupId}/join", (string groupId, StudyGroupService groups)
     }
 });
 
-groupApi.MapPost("/{groupId}/messages", (string groupId, SendGroupMessageRequest request, StudyGroupService groups) =>
+groupApi.MapPost("/{groupId}/messages", (string groupId, SendGroupMessageRequest request, IStudyGroupService groups) =>
 {
     var content = request.Content?.Trim();
     if (string.IsNullOrWhiteSpace(content))
@@ -75,7 +79,7 @@ groupApi.MapPost("/{groupId}/messages", (string groupId, SendGroupMessageRequest
         : Results.Ok(message);
 });
 
-groupApi.MapPost("", (CreateGroupRequest request, StudyGroupService groups) =>
+groupApi.MapPost("", (CreateGroupRequest request, IStudyGroupService groups) =>
 {
     if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Subject))
     {

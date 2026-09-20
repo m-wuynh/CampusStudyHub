@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using StudyHub.Web.Models;
-using StudyHub.Web.Services;
+using StudyHub.Business.Contracts;
+using StudyHub.Business.Services;
 
 namespace StudyHub.Web.Pages;
 
-public sealed class GroupDetailsModel(StudyGroupService studyGroups) : PageModel
+public sealed class GroupDetailsModel(IStudyGroupService studyGroups) : PageModel
 {
     public GroupDetailsResponse Group { get; private set; } = null!;
 

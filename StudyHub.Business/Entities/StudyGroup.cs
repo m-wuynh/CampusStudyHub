@@ -1,4 +1,4 @@
-namespace StudyHub.Web.Models;
+namespace StudyHub.Business.Entities;
 
 public sealed class StudyGroup
 {
