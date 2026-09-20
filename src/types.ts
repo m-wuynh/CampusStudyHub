@@ -82,6 +82,29 @@ export interface GroupMember {
   grade: string;
 }
 
+export type StudyMode = 'Online' | 'Trực tiếp' | 'Kết hợp';
+export type JoinRequestStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface GroupJoinRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  grade: string;
+  message: string;
+  requestedAt: string;
+  status: JoinRequestStatus;
+}
+
+export interface GroupChatMessage {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  content: string;
+  sentAt: string;
+}
+
 export interface StudyGroup {
   id: string;
   name: string;
@@ -94,6 +117,17 @@ export interface StudyGroup {
   sharedNoteIds: string[];
   sharedSetIds: string[];
   isMember?: boolean;
+  ownerId?: string;
+  goal?: string;
+  capacity?: number;
+  studyMode?: StudyMode;
+  meetingTime?: string;
+  contactLink?: string;
+  isPublic?: boolean;
+  isSaved?: boolean;
+  createdAt?: string;
+  joinRequests?: GroupJoinRequest[];
+  messages?: GroupChatMessage[];
 }
 
 export type ExamType = 'Miệng / 15 phút' | '1 tiết' | 'Giữa kỳ' | 'Cuối kỳ';

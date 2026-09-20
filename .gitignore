@@ -3,6 +3,7 @@ node_modules/
 build/
 dist/
 coverage/
+artifacts/
 
 # .NET / Visual Studio
 .vs/
@@ -16,6 +17,10 @@ obj/
 
 # Logs
 *.log
+
+# Local server data
+StudyHub.Web/App_Data/*.json
+StudyHub.Web/App_Data/*.tmp
 
 # Environment
 .env*

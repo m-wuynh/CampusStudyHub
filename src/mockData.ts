@@ -285,7 +285,16 @@ export const initialStudyGroups: StudyGroup[] = [
     subject: 'Toán',
     description: 'Nhóm cùng giải bài tập Toán nâng cao, thảo luận đề thi học sinh giỏi cấp trường và các mẹo giải nhanh casio.',
     ownerName: 'Nguyễn Minh Anh',
+    ownerId: 'u-101',
     memberCount: 14,
+    capacity: 20,
+    goal: 'Ôn thi học sinh giỏi và đạt từ 9 điểm môn Toán.',
+    studyMode: 'Kết hợp',
+    meetingTime: 'Chủ nhật, 15:00',
+    contactLink: 'https://meet.google.com/',
+    isPublic: true,
+    isSaved: true,
+    createdAt: '2026-08-01T08:00:00',
     isMember: true,
     sharedNoteIds: ['note-2'],
     sharedSetIds: ['set-3'],
@@ -295,6 +304,44 @@ export const initialStudyGroups: StudyGroup[] = [
       { id: 'm-3', name: 'Đặng Thu Thảo', role: 'Thành viên', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', grade: 'Lớp 11A1' },
       { id: 'm-4', name: 'Lê Tuấn Kiệt', role: 'Thành viên', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', grade: 'Lớp 11A2' },
       { id: 'm-5', name: 'Phạm Quỳnh Chi', role: 'Thành viên', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80', grade: 'Lớp 11A1' },
+    ],
+    joinRequests: [
+      {
+        id: 'req-1',
+        userId: 'u-205',
+        userName: 'Phạm Gia Huy',
+        userAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        grade: 'Lớp 11A3',
+        message: 'Mình muốn tham gia để cùng luyện đề học sinh giỏi Toán.',
+        requestedAt: '2026-09-19T19:30:00',
+        status: 'pending'
+      }
+    ],
+    messages: [
+      {
+        id: 'msg-1',
+        authorId: 'u-202',
+        authorName: 'Trần Hoàng Nam',
+        authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+        content: 'Mọi người đã làm xong đề lượng giác số 1 chưa?',
+        sentAt: '2026-09-20T18:30:00'
+      },
+      {
+        id: 'msg-2',
+        authorId: 'u-101',
+        authorName: 'Nguyễn Minh Anh',
+        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        content: 'Mình đã làm xong phần 1. Tối nay mình gửi lời giải lên ghi chú chung nhé!',
+        sentAt: '2026-09-20T18:34:00'
+      },
+      {
+        id: 'msg-3',
+        authorId: 'm-3',
+        authorName: 'Đặng Thu Thảo',
+        authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+        content: 'Câu 4 mình chưa hiểu cách biến đổi. Mai mọi người giải thích giúp mình với nhé.',
+        sentAt: '2026-09-20T18:38:00'
+      }
     ],
     announcements: [
       {
@@ -321,8 +368,28 @@ export const initialStudyGroups: StudyGroup[] = [
     subject: 'Vật lý',
     description: 'Chuyên đề cơ học chất điểm, định luật bảo toàn động lượng và cơ năng. Mục tiêu cả nhóm đạt 8.5+ môn Lý.',
     ownerName: 'Vũ Đức Minh',
+    ownerId: 'u-202',
     memberCount: 22,
+    capacity: 30,
+    goal: 'Cùng đạt 8.5+ trong bài thi giữa kỳ Vật lý.',
+    studyMode: 'Trực tiếp',
+    meetingTime: 'Thứ Bảy, 14:00',
+    contactLink: 'mailto:ducminh@example.edu.vn',
+    isPublic: true,
+    isSaved: false,
+    createdAt: '2026-08-15T09:00:00',
     isMember: true,
+    joinRequests: [],
+    messages: [
+      {
+        id: 'msg-201',
+        authorId: 'u-202',
+        authorName: 'Vũ Đức Minh',
+        authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        content: 'Chiều thứ Bảy nhóm mình gặp ở thư viện như lịch nhé.',
+        sentAt: '2026-09-19T20:10:00'
+      }
+    ],
     sharedNoteIds: ['note-1'],
     sharedSetIds: ['set-1'],
     members: [
@@ -347,8 +414,19 @@ export const initialStudyGroups: StudyGroup[] = [
     subject: 'Tiếng Anh',
     description: 'Luyện kỹ năng Nói - Viết hàng tuần theo chủ đề, học từ vựng học thuật C1 và trao đổi kinh nghiệm thi chứng chỉ.',
     ownerName: 'Trần Bảo Ngọc',
+    ownerId: 'u-303',
     memberCount: 38,
+    capacity: 40,
+    goal: 'Luyện Speaking và Writing để hướng tới IELTS 7.5+.',
+    studyMode: 'Online',
+    meetingTime: 'Thứ Tư, 20:00',
+    contactLink: 'https://meet.google.com/',
+    isPublic: true,
+    isSaved: true,
+    createdAt: '2026-08-20T10:00:00',
     isMember: false,
+    joinRequests: [],
+    messages: [],
     sharedNoteIds: ['note-4'],
     sharedSetIds: ['set-2'],
     members: [
@@ -371,8 +449,19 @@ export const initialStudyGroups: StudyGroup[] = [
     subject: 'Hóa học',
     description: 'Chia sẻ kinh nghiệm làm bài thi chọn học sinh giỏi, phương pháp giải nhanh bài toán hỗn hợp kim loại và HNO3.',
     ownerName: 'Lê Hoàng Nam',
+    ownerId: 'u-404',
     memberCount: 16,
+    capacity: 20,
+    goal: 'Ôn thi chọn học sinh giỏi và rèn kỹ năng thực hành Hóa học.',
+    studyMode: 'Trực tiếp',
+    meetingTime: 'Thứ Sáu, 16:30',
+    contactLink: 'mailto:hoangnam@example.edu.vn',
+    isPublic: true,
+    isSaved: false,
+    createdAt: '2026-08-25T15:00:00',
     isMember: false,
+    joinRequests: [],
+    messages: [],
     sharedNoteIds: ['note-5'],
     sharedSetIds: ['set-4'],
     members: [
