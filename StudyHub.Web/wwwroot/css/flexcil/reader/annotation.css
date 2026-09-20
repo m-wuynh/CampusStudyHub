@@ -1,0 +1,53 @@
+/* =====================================================
+   ANNOTATION LAYER
+===================================================== */
+
+.annotation-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none;
+    background: transparent;
+}
+
+
+/* =====================================================
+   ANNOTATION CANVAS
+===================================================== */
+
+.annotation-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    cursor: default;
+    z-index: 10;
+    background: transparent;
+}
+
+
+/* =====================================================
+   DRAWING MODE
+===================================================== */
+
+.annotation-layer.drawing-enabled {
+    pointer-events: auto;
+}
+
+    .annotation-layer.drawing-enabled .annotation-canvas {
+        pointer-events: auto;
+        cursor: crosshair;
+    }
+
+
+/* =====================================================
+   ERASER MODE
+===================================================== */
+
+.annotation-layer.eraser-enabled .annotation-canvas {
+    cursor: crosshair;
+}

@@ -1,0 +1,47 @@
+@page
+@model StudyHub.Web.Pages.Flexcil.Documents.UploadModel
+
+@{
+	ViewData["Title"] = "Upload PDF";
+}
+
+<div class="container py-5">
+
+	<h1>Upload PDF</h1>
+
+	<form method="post"
+		  enctype="multipart/form-data">
+
+		<div class="mb-3">
+			<label for="PdfFile"
+				   class="form-label">
+				Select PDF
+			</label>
+
+			<input type="file"
+				   id="PdfFile"
+				   name="PdfFile"
+				   class="form-control"
+				   accept=".pdf,application/pdf" />
+		</div>
+
+		@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+		{
+			<div class="alert alert-danger">
+				@Model.ErrorMessage
+			</div>
+		}
+
+		<button type="submit"
+				class="btn btn-primary">
+			Upload
+		</button>
+
+		<a asp-page="./Index"
+		   class="btn btn-secondary">
+			Cancel
+		</a>
+
+	</form>
+
+</div>

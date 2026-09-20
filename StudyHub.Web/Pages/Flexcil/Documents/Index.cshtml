@@ -1,0 +1,79 @@
+@page
+@model StudyHub.Web.Pages.Flexcil.Documents.IndexModel
+
+@{
+	ViewData["Title"] = "My Documents";
+}
+
+<div class="container py-5">
+
+	<div class="d-flex justify-content-between align-items-center mb-4">
+
+		<div>
+			<h1>My Documents</h1>
+			<p class="text-muted">
+				Your PDF documents
+			</p>
+		</div>
+
+		<a asp-page="./Upload"
+		   class="btn btn-primary">
+			Upload PDF
+		</a>
+
+	</div>
+
+	@if (Model.Documents.Count == 0)
+	{
+		<div class="text-center py-5">
+
+			<h3>No documents yet</h3>
+
+			<p class="text-muted">
+				Upload your first PDF to get started.
+			</p>
+
+			<a asp-page="./Upload"
+			   class="btn btn-primary">
+				Upload PDF
+			</a>
+
+		</div>
+	}
+	else
+	{
+		<div class="row g-4">
+
+			@foreach (var document in Model.Documents)
+			{
+				<div class="col-md-4">
+
+					<div class="card h-100">
+
+						<div class="card-body">
+
+							<h5 class="card-title">
+								@document.FileName
+							</h5>
+
+							<p class="card-text text-muted">
+								@document.FileSize bytes
+							</p>
+
+							<a asp-page="/Flexcil/Reader/Index"
+							   asp-route-id="@document.Id"
+							   class="btn btn-primary">
+								Open
+							</a>
+
+						</div>
+
+					</div>
+
+				</div>
+			}
+
+		</div>
+	}
+
+</div>

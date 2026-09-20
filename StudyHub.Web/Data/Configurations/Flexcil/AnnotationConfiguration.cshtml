@@ -1,0 +1,55 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using StudyHub.Web.Data.Entities.Flexcil;
+
+namespace StudyHub.Web.Data.Configurations.Flexcil;
+
+public class AnnotationConfiguration
+    : IEntityTypeConfiguration<Annotation>
+	{
+	public void Configure(
+	EntityTypeBuilder<Annotation>
+		builder)
+		{
+		builder.ToTable("Annotations");
+
+		builder.HasKey(x => x.Id);
+
+		builder.Property(x => x.UserId)
+		.IsRequired()
+		.HasMaxLength(450);
+
+		builder.Property(x => x.Data)
+		.IsRequired();
+
+		builder.Property(x => x.Color)
+		.IsRequired()
+		.HasMaxLength(20);
+
+		builder.Property(x => x.Type)
+		.IsRequired();
+
+		builder.Property(x => x.Opacity)
+		.IsRequired();
+
+		builder.Property(x => x.StrokeWidth)
+		.IsRequired();
+
+		builder.Property(x => x.CreatedAt)
+		.IsRequired();
+
+		builder.Property(x => x.UpdatedAt)
+		.IsRequired();
+
+		builder.HasIndex(x => new
+		{
+		x.DocumentId,
+		x.PageNumber
+		});
+
+		builder.HasOne(x => x.Document)
+		.WithMany()
+		.HasForeignKey(x => x.DocumentId)
+		.OnDelete(DeleteBehavior.Cascade);
+		}
+		}
