@@ -1,15 +1,19 @@
-using StudyHub.Business.Contracts;
-using StudyHub.Business.Repositories;
-using StudyHub.Business.Services;
-using StudyHub.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
+using StudyHub.BLL.Contracts;
+using StudyHub.BLL.Repositories;
+using StudyHub.BLL.Services;
+using StudyHub.DAL.Persistence;
+using StudyHub.DAL.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-var groupDataFile = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "study-groups.json");
-builder.Services.AddSingleton<IStudyGroupRepository>(_ => new JsonStudyGroupRepository(groupDataFile));
-builder.Services.AddSingleton<IStudyGroupService, StudyGroupService>();
+var studyHubConnection = builder.Configuration.GetConnectionString("StudyHub")
+    ?? throw new InvalidOperationException("Thiếu connection string 'StudyHub'.");
+builder.Services.AddDbContext<StudyHubDbContext>(options => options.UseSqlServer(studyHubConnection));
+builder.Services.AddScoped<IStudyGroupRepository, SqlStudyGroupRepository>();
+builder.Services.AddScoped<IStudyGroupService, StudyGroupService>();
 
 var app = builder.Build();
 

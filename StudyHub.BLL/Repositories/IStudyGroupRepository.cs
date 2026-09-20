@@ -1,11 +1,11 @@
-using StudyHub.Business.Entities;
+using StudyHub.BLL.Entities;
 
-namespace StudyHub.Business.Repositories;
+namespace StudyHub.BLL.Repositories;
 
 public interface IStudyGroupRepository
 {
     IReadOnlyList<StudyGroup> GetAll();
     StudyGroup? GetById(string groupId);
-    void Add(StudyGroup group);
+    StudyGroup Add(StudyGroup group);
     void Update(StudyGroup group);
 }
