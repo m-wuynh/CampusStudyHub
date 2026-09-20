@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+.form-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: #6366f1;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgb(99 102 241 / 12%);
+}

@@ -1,7 +1,11 @@
+using StudyHub.Web.Models;
+using StudyHub.Web.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddSingleton<StudyGroupService>();
 
 var app = builder.Build();
 
@@ -22,5 +26,69 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+
+var groupApi = app.MapGroup("/api/groups");
+
+groupApi.MapGet("", (StudyGroupService groups) => Results.Ok(groups.GetGroups()));
+
+groupApi.MapGet("/{groupId}", (string groupId, StudyGroupService groups) =>
+{
+    var group = groups.GetGroup(groupId);
+    return group is null ? Results.NotFound() : Results.Ok(group);
+});
+
+groupApi.MapPost("/{groupId}/join", (string groupId, StudyGroupService groups) =>
+{
+    var group = groups.Join(groupId);
+    return group is null ? Results.NotFound() : Results.Ok(group);
+});
+
+groupApi.MapDelete("/{groupId}/join", (string groupId, StudyGroupService groups) =>
+{
+    try
+    {
+        var group = groups.Leave(groupId);
+        return group is null ? Results.NotFound() : Results.Ok(group);
+    }
+    catch (InvalidOperationException exception)
+    {
+        return Results.BadRequest(new { message = exception.Message });
+    }
+});
+
+groupApi.MapPost("/{groupId}/messages", (string groupId, SendGroupMessageRequest request, StudyGroupService groups) =>
+{
+    var content = request.Content?.Trim();
+    if (string.IsNullOrWhiteSpace(content))
+    {
+        return Results.BadRequest(new { message = "Nội dung tin nhắn không được để trống." });
+    }
+
+    if (content.Length > 1000)
+    {
+        return Results.BadRequest(new { message = "Tin nhắn không được dài quá 1000 ký tự." });
+    }
+
+    var message = groups.AddMessage(groupId, content);
+    return message is null
+        ? Results.BadRequest(new { message = "Bạn cần tham gia nhóm trước khi gửi tin nhắn." })
+        : Results.Ok(message);
+});
+
+groupApi.MapPost("", (CreateGroupRequest request, StudyGroupService groups) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Subject))
+    {
+        return Results.BadRequest(new { message = "Tên nhóm và môn học là bắt buộc." });
+    }
+
+    if (request.Name.Trim().Length > 100 || (request.Description?.Length ?? 0) > 500)
+    {
+        return Results.BadRequest(new { message = "Tên nhóm hoặc mô tả vượt quá độ dài cho phép." });
+    }
+
+    var group = groups.CreateGroup(request);
+    return Results.Created($"/api/groups/{group.Id}", group);
+});
 
 app.Run();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   UserProfile, 
   NavigationPage, 
@@ -47,7 +47,16 @@ export function App() {
   const [notes, setNotes] = useState<Note[]>(initialNotes);
   const [flashcardSets, setFlashcardSets] = useState<FlashcardSet[]>(initialFlashcardSets);
   const [events, setEvents] = useState<CalendarEvent[]>(initialCalendarEvents);
-  const [groups, setGroups] = useState<StudyGroup[]>(initialStudyGroups);
+  const [groups, setGroups] = useState<StudyGroup[]>(() => {
+    try {
+      const saved = window.localStorage.getItem('study-hub-groups-v3')
+        ?? window.localStorage.getItem('study-hub-groups-v2');
+      const parsed = saved ? JSON.parse(saved) : null;
+      return Array.isArray(parsed) ? parsed : initialStudyGroups;
+    } catch {
+      return initialStudyGroups;
+    }
+  });
   const [grades, setGrades] = useState<GradeRecord[]>(initialGradeRecords);
   const [goals, setGoals] = useState<AcademicGoal[]>(initialGoals);
 
@@ -55,12 +64,31 @@ export function App() {
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [activeStudyingSetId, setActiveStudyingSetId] = useState<string | null>(null);
   const [isCalendarCreateModalOpen, setIsCalendarCreateModalOpen] = useState(false);
+  const [groupCreateRequestKey, setGroupCreateRequestKey] = useState(0);
 
   // Toast System
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Logout Dialog
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    window.localStorage.setItem('study-hub-groups-v3', JSON.stringify(groups));
+  }, [groups]);
+
+  useEffect(() => {
+    const syncGroupsBetweenTabs = (event: StorageEvent) => {
+      if (event.key !== 'study-hub-groups-v3' || !event.newValue) return;
+      try {
+        const nextGroups = JSON.parse(event.newValue);
+        if (Array.isArray(nextGroups)) setGroups(nextGroups);
+      } catch {
+        // Ignore malformed data written by another tab.
+      }
+    };
+    window.addEventListener('storage', syncGroupsBetweenTabs);
+    return () => window.removeEventListener('storage', syncGroupsBetweenTabs);
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -149,6 +177,10 @@ export function App() {
     });
   };
 
+  const handleDeleteGroup = (groupId: string) => {
+    setGroups((prev) => prev.filter((group) => group.id !== groupId));
+  };
+
   // --- Handlers for Grades & Goals ---
   const handleSaveGrade = (savedGrade: GradeRecord) => {
     setGrades((prev) => {
@@ -213,7 +245,7 @@ export function App() {
         break;
       case 'new-group':
         setCurrentPage('groups');
-        showToast('Đang chuyển đến danh mục Nhóm học tập.', 'info');
+        setGroupCreateRequestKey((current) => current + 1);
         break;
     }
   };
@@ -328,9 +360,11 @@ export function App() {
               notes={notes}
               flashcardSets={flashcardSets}
               onSaveGroup={handleSaveGroup}
+              onDeleteGroup={handleDeleteGroup}
               showToast={showToast}
               onOpenNote={handleOpenNoteFromOtherView}
               onOpenStudySet={handleOpenFlashcardFromOtherView}
+              createRequestKey={groupCreateRequestKey}
             />
           )}
 

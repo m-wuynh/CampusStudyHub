@@ -44,7 +44,12 @@
 
       <!-- Group 1 -->
       <div class="col-12 col-lg-6">
-        <div class="sh-card overflow-hidden">
+        <div class="sh-card overflow-hidden"
+             data-group-card data-group-id="math-advanced"
+             data-group-name="Toán Chuyên sâu 11A1"
+             data-group-subject="Toán" data-group-subject-class="subject-toan"
+             data-group-members="8"
+             data-group-description="Ôn luyện và giải đề thi thử giữa kỳ cho lớp 11A1">
           <!-- Group Header -->
           <div class="p-4" style="background:linear-gradient(135deg,#eef2ff,#e0e7ff); border-bottom:1px solid var(--sh-slate-200);">
             <div class="d-flex justify-content-between align-items-start">
@@ -111,12 +116,12 @@
             </div>
 
             <div class="d-flex gap-2">
-              <button class="btn-primary-sh flex-grow-1 justify-content-center"
-                      data-bs-toggle="modal" data-bs-target="#groupDetailModal">
+              <button class="open-group-btn btn-primary-sh flex-grow-1 justify-content-center"
+                      type="button">
                 <i class="bi bi-arrow-right-circle"></i>Vào nhóm
               </button>
               <button class="join-group-btn btn-secondary-sh"
-                      data-member="true">
+                      data-member="true" data-group-id="math-advanced">
                 Đã tham gia
               </button>
             </div>
@@ -126,7 +131,12 @@
 
       <!-- Group 2 -->
       <div class="col-12 col-lg-6">
-        <div class="sh-card overflow-hidden">
+        <div class="sh-card overflow-hidden"
+             data-group-card data-group-id="chemistry-organic"
+             data-group-name="Hóa học hữu cơ – Nhóm ôn thi"
+             data-group-subject="Hóa học" data-group-subject-class="subject-hoahoc"
+             data-group-members="12"
+             data-group-description="Ôn tập Hóa hữu cơ, giải bài tập theo chủ đề">
           <div class="p-4" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5); border-bottom:1px solid var(--sh-slate-200);">
             <div class="d-flex justify-content-between align-items-start">
               <div>
@@ -160,11 +170,11 @@
               </p>
             </div>
             <div class="d-flex gap-2">
-              <button class="btn-primary-sh flex-grow-1 justify-content-center"
-                      data-bs-toggle="modal" data-bs-target="#groupDetailModal">
+              <button class="open-group-btn btn-primary-sh flex-grow-1 justify-content-center"
+                      type="button">
                 <i class="bi bi-arrow-right-circle"></i>Vào nhóm
               </button>
-              <button class="join-group-btn btn-secondary-sh" data-member="true">Đã tham gia</button>
+              <button class="join-group-btn btn-secondary-sh" data-member="true" data-group-id="chemistry-organic">Đã tham gia</button>
             </div>
           </div>
         </div>
@@ -172,7 +182,12 @@
 
       <!-- Group 3 -->
       <div class="col-12 col-lg-6">
-        <div class="sh-card overflow-hidden">
+        <div class="sh-card overflow-hidden"
+             data-group-card data-group-id="ielts-prep"
+             data-group-name="Tiếng Anh – IELTS Prep Group"
+             data-group-subject="Tiếng Anh" data-group-subject-class="subject-tienganh"
+             data-group-members="20"
+             data-group-description="Luyện 4 kỹ năng và chia sẻ tài liệu IELTS">
           <div class="p-4" style="background:linear-gradient(135deg,#fffbeb,#fef3c7); border-bottom:1px solid var(--sh-slate-200);">
             <div class="d-flex justify-content-between align-items-start">
               <div>
@@ -200,11 +215,11 @@
               </p>
             </div>
             <div class="d-flex gap-2">
-              <button class="btn-primary-sh flex-grow-1 justify-content-center"
-                      data-bs-toggle="modal" data-bs-target="#groupDetailModal">
+              <button class="open-group-btn btn-primary-sh flex-grow-1 justify-content-center"
+                      type="button">
                 <i class="bi bi-arrow-right-circle"></i>Vào nhóm
               </button>
-              <button class="join-group-btn btn-secondary-sh" data-member="true">Đã tham gia</button>
+              <button class="join-group-btn btn-secondary-sh" data-member="true" data-group-id="ielts-prep">Đã tham gia</button>
             </div>
           </div>
         </div>
@@ -218,7 +233,12 @@
     <div class="row g-4">
       <!-- Discover cards with join buttons -->
       <div class="col-12 col-sm-6 col-xl-4">
-        <div class="sh-card p-4 h-100 d-flex flex-column">
+        <div class="sh-card p-4 h-100 d-flex flex-column"
+             data-group-card data-group-id="physics-mechanics"
+             data-group-name="Vật lý Cơ học – Nhóm luyện đề"
+             data-group-subject="Vật lý" data-group-subject-class="subject-vatly"
+             data-group-members="46"
+             data-group-description="Tập trung giải đề thi cơ học, điện học và quang học.">
           <div class="d-flex align-items-center gap-2 mb-2">
             <span class="subject-badge subject-vatly">Vật lý</span>
             <span style="font-size:10px; color:var(--sh-slate-400);">46 thành viên</span>
@@ -227,14 +247,22 @@
           <p class="mb-3" style="font-size:11px; color:var(--sh-slate-500); flex-grow:1;">
             Tập trung giải đề thi cơ học, điện học và quang học.
           </p>
-          <button class="join-group-btn btn-primary-sh w-100 justify-content-center" data-member="false">
-            Tham gia
-          </button>
+          <div class="group-card-actions d-flex gap-2 mt-auto">
+            <button class="join-group-btn btn-primary-sh flex-grow-1 justify-content-center"
+                    data-member="false" data-group-id="physics-mechanics">Tham gia</button>
+            <button class="open-group-btn btn-secondary-sh flex-grow-1 justify-content-center"
+                    type="button" style="display:none;">Vào nhóm</button>
+          </div>
         </div>
       </div>
 
       <div class="col-12 col-sm-6 col-xl-4">
-        <div class="sh-card p-4 h-100 d-flex flex-column">
+        <div class="sh-card p-4 h-100 d-flex flex-column"
+             data-group-card data-group-id="vietnam-history"
+             data-group-name="Lịch sử Việt Nam – Ôn thi THPTQG"
+             data-group-subject="Lịch sử" data-group-subject-class="subject-lichsu"
+             data-group-members="15"
+             data-group-description="Ôn tập lịch sử theo chủ đề, giai đoạn và sự kiện quan trọng.">
           <div class="d-flex align-items-center gap-2 mb-2">
             <span class="subject-badge subject-lichsu">Lịch sử</span>
             <span style="font-size:10px; color:var(--sh-slate-400);">15 thành viên</span>
@@ -243,14 +271,22 @@
           <p class="mb-3" style="font-size:11px; color:var(--sh-slate-500); flex-grow:1;">
             Ôn tập lịch sử theo chủ đề, giai đoạn và sự kiện quan trọng.
           </p>
-          <button class="join-group-btn btn-primary-sh w-100 justify-content-center" data-member="false">
-            Tham gia
-          </button>
+          <div class="group-card-actions d-flex gap-2 mt-auto">
+            <button class="join-group-btn btn-primary-sh flex-grow-1 justify-content-center"
+                    data-member="false" data-group-id="vietnam-history">Tham gia</button>
+            <button class="open-group-btn btn-secondary-sh flex-grow-1 justify-content-center"
+                    type="button" style="display:none;">Vào nhóm</button>
+          </div>
         </div>
       </div>
 
       <div class="col-12 col-sm-6 col-xl-4">
-        <div class="sh-card p-4 h-100 d-flex flex-column">
+        <div class="sh-card p-4 h-100 d-flex flex-column"
+             data-group-card data-group-id="biology-genetics"
+             data-group-name="Sinh học – Di truyền và Tiến hóa"
+             data-group-subject="Sinh học" data-group-subject-class="subject-sinhhoc"
+             data-group-members="22"
+             data-group-description="Chuyên sâu về di truyền học, gen và cơ chế tiến hóa.">
           <div class="d-flex align-items-center gap-2 mb-2">
             <span class="subject-badge subject-sinhhoc">Sinh học</span>
             <span style="font-size:10px; color:var(--sh-slate-400);">22 thành viên</span>
@@ -259,9 +295,12 @@
           <p class="mb-3" style="font-size:11px; color:var(--sh-slate-500); flex-grow:1;">
             Chuyên sâu về di truyền học, gen và cơ chế tiến hóa.
           </p>
-          <button class="join-group-btn btn-primary-sh w-100 justify-content-center" data-member="false">
-            Tham gia
-          </button>
+          <div class="group-card-actions d-flex gap-2 mt-auto">
+            <button class="join-group-btn btn-primary-sh flex-grow-1 justify-content-center"
+                    data-member="false" data-group-id="biology-genetics">Tham gia</button>
+            <button class="open-group-btn btn-secondary-sh flex-grow-1 justify-content-center"
+                    type="button" style="display:none;">Vào nhóm</button>
+          </div>
         </div>
       </div>
     </div>
@@ -276,12 +315,13 @@
       <div class="modal-header" style="background:linear-gradient(135deg,#eef2ff,#e0e7ff);">
         <div>
           <div class="d-flex align-items-center gap-2 mb-1">
-            <span class="subject-badge subject-toan">Toán</span>
+            <span id="groupDetailSubject" class="subject-badge subject-toan">Toán</span>
           </div>
           <h5 class="modal-title fw-bold" id="groupDetailModalLabel" style="font-size:16px; color:var(--sh-slate-900);">
             Toán Chuyên sâu 11A1
           </h5>
-          <p class="mb-0" style="font-size:11px; color:var(--sh-slate-600);">8 thành viên · Tạo ngày 01/08/2026</p>
+          <p id="groupDetailMeta" class="mb-0" style="font-size:11px; color:var(--sh-slate-600);">8 thành viên · Tạo ngày 01/08/2026</p>
+          <p id="groupDetailDescription" class="mb-0 mt-1" style="font-size:11px; color:var(--sh-slate-600);">Ôn luyện và giải đề thi thử giữa kỳ cho lớp 11A1.</p>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
@@ -376,6 +416,27 @@
             </div>
           </div>
         </div>
+
+        <div class="mt-4 pt-4" style="border-top:1px solid var(--sh-slate-200);">
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+            <div>
+              <h6 class="fw-bold mb-0" style="font-size:12px; color:var(--sh-slate-800);">
+                <i class="bi bi-chat-dots me-1" style="color:var(--sh-indigo-600);"></i>Chat nhóm
+              </h6>
+              <p class="mb-0" style="font-size:10px; color:var(--sh-slate-500);">Trao đổi nhanh với các thành viên trong nhóm</p>
+            </div>
+            <span class="subject-badge" style="background:var(--sh-emerald-50);color:var(--sh-emerald-700);border:1px solid var(--sh-emerald-200);">Đã tham gia</span>
+          </div>
+          <div id="group-chat-messages" class="group-chat-messages" aria-live="polite"></div>
+          <form id="group-chat-form" class="d-flex align-items-end gap-2 mt-3">
+            <textarea id="group-chat-input" class="sh-input" rows="2" maxlength="1000"
+                      placeholder="Nhập tin nhắn... (Enter để gửi, Shift + Enter để xuống dòng)"
+                      aria-label="Nội dung tin nhắn"></textarea>
+            <button type="submit" class="btn-primary-sh flex-shrink-0" style="height:42px;">
+              <i class="bi bi-send"></i><span class="d-none d-sm-inline">Gửi</span>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -414,9 +475,7 @@
       </div>
       <div class="modal-footer gap-2">
         <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
-        <button type="button" class="btn-primary-sh"
-                data-bs-dismiss="modal"
-                onclick="showToast('Đã tạo nhóm học tập thành công!', 'success')">
+        <button id="create-group-btn" type="button" class="btn-primary-sh">
           <i class="bi bi-people me-1"></i>Tạo nhóm
         </button>
       </div>
@@ -425,6 +484,7 @@
 </div>
 
 @section Scripts {
+<script src="~/js/groups.js" asp-append-version="true"></script>
 <script>
 function switchTab(btn, tabId) {
   document.querySelectorAll('.nav-link').forEach(b => {
