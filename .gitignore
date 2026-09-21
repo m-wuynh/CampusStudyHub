@@ -1,7 +1,4 @@
-# Node
-node_modules/
-build/
-dist/
+# Generated output
 coverage/
 artifacts/
 
@@ -24,4 +21,3 @@ StudyHub.Web/App_Data/*.tmp
 
 # Environment
 .env*
-!.env.example
