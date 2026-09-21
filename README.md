@@ -1,12 +1,12 @@
 
 # Campus Study Hub
 
-Ứng dụng hỗ trợ quản lý ghi chú, flashcards, lịch học, điểm số và nhóm học tập. Repo gồm bản React/Vite và ứng dụng ASP.NET Core Razor Pages trong `StudyHub.Web`.
+Ứng dụng hỗ trợ quản lý ghi chú, flashcards, lịch học, điểm số và nhóm học tập. Repo gồm bản React/Vite và ứng dụng ASP.NET Core MVC trong `StudyHub.Web`.
 
 ## Kiến trúc ASP.NET Core 3 layer
 
 ```text
-StudyHub.Web       Presentation: Razor Pages, JavaScript, Minimal API, DI
+StudyHub.Web       Presentation: MVC Controller, Razor View, ViewModel, JavaScript, DI
        │
        ├──────────────► StudyHub.BLL
        │                Business: entity, DTO, interface, nghiệp vụ
@@ -15,6 +15,32 @@ StudyHub.Web       Presentation: Razor Pages, JavaScript, Minimal API, DI
 StudyHub.DAL ───────────────────┘
 Data Access: EF Core Database First, Repository, SQL Server
 ```
+
+Mã nguồn được chia tiếp theo feature để mỗi thành viên có thể làm độc lập:
+
+```text
+StudyHub.Web/
+  Controllers/<Feature>/   MVC controller và API controller
+  ViewModels/<Feature>/    Model chỉ phục vụ giao diện
+  Views/<Feature>/         Razor MVC view
+
+StudyHub.BLL/
+  DTOs/                    Toàn bộ dữ liệu vào/ra dùng chung của BLL
+  Services/<Feature>/      Hàm, interface và thuật toán nghiệp vụ theo feature
+
+StudyHub.DAL/
+  Entities/                Entity scaffold từ SQL Server
+  Enums/<Feature>/         Trạng thái và lựa chọn dùng chung với dữ liệu
+  Repositories/Common/     IRepository và EfRepository dùng chung
+  Repositories/<Feature>/  Interface và implementation repository của feature
+  Persistence/             StudyHubDbContext
+```
+
+BLL chỉ gọi một đầu mối `IRepository`. Các hàm generic như `ListAsync<TEntity>()`,
+`AddAsync<TEntity>()`, `Update<TEntity>()` dùng chung cho mọi entity; truy vấn có quy
+tắc riêng được gọi qua repository feature, ví dụ `IRepository.StudyGroups`.
+`SaveChanges()`/`SaveChangesAsync()` được quản lý tập trung tại đầu mối này;
+controller không gọi `StudyHubDbContext` trực tiếp.
 
 - Database: SQL Server Express `StudyHub`.
 - Connection string: `StudyHub.Web/appsettings.json` → `ConnectionStrings:StudyHub`.

@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\StudyHub.DAL\StudyHub.DAL.csproj" />
+  </ItemGroup>
+
 </Project>
