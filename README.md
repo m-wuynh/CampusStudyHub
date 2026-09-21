@@ -1,7 +1,7 @@
 
 # Campus Study Hub
 
-Ứng dụng hỗ trợ quản lý ghi chú, flashcards, lịch học, điểm số và nhóm học tập. Repo gồm bản React/Vite và ứng dụng ASP.NET Core MVC trong `StudyHub.Web`.
+Ứng dụng ASP.NET Core MVC hỗ trợ quản lý ghi chú, flashcards, lịch học, điểm số và nhóm học tập.
 
 ## Kiến trúc ASP.NET Core 3 layer
 
@@ -9,7 +9,7 @@
 StudyHub.Web       Presentation: MVC Controller, Razor View, ViewModel, JavaScript, DI
        │
        ├──────────────► StudyHub.BLL
-       │                Business: entity, DTO, interface, nghiệp vụ
+       │                Business: DTO, service và nghiệp vụ
        │                       ▲
        ▼                       │
 StudyHub.DAL ───────────────────┘
@@ -73,16 +73,4 @@ dotnet run --project StudyHub.Web/StudyHub.Web.csproj --launch-profile https
 - Nội dung bảng tin, thành viên, ghi chú và flashcards chỉ hiển thị cho thành viên.
 - Thành viên đăng thông báo, chia sẻ ghi chú/flashcards và rời nhóm.
 - Chat box riêng cho từng nhóm: chỉ thành viên được đọc/gửi, hỗ trợ Enter để gửi, Shift + Enter để xuống dòng, tự cuộn tới tin mới và đồng bộ giữa các tab cùng trình duyệt.
-- Bản ASP.NET Core lưu nhóm, thành viên và chat trong SQL Server qua `StudyGroups`, `GroupMembers`, `GroupPosts`. Bản React/Vite cũ vẫn dùng `localStorage` cho dữ liệu demo frontend.
-
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Nếu dùng tính năng AI, đặt `GEMINI_API_KEY` trong `.env.local`.
-3. Chạy ứng dụng:
-   `npm run dev`
+- Ứng dụng lưu nhóm, thành viên và chat trong SQL Server qua `StudyGroups`, `GroupMembers`, `GroupPosts`.
