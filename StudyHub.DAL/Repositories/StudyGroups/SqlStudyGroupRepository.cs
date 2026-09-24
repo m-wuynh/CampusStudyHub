@@ -10,13 +10,25 @@ namespace StudyHub.DAL.Repositories.StudyGroups;
 
 public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyGroupRepository
 {
-    public IReadOnlyList<StudyGroupData> GetAll()
+    public IReadOnlyList<StudyGroupData> GetAll(string? searchText = null)
     {
-        return context.StudyGroups
+        var query = context.StudyGroups
             .AsNoTracking()
             .Where(group => !group.IsArchived)
             .Include(group => group.Subject)
             .Include(group => group.GroupMembers)
+            .AsQueryable();
+
+        var keyword = searchText?.Trim();
+        if (!string.IsNullOrEmpty(keyword))
+        {
+            query = query.Where(group =>
+                group.GroupName.Contains(keyword) ||
+                (group.Description != null && group.Description.Contains(keyword)) ||
+                (group.Subject != null && group.Subject.SubjectName.Contains(keyword)));
+        }
+
+        return query
             .OrderBy(group => group.GroupName)
             .AsEnumerable()
             .Select(ToDomain)

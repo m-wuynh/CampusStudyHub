@@ -11,9 +11,10 @@ public sealed class StudyGroupService(IRepository repository) : IStudyGroupServi
 
     private readonly object _sync = new();
 
-    public IReadOnlyList<GroupSummaryResponse> GetGroups()
+    public IReadOnlyList<GroupSummaryResponse> GetGroups(string? searchText = null)
     {
-        return repository.StudyGroups.GetAll()
+        return repository.StudyGroups.GetAll(searchText)
+            .Where(group => group.IsPublic || group.MemberUserIds.Contains(CurrentUserId))
             .OrderByDescending(group => group.MemberUserIds.Contains(CurrentUserId))
             .ThenBy(group => group.Name)
             .Select(ToSummary)

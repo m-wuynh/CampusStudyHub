@@ -11,11 +11,11 @@ Dùng SQL Server **2019 trở lên**, bao gồm Express/LocalDB, và SQL Server 
 1. Mở kết nối tới SQL Server trong SSMS.
 2. Chạy `00_CreateDatabase.sql`: tạo `StudyHub` nếu chưa có. Cần quyền tạo database. Nếu không có quyền, nhờ quản trị viên tạo database rỗng; không tự nâng quyền.
 3. Chạy toàn bộ `01_Schema.sql`: tạo bảng, khóa, index, view, procedure và cấu hình mặc định. Script dừng nếu đã tồn tại bảng người dùng.
-4. Tùy chọn chạy `02_SeedDemo.sql` để có dữ liệu giả. Chỉ chạy khi bảng người dùng và môn học còn trống.
+4. Trên môi trường phát triển, chạy `02_SeedDemo.sql` để xóa dữ liệu nghiệp vụ hiện tại và tạo lại bộ dữ liệu mẫu THPT. Script giữ nguyên schema và `SystemSettings`; không chạy trên database có dữ liệu cần bảo toàn.
 5. Chạy `03_ChecksAndQueries.sql` để kiểm tra ràng buộc và xem ví dụ truy vấn.
 6. Trên database phát triển, chạy riêng `04_SmokeTests.sql`: 9 kiểm thử chức năng. Script rollback dữ liệu thử; số IDENTITY có thể vẫn bị nhảy, đây là bình thường.
 
-Chạy từng file theo thứ tự; gặp lỗi thì dừng và đọc thông báo. Không tự xóa database để thử lại. Muốn đổi tên database, sửa tên trong file 00 và cả `USE`/`DB_NAME()` ở các file còn lại.
+Chạy từng file theo thứ tự; gặp lỗi thì dừng và đọc thông báo. Sao lưu trước khi chạy lại file 02 vì thao tác reset dữ liệu không thể hoàn tác sau khi transaction đã commit. Muốn đổi tên database, sửa tên trong file 00 và cả `USE`/`DB_NAME()` ở các file còn lại.
 
 `GO` là dấu phân tách batch của công cụ như SSMS/sqlcmd. Không gửi cả file chứa `GO` vào một `SqlCommand` hay `ExecuteSqlRaw`. Nếu dùng ứng dụng để triển khai, cần công cụ hiểu batch hoặc chuyển schema thành migrations.
 
