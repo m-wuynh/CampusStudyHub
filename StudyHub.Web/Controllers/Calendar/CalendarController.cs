@@ -3,12 +3,16 @@ using StudyHub.BLL.DTOs;
 using StudyHub.BLL.Services.Calendar;
 using StudyHub.Web.ViewModels.Calendar;
 
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+
 namespace StudyHub.Web.Controllers.Calendar;
 
+[Authorize]
 [Route("Calendar")]
 public sealed class CalendarController(ICalendarService calendarService) : Controller
 {
-    private const long CurrentUserId = 1;
+    private long CurrentUserId => long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "1");
 
     [HttpGet("")]
     public async Task<IActionResult> Index(DateOnly? date)
@@ -63,7 +67,12 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
     [HttpPost("CreateEvent")]
     public async Task<IActionResult> CreateEvent([FromBody] CreateEventDto request)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+            Console.WriteLine("ModelState is invalid: " + string.Join(", ", errors));
+            return BadRequest(ModelState);
+        }
         
         try 
         {

@@ -27,11 +27,11 @@
             </div>
             <div class="col-md-3 col-6">
                 <label class="sh-label" for="event-start">Bắt đầu</label>
-                <input id='event-start' type='time' class='sh-input' value='@Model.StartTime.ToString("HH:mm")' />
+                <input id='event-start' type='time' class='sh-input' value='@Model.StartTime.ToString("HH:mm")' lang="en-US" />
             </div>
             <div class="col-md-3 col-6">
                 <label class="sh-label" for="event-end">Kết thúc</label>
-                <input id='event-end' type='time' class='sh-input' value='@Model.EndTime.ToString("HH:mm")' />
+                <input id='event-end' type='time' class='sh-input' value='@Model.EndTime.ToString("HH:mm")' lang="en-US" />
             </div>
         </div>
         
@@ -167,7 +167,7 @@
                         if (unit === 'hours') val *= 60;
                         else if (unit === 'days') val *= 1440;
                         else if (unit === 'weeks') val *= 10080;
-                        reminders.push({ channel: channel, minutes: val });
+                        reminders.push({ Channel: channel, Minutes: val });
                     }
                 }
             });
