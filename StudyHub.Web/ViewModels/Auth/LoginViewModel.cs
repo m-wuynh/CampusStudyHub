@@ -16,5 +16,7 @@ public sealed class LoginViewModel
 
     public bool GoogleEnabled { get; set; }
 
+    public bool DevelopmentLoginEnabled { get; set; }
+
     public string? ErrorMessage { get; set; }
 }

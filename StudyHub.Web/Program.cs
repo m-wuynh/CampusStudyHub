@@ -13,11 +13,14 @@ using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.Common;
 using StudyHub.DAL.Repositories.StudyGroups;
 using StudyHub.Web.Authentication;
+using StudyHub.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
+builder.Services.AddSignalR();
 
 var authentication = builder.Services.AddAuthentication(options =>
 {
@@ -78,6 +81,7 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<IStudyGroupService, StudyGroupService>();
 builder.Services.AddScoped<IFlashcardDeckService, FlashcardDeckService>();
 builder.Services.AddScoped<IFlashcardService, FlashcardService>();
+builder.Services.AddScoped<StudyHub.BLL.Services.Calendar.ICalendarService, StudyHub.BLL.Services.Calendar.CalendarService>();
 
 var app = builder.Build();
 
@@ -96,6 +100,7 @@ app.UseAuthorization();
 
 app.MapStaticAssets().AllowAnonymous();
 app.MapControllers();
+app.MapHub<StudyGroupHub>("/hubs/study-groups");
 app.MapControllerRoute(
         name: "default",
         pattern: "{controller=Dashboard}/{action=Index}/{id?}")

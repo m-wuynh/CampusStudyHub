@@ -6,14 +6,31 @@ namespace StudyHub.DAL.Repositories.Auth;
 
 public sealed class GoogleAuthRepository(StudyHubDbContext context) : IGoogleAuthRepository
 {
-    private const string Provider = "Google";
-
-    public async Task<GoogleAccountData> FindOrCreateAsync(
+    public Task<GoogleAccountData> FindOrCreateAsync(
         string subject,
         string displayName,
         string? email,
         string? avatarUrl,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        FindOrCreateAsync("Google", subject, displayName, email, avatarUrl, cancellationToken);
+
+    public Task<GoogleAccountData> FindOrCreateDevelopmentAsync(
+        CancellationToken cancellationToken = default) =>
+        FindOrCreateAsync(
+            "Development",
+            "local-development-user",
+            "Tài khoản phát triển",
+            "developer@studyhub.local",
+            null,
+            cancellationToken);
+
+    private async Task<GoogleAccountData> FindOrCreateAsync(
+        string provider,
+        string subject,
+        string displayName,
+        string? email,
+        string? avatarUrl,
+        CancellationToken cancellationToken)
     {
         var normalizedSubject = Limit(subject.Trim(), 255);
         var now = DateTime.UtcNow;
@@ -21,7 +38,7 @@ public sealed class GoogleAuthRepository(StudyHubDbContext context) : IGoogleAut
         var externalLogin = await context.ExternalLogins
             .Include(login => login.User)
             .SingleOrDefaultAsync(
-                login => login.Provider == Provider && login.ProviderSubject == normalizedSubject,
+                login => login.Provider == provider && login.ProviderSubject == normalizedSubject,
                 cancellationToken);
 
         if (externalLogin is not null)
@@ -54,7 +71,7 @@ public sealed class GoogleAuthRepository(StudyHubDbContext context) : IGoogleAut
 
         context.ExternalLogins.Add(new ExternalLogin
         {
-            Provider = Provider,
+            Provider = provider,
             ProviderSubject = normalizedSubject,
             UserId = user.UserId,
             CreatedAtUtc = now,

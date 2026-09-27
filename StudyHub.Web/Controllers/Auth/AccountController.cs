@@ -14,6 +14,7 @@ namespace StudyHub.Web.Controllers.Auth;
 public sealed class AccountController(
     IAuthService authService,
     IAuthenticationSchemeProvider schemeProvider,
+    IWebHostEnvironment environment,
     ILogger<AccountController> logger) : Controller
 {
     private const string LoginView = "~/Views/Auth/Login.cshtml";
@@ -58,6 +59,34 @@ public sealed class AccountController(
             GoogleDefaults.AuthenticationScheme);
     }
 
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    [HttpPost("Development")]
+    public async Task<IActionResult> Development(
+        string? returnUrl = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!environment.IsDevelopment()) return NotFound();
+
+        try
+        {
+            var result = await authService.LoginForDevelopmentAsync(cancellationToken);
+            if (!result.Succeeded || result.User is null)
+            {
+                var model = await CreateLoginViewModelAsync(returnUrl, result.ErrorMessage);
+                return View(LoginView, model);
+            }
+
+            await SignInUserAsync(result.User, true, new Claim("login_provider", "Development"));
+            return LocalRedirectOrDashboard(returnUrl);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Không thể hoàn tất đăng nhập phát triển.");
+            return RedirectToAction(nameof(Login), new { returnUrl, error = "development_storage" });
+        }
+    }
+
     [Authorize]
     [HttpGet("GoogleCallback")]
     public async Task<IActionResult> GoogleCallback(
@@ -89,29 +118,11 @@ public sealed class AccountController(
                 return View(LoginView, model);
             }
 
-            var claims = new List<Claim>
-            {
-                new(ClaimTypes.NameIdentifier, result.User.Id.ToString()),
-                new(ClaimTypes.Name, result.User.DisplayName),
-                new(ClaimTypes.Role, result.User.RoleCode),
-                new("google_sub", googleSubject)
-            };
-
-            if (!string.IsNullOrWhiteSpace(result.User.Email))
-                claims.Add(new Claim(ClaimTypes.Email, result.User.Email));
-            if (!string.IsNullOrWhiteSpace(avatarUrl))
-                claims.Add(new Claim(PictureClaimType, avatarUrl));
-
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var properties = new AuthenticationProperties { IsPersistent = rememberMe };
-            if (rememberMe)
-                properties.ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14);
-
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(identity),
-                properties);
+            await SignInUserAsync(
+                result.User,
+                rememberMe,
+                new Claim("google_sub", googleSubject),
+                avatarUrl);
 
             return LocalRedirectOrDashboard(returnUrl);
         }
@@ -143,8 +154,40 @@ public sealed class AccountController(
         ReturnUrl = SafeReturnUrl(returnUrl),
         RememberMe = true,
         GoogleEnabled = await IsGoogleEnabledAsync(),
+        DevelopmentLoginEnabled = environment.IsDevelopment(),
         ErrorMessage = errorMessage
     };
+
+    private async Task SignInUserAsync(
+        UserProfileDto user,
+        bool isPersistent,
+        Claim providerClaim,
+        string? avatarUrl = null)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Name, user.DisplayName),
+            new(ClaimTypes.Role, user.RoleCode),
+            providerClaim
+        };
+
+        if (!string.IsNullOrWhiteSpace(user.Email))
+            claims.Add(new Claim(ClaimTypes.Email, user.Email));
+        if (!string.IsNullOrWhiteSpace(avatarUrl))
+            claims.Add(new Claim(PictureClaimType, avatarUrl));
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var properties = new AuthenticationProperties { IsPersistent = isPersistent };
+        if (isPersistent)
+            properties.ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14);
+
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity),
+            properties);
+    }
 
     private async Task<bool> IsGoogleEnabledAsync() =>
         await schemeProvider.GetSchemeAsync(GoogleDefaults.AuthenticationScheme) is not null;
@@ -163,6 +206,7 @@ public sealed class AccountController(
         "google_failed" => "Google đã hủy hoặc không thể hoàn tất đăng nhập. Vui lòng thử lại.",
         "google_claims" => "Không đọc được thông tin tài khoản từ Google.",
         "google_storage" => "Đã đăng nhập Google nhưng không thể lưu tài khoản vào cơ sở dữ liệu.",
+        "development_storage" => "Không thể tạo tài khoản phát triển trong cơ sở dữ liệu.",
         "use_google" => "Tài khoản được tạo tự động ở lần đầu bạn đăng nhập với Google.",
         _ => null
     };

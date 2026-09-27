@@ -43,21 +43,33 @@ tắc riêng được gọi qua repository feature, ví dụ `IRepository.StudyG
 controller không gọi `StudyHubDbContext` trực tiếp.
 
 - Database: SQL Server Express `StudyHub`.
-- Connection string: `StudyHub.Web/appsettings.json` → `ConnectionStrings:StudyHub`.
+- Connection string: `StudyHub.Web/appsettings.json` và file ghi đè khi Debug
+  `StudyHub.Web/appsettings.Development.json` → `ConnectionStrings:StudyHub`.
 - Entity và `StudyHubDbContext` được scaffold từ 27 bảng và 4 view trong database.
 - `SqlStudyGroupRepository` ánh xạ bảng `StudyGroups`, `GroupMembers`, `GroupPosts` sang model của BLL.
 
-Scaffold lại DAL sau khi schema SQL Server thay đổi:
+Quy trình thay đổi schema bằng EF Core Migration:
 
 ```powershell
 dotnet tool restore
-dotnet tool run dotnet-ef dbcontext scaffold "Name=ConnectionStrings:StudyHub" Microsoft.EntityFrameworkCore.SqlServer `
+
+# Sau khi sửa entity và StudyHubDbContext, tạo migration mới
+dotnet tool run dotnet-ef migrations add TenMigration `
   --project StudyHub.DAL/StudyHub.DAL.csproj `
   --startup-project StudyHub.Web/StudyHub.Web.csproj `
-  --context StudyHubDbContext --context-dir Persistence --output-dir Entities `
-  --context-namespace StudyHub.DAL.Persistence --namespace StudyHub.DAL.Entities `
-  --no-onconfiguring --force
+  --context StudyHubDbContext `
+  --output-dir Migrations
+
+# Kiểm tra rồi áp dụng migration vào database
+dotnet tool run dotnet-ef database update `
+  --project StudyHub.DAL/StudyHub.DAL.csproj `
+  --startup-project StudyHub.Web/StudyHub.Web.csproj `
+  --context StudyHubDbContext
 ```
+
+Không sửa trực tiếp schema trong SSMS rồi scaffold đè lên `StudyHubDbContext`. Mỗi thay
+đổi database phải đi cùng một migration trong `StudyHub.DAL/Migrations` để các thành
+viên trong nhóm có thể cập nhật cùng một phiên bản schema.
 
 Chạy bản ASP.NET Core:
 
@@ -65,13 +77,41 @@ Chạy bản ASP.NET Core:
 dotnet run --project StudyHub.Web/StudyHub.Web.csproj --launch-profile https
 ```
 
+Ở môi trường `Development`, trang đăng nhập có nút **Đăng nhập phát triển**. Nút này
+tự tạo một tài khoản local trong database nên thành viên trong nhóm có thể chạy và
+kiểm thử ứng dụng mà không cần Google Client ID/Client Secret. Endpoint tương ứng bị
+vô hiệu hóa hoàn toàn khi ứng dụng không chạy ở môi trường `Development`.
+
+Chỉ khi cần kiểm thử đăng nhập Google thật, cấu hình secrets riêng trên máy:
+
+```powershell
+dotnet user-secrets set "Authentication:Google:ClientId" "YOUR_CLIENT_ID.apps.googleusercontent.com" --project StudyHub.Web/StudyHub.Web.csproj
+dotnet user-secrets set "Authentication:Google:ClientSecret" "YOUR_CLIENT_SECRET" --project StudyHub.Web/StudyHub.Web.csproj
+```
+
 
 ## Feature nhóm học tập
 
-- Tạo, sửa và xóa nhóm; cấu hình môn học, mục tiêu, sức chứa, hình thức, lịch và liên kết liên hệ.
-- Tìm kiếm, lọc theo môn; xem nhóm đã tham gia, khám phá nhóm công khai và lưu nhóm yêu thích.
-- Sinh viên gửi hoặc hủy yêu cầu tham gia; trưởng nhóm duyệt hoặc từ chối; kiểm soát nhóm đã đủ người.
-- Nội dung bảng tin, thành viên, ghi chú và flashcards chỉ hiển thị cho thành viên.
-- Thành viên đăng thông báo, chia sẻ ghi chú/flashcards và rời nhóm.
-- Chat box riêng cho từng nhóm: chỉ thành viên được đọc/gửi, hỗ trợ Enter để gửi, Shift + Enter để xuống dòng, tự cuộn tới tin mới và đồng bộ giữa các tab cùng trình duyệt.
-- Ứng dụng lưu nhóm, thành viên và chat trong SQL Server qua `StudyGroups`, `GroupMembers`, `GroupPosts`.
+- Ba cách tham gia theo mô hình Discord: nhóm công khai vào ngay (`Open`), nhóm công khai cần duyệt (`Approval`) và nhóm riêng tư chỉ qua lời mời (`InviteOnly`).
+- Thành viên có vòng đời `Pending`, `Active`, `Rejected`, `Left`, `Banned`; người bị ban không thể tự tham gia lại và nhóm không thể vượt `MaxMembers`.
+- Ba vai trò gọn cho ứng dụng học tập: Owner, Moderator và Member. Owner/Moderator được duyệt, từ chối, mời ra hoặc cấm thành viên; Owner được bổ nhiệm Moderator.
+- Lời mời có mã ngẫu nhiên, ngày hết hạn và giới hạn lượt sử dụng. Link có dạng `/Groups/Invite/{code}`.
+- Workspace nhóm gồm Tổng quan, Thông báo, Chat, Tài nguyên và Thành viên. Người chưa được duyệt chỉ xem phần giới thiệu công khai.
+- Thông báo được tách khỏi chat và hỗ trợ ghim một thông báo quan trọng.
+- Chat cập nhật tức thời bằng SignalR; nếu không tải được SignalR client, giao diện tự chuyển sang REST và polling dự phòng.
+- Ghi chú, tài liệu và flashcard chỉ xuất hiện trong nhóm khi dữ liệu có đúng `StudyGroupId` và `Visibility = 'Group'`.
+- Các thao tác thay đổi thành viên chạy trong transaction SQL và API dùng antiforgery token.
+
+Sau khi pull code có thay đổi schema, áp dụng EF Core migrations:
+
+```powershell
+dotnet tool restore
+dotnet tool run dotnet-ef database update `
+  --project StudyHub.DAL/StudyHub.DAL.csproj `
+  --startup-project StudyHub.Web/StudyHub.Web.csproj `
+  --context StudyHubDbContext
+```
+
+`BaselineExistingDatabase` đăng ký schema Database First hiện hữu mà không tạo lại
+bảng hoặc xóa dữ liệu. Các thay đổi schema tiếp theo phải được tạo và áp dụng bằng
+EF Core Migration.
