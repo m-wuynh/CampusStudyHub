@@ -4,23 +4,26 @@ using StudyHub.Web.ViewModels.Flashcards;
 using StudyHub.BLL.DTOs;
 using StudyHub.BLL.Services.Flashcards;
 using Microsoft.AspNetCore.DataProtection.KeyManagement.Internal;
+using StudyHub.BLL.Services.Auth;
+using Microsoft.AspNetCore.Authorization;
 
 
 namespace StudyHub.Web.Controllers.Flashcards;
 
+[Authorize]
 [Route("Flashcards")]
-public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckService, IFlashcardService flashcardService) : Controller
+public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckService, IFlashcardService flashcardService, ICurrentUser currentUser) : Controller
 {
 
     //deck management
-    private const long DevelopmentUserId = 1;
+
     [HttpGet("")]
     public async Task<IActionResult> Index(
         string? searchText,
         CancellationToken cancellationToken)
     {
         var decks = await flashcardDeckService.GetMyDecksAsync(
-            DevelopmentUserId,
+            currentUser.UserId,
             cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(searchText))
@@ -60,7 +63,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         try
         {
             await flashcardDeckService.CreateDeckAsync(
-                DevelopmentUserId,
+                currentUser.UserId,
                 new CreateFlashcardDeckRequestDto(
                     model.Title,
                     model.Description,
@@ -97,7 +100,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         {
             var updated = await flashcardDeckService.UpdateDeckAsync(
                 deckId,
-                DevelopmentUserId,
+                currentUser.UserId,
                 new UpdateFlashcardDeckRequestDto(
                     model.Title,
                     model.Description,
@@ -127,7 +130,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
     {
         var deleted = await flashcardDeckService.DeleteDeckAsync(
             deckId,
-            DevelopmentUserId,
+            currentUser.UserId,
             cancellationToken);
 
         if (!deleted)
@@ -148,7 +151,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
     {
         var deck = await flashcardDeckService.GetDeckDetailAsync(
             deckId,
-            DevelopmentUserId,
+            currentUser.UserId,
             cancellationToken);
 
         if(deck is null)
@@ -158,7 +161,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
 
         var cards = await flashcardService.GetCardsByDeckAsync(
             deckId,
-            DevelopmentUserId,
+            currentUser.UserId,
             cancellationToken);
 
         var model = new FlashcardDeckDetailViewModel
@@ -187,7 +190,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         {
             await flashcardService.CreateCardAsync(
                 deckId,
-                DevelopmentUserId,
+                currentUser.UserId,
                 new CreateFlashcardRequestDto(
                     model.FrontText,
                     model.BackText,
@@ -226,7 +229,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         {
             var updated = await flashcardService.UpdateCardAsync(
                 cardId,
-                DevelopmentUserId,
+                currentUser.UserId,
                 new UpdateFlashcardRequestDto(
                     model.FrontText,
                     model.BackText,
@@ -257,7 +260,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
     {
         var deleted = await flashcardService.DeleteCardAsync(
             cardId,
-            DevelopmentUserId,
+            currentUser.UserId,
             cancellationToken);
 
         if (!deleted)
@@ -276,7 +279,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
     {
         var deck = await flashcardDeckService.GetDeckDetailAsync(
             deckId,
-            DevelopmentUserId,
+            currentUser.UserId,
             cancellationToken);
 
         if (deck is null)
@@ -286,7 +289,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
 
         var cards = await flashcardService.GetStudyCardsAsync(
             deckId,
-            DevelopmentUserId,
+            currentUser.UserId,
             cancellationToken);
 
         var model = new FlashcardStudyViewModel
