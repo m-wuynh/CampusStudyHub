@@ -8,7 +8,8 @@ namespace StudyHub.Web.Controllers.StudyGroups;
 public sealed class StudyGroupsController(IStudyGroupService studyGroups) : Controller
 {
     [HttpGet("")]
-    public IActionResult Index() => View(new StudyGroupsIndexViewModel());
+    public IActionResult Index([FromQuery(Name = "q")] string? searchText = null) =>
+        View(new StudyGroupsIndexViewModel(searchText?.Trim()));
 
     [HttpGet("{groupId}")]
     public IActionResult Details(string groupId)
