@@ -359,9 +359,13 @@
 
       let loaded = false;
       let readIds = JSON.parse(localStorage.getItem('sh_notif_read') || '[]');
+      let toastedIds = JSON.parse(localStorage.getItem('sh_notif_toasted') || '[]');
 
       function saveRead() {
         localStorage.setItem('sh_notif_read', JSON.stringify(readIds));
+      }
+      function saveToasted() {
+        localStorage.setItem('sh_notif_toasted', JSON.stringify(toastedIds));
       }
 
       function typeLabel(type) {
@@ -477,17 +481,75 @@
       });
 
       // Load badge count on page load (background)
-      fetch('/Calendar/GetUpcomingNotifications')
-        .then(r => r.json())
-        .then(data => {
-          const unread = data.items.filter(i => !readIds.includes(i.id)).length;
-          if (unread > 0) {
-            badge.textContent = unread + ' mới';
-            badge.style.display = '';
-            indicator.style.display = '';
-          }
-        })
-        .catch(() => {});
+      function pollNotifications() {
+        fetch('/Calendar/GetUpcomingNotifications')
+          .then(r => r.json())
+          .then(data => {
+            const unreadItems = data.items.filter(i => !readIds.includes(i.id));
+            if (unreadItems.length > 0) {
+              badge.textContent = unreadItems.length + ' mới';
+              badge.style.display = '';
+              indicator.style.display = '';
+              
+              // Pop toast for new notifications
+              unreadItems.forEach(item => {
+                  const toastKey = item.id + '_' + item.timeLabel;
+                  if (!toastedIds.includes(toastKey)) {
+                      // Custom on-screen notification that cannot be blocked by browser!
+                      const pop = document.createElement('div');
+                      pop.style.position = 'fixed';
+                      pop.style.top = '20px';
+                      pop.style.right = '20px';
+                      pop.style.backgroundColor = '#fff';
+                      pop.style.borderLeft = '5px solid var(--sh-indigo-600)';
+                      pop.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+                      pop.style.padding = '20px';
+                      pop.style.borderRadius = '8px';
+                      pop.style.zIndex = '999999';
+                      pop.style.width = '320px';
+                      pop.style.transition = 'all 0.4s ease';
+                      pop.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="mb-0 fw-bold" style="color: var(--sh-slate-900); font-size: 16px;">
+                                <i class="bi bi-bell-fill text-warning me-2"></i>Nhắc nhở sự kiện
+                            </h5>
+                            <button class="btn-close" style="font-size: 12px;"></button>
+                        </div>
+                        <p class="mb-1 fw-bold" style="color: var(--sh-indigo-700);">${item.title}</p>
+                        <p class="mb-0 text-muted" style="font-size: 13px;">${item.timeLabel}</p>
+                      `;
+                      
+                      document.body.appendChild(pop);
+                      
+                      // Auto remove after 10 seconds or on click
+                      const removePop = () => {
+                          pop.style.opacity = '0';
+                          pop.style.transform = 'translateX(100%)';
+                          setTimeout(() => pop.remove(), 400);
+                      };
+                      pop.querySelector('.btn-close').onclick = removePop;
+                      setTimeout(removePop, 10000);
+                      
+                      // Play sound if possible
+                      try {
+                          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                          audio.play().catch(e => console.log('Autoplay blocked'));
+                      } catch(e) {}
+                      
+                      toastedIds.push(toastKey);
+                  }
+              });
+              saveToasted();
+            } else {
+              badge.style.display = 'none';
+              indicator.style.display = 'none';
+            }
+          })
+          .catch(() => {});
+      }
+      
+      pollNotifications();
+      setInterval(pollNotifications, 5000); // Check every 5 seconds
     })();
   </script>
 

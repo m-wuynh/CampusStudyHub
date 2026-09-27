@@ -94,7 +94,7 @@
 
 @section Scripts {
     <script>
-        function addNotification() {
+        function addNotification(val = 10, unit = 'minutes') {
             const container = document.getElementById('notifications-container');
             const row = document.createElement('div');
             row.className = 'd-flex align-items-center gap-2 mb-1';
@@ -104,12 +104,12 @@
                     <option value="notification">Thông báo</option>
                     <option value="email">Email</option>
                 </select>
-                <input type="number" class="form-control form-control-sm border-0 bg-light text-center" value="10" style="width: 50px;">
+                <input type="number" class="form-control form-control-sm border-0 bg-light text-center" value="${val}" style="width: 50px;">
                 <select class="form-select form-select-sm border-0 bg-light" style="width: auto; cursor: pointer;">
-                    <option value="minutes">phút</option>
-                    <option value="hours">giờ</option>
-                    <option value="days">ngày</option>
-                    <option value="weeks">tuần</option>
+                    <option value="minutes" ${unit === 'minutes' ? 'selected' : ''}>phút</option>
+                    <option value="hours" ${unit === 'hours' ? 'selected' : ''}>giờ</option>
+                    <option value="days" ${unit === 'days' ? 'selected' : ''}>ngày</option>
+                    <option value="weeks" ${unit === 'weeks' ? 'selected' : ''}>tuần</option>
                 </select>
                 <button type="button" class="btn btn-sm btn-light border-0 text-muted ms-2 bg-transparent" onclick="this.parentElement.remove()">
                     <i class="bi bi-x-lg"></i>
@@ -117,6 +117,26 @@
             `;
             container.appendChild(row);
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            @if (Model.ReminderMinutes != null && Model.ReminderMinutes.Any())
+            {
+                foreach (var min in Model.ReminderMinutes)
+                {
+                    <text>
+                    {
+                        let totalMinutes = @min;
+                        let val = totalMinutes;
+                        let unit = 'minutes';
+                        if (val % 10080 === 0) { val /= 10080; unit = 'weeks'; }
+                        else if (val % 1440 === 0) { val /= 1440; unit = 'days'; }
+                        else if (val % 60 === 0) { val /= 60; unit = 'hours'; }
+                        addNotification(val, unit);
+                    }
+                    </text>
+                }
+            }
+        });
 
         async function submitEvent() {
             const title = document.getElementById('event-title').value;

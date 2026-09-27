@@ -16,7 +16,7 @@
   </div>
 
   <!-- Calendar Container -->
-  <div class="sh-card p-0 overflow-hidden" style="background: #fff; border: 1px solid var(--sh-slate-200); border-radius: 12px; height: calc(100vh - 140px); min-height: 800px; position: relative;">
+  <div class="sh-card p-0 overflow-hidden" style="background: #fff; border: 1px solid var(--sh-slate-200); border-radius: 12px; height: calc(100vh - 140px); min-height: 900px; position: relative;">
     <div id="calendar" style="height: 100%;"></div>
 
     <!-- Event Popover (Hidden by default) -->
@@ -56,6 +56,12 @@
           <div class="d-flex align-items-center gap-3 text-muted">
             <i class="bi bi-tag fs-5 flex-shrink-0"></i>
             <span id="popover-type" style="color:#3c4043;"></span>
+          </div>
+
+          <!-- Reminders -->
+          <div id="popover-reminders-row" class="d-flex align-items-start gap-3 text-muted" style="display:none !important;">
+            <i class="bi bi-bell fs-5 flex-shrink-0"></i>
+            <div id="popover-reminders-list" class="d-flex flex-column" style="color:#3c4043;"></div>
           </div>
 
         </div>
@@ -181,8 +187,11 @@
             position: relative;
             top: 0px; /* align with line like Google Calendar */
         }
-        .fc-timegrid-slot {
-            height: 112px; /* doubled from 56px */
+        .fc-timegrid-slot.fc-timegrid-slot-lane {
+            height: 80px !important; 
+        }
+        .fc-timegrid-slot.fc-timegrid-slot-label {
+            height: 80px !important;
         }
         .fc-timegrid-slot-minor {
             border-top-style: none !important;
@@ -253,6 +262,7 @@
                 slotDuration: '01:00:00',
                 slotLabelInterval: '01:00',
                 scrollTime: '07:00:00',
+                eventMinHeight: 30,
                 slotLabelFormat: {
                     hour: 'numeric',
                     meridiem: 'short',
@@ -343,6 +353,26 @@
                     popover.style.left = left + 'px';
                     popover.classList.remove('d-none');
                     
+                    // Fetch Reminders
+                    var remRow = document.getElementById('popover-reminders-row');
+                    var remList = document.getElementById('popover-reminders-list');
+                    remRow.style.setProperty('display', 'none', 'important');
+                    remList.innerHTML = '';
+                    
+                    fetch('/Calendar/GetEventReminders/' + info.event.id)
+                        .then(r => r.json())
+                        .then(minutes => {
+                            if (minutes && minutes.length > 0) {
+                                remList.innerHTML = minutes.map(m => {
+                                    if (m % 10080 === 0) return (m / 10080) + ' tuần trước';
+                                    if (m % 1440 === 0) return (m / 1440) + ' ngày trước';
+                                    if (m % 60 === 0) return (m / 60) + ' giờ trước';
+                                    return m + ' phút trước';
+                                }).join('<br/>');
+                                remRow.style.setProperty('display', 'flex', 'important');
+                            }
+                        });
+
                     // Set Edit/Delete URLs
                     document.getElementById('btn-edit-event').onclick = function() {
                         window.location.href = '/Calendar/Update/' + info.event.id;
