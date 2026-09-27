@@ -218,10 +218,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
-  if (confirmLogoutBtn) {
-    confirmLogoutBtn.addEventListener('click', () => {
-      window.location.href = '/Login';
-    });
-  }
 });
