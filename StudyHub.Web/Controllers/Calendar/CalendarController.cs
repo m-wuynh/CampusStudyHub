@@ -110,6 +110,68 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
         }
     }
 
+    [HttpGet("GetUpcomingNotifications")]
+    public async Task<IActionResult> GetUpcomingNotifications()
+    {
+        var now = DateTime.Now;
+        var events = await calendarService.GetActiveRemindersAsync(CurrentUserId);
+
+        // Sort by start time
+        var upcoming = events
+            .OrderBy(e => e.StartAtLocal)
+            .Take(10)
+            .Select(e =>
+            {
+                var diff = e.StartAtLocal - now;
+                string timeLabel;
+                if (diff.TotalMinutes < 60)
+                    timeLabel = $"Còn {(int)diff.TotalMinutes} phút nữa";
+                else if (diff.TotalHours < 24)
+                    timeLabel = $"Hôm nay lúc {e.StartAtLocal:HH:mm}";
+                else if (diff.TotalDays < 2)
+                    timeLabel = $"Ngày mai lúc {e.StartAtLocal:HH:mm}";
+                else
+                    timeLabel = e.StartAtLocal.ToString("ddd, dd/MM 'lúc' HH:mm");
+
+                string icon = e.EventType switch
+                {
+                    "Exam"      => "bi-alarm",
+                    "Class"     => "bi-people",
+                    "Other"     => "bi-journal-check",
+                    _           => "bi-book"
+                };
+                string iconBg = e.EventType switch
+                {
+                    "Exam"  => "var(--sh-rose-50)",
+                    "Class" => "var(--sh-indigo-50)",
+                    "Other" => "var(--sh-amber-50)",
+                    _       => "var(--sh-emerald-50)"
+                };
+                string iconColor = e.EventType switch
+                {
+                    "Exam"  => "var(--sh-rose-600)",
+                    "Class" => "var(--sh-indigo-600)",
+                    "Other" => "var(--sh-amber-600)",
+                    _       => "var(--sh-emerald-600)"
+                };
+                bool isUrgent = diff.TotalHours < 24;
+
+                return new
+                {
+                    id = e.Id,
+                    title = e.Title,
+                    timeLabel,
+                    icon,
+                    iconBg,
+                    iconColor,
+                    isUrgent,
+                    eventType = e.EventType
+                };
+            }).ToList();
+
+        return Json(new { count = upcoming.Count, items = upcoming });
+    }
+
     [HttpDelete("DeleteEvent/{id}")]
     public async Task<IActionResult> DeleteEvent(long id)
     {

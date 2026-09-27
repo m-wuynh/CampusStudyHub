@@ -16,7 +16,7 @@
   </div>
 
   <!-- Calendar Container -->
-  <div class="sh-card p-0 overflow-hidden" style="background: #fff; border: 1px solid var(--sh-slate-200); border-radius: 12px; height: 1000px; position: relative;">
+  <div class="sh-card p-0 overflow-hidden" style="background: #fff; border: 1px solid var(--sh-slate-200); border-radius: 12px; height: calc(100vh - 140px); min-height: 800px; position: relative;">
     <div id="calendar" style="height: 100%;"></div>
 
     <!-- Event Popover (Hidden by default) -->
@@ -30,23 +30,34 @@
       </div>
 
       <div class="px-3 pb-3">
-        <div class="d-flex gap-3 mb-3">
-          <div style="width: 14px; height: 14px; border-radius: 4px; margin-top: 6px;" id="popover-color"></div>
+        <div class="d-flex gap-3 mb-2">
+          <div style="width: 14px; height: 14px; border-radius: 4px; margin-top: 6px; flex-shrink:0;" id="popover-color"></div>
           <div>
-            <h4 class="mb-1" id="popover-title" style="font-size: 1.3rem; font-weight: 400; color: #3c4043;">Title</h4>
-            <p class="mb-0 text-muted" id="popover-time" style="font-size: 0.85rem;"></p>
+            <h4 class="mb-1" id="popover-title" style="font-size: 1.2rem; font-weight: 500; color: #3c4043;"></h4>
+            <p class="mb-0 text-muted" id="popover-time" style="font-size: 0.82rem;"></p>
           </div>
         </div>
 
-        <div class="d-flex flex-column gap-3 text-muted ms-1" style="font-size: 0.9rem;">
-          <div class="d-flex align-items-center gap-3">
-            <i class="bi bi-bell fs-5"></i>
-            <span id="popover-notification">30 phút trước, qua email</span>
+        <div class="d-flex flex-column gap-2 ms-1" style="font-size: 0.88rem;">
+
+          <!-- Description -->
+          <div id="popover-desc-row" class="d-flex align-items-start gap-3 text-muted" style="display:none !important;">
+            <i class="bi bi-text-left fs-5 flex-shrink-0"></i>
+            <span id="popover-desc" style="white-space: pre-wrap; color:#3c4043;"></span>
           </div>
-          <div class="d-flex align-items-center gap-3">
-            <i class="bi bi-calendar fs-5"></i>
-            <span id="popover-creator">Leon Fischer</span>
+
+          <!-- Location -->
+          <div id="popover-location-row" class="d-flex align-items-center gap-3 text-muted" style="display:none !important;">
+            <i class="bi bi-geo-alt fs-5 flex-shrink-0"></i>
+            <span id="popover-location" style="color:#3c4043;"></span>
           </div>
+
+          <!-- Event Type -->
+          <div class="d-flex align-items-center gap-3 text-muted">
+            <i class="bi bi-tag fs-5 flex-shrink-0"></i>
+            <span id="popover-type" style="color:#3c4043;"></span>
+          </div>
+
         </div>
       </div>
     </div>
@@ -171,7 +182,27 @@
             top: 0px; /* align with line like Google Calendar */
         }
         .fc-timegrid-slot {
-            height: 100px; /* 1 hour slots */
+            height: 112px; /* doubled from 56px */
+        }
+        .fc-timegrid-slot-minor {
+            border-top-style: none !important;
+        }
+        /* Always show hour label cells */
+        .fc-timegrid-slot-label {
+            vertical-align: top !important;
+        }
+        .fc-timegrid-slot-label-cushion {
+            padding-top: 4px !important;
+        }
+        /* Fix event overflow onto time axis */
+        .fc-timegrid-col-events {
+            margin: 0 !important;
+        }
+        .fc-timegrid-now-indicator-arrow {
+            display: none;
+        }
+        .fc-timegrid-event-harness {
+            margin-right: 2px !important;
         }
 
         /* Events */
@@ -219,8 +250,9 @@
                 allDaySlot: false,
                 slotMinTime: '00:00:00',
                 slotMaxTime: '24:00:00',
-                slotDuration: '01:00:00', // 1 hour slots
-				slotMinHeight: 80,
+                slotDuration: '01:00:00',
+                slotLabelInterval: '01:00',
+                scrollTime: '07:00:00',
                 slotLabelFormat: {
                     hour: 'numeric',
                     meridiem: 'short',
@@ -270,6 +302,30 @@
                     var type = info.event.extendedProps.type;
                     var color = type === 'Exam' ? '#d93025' : type === 'Class' ? '#1e8e3e' : type === 'Other' ? '#9334e6' : '#1a73e8';
                     document.getElementById('popover-color').style.backgroundColor = color;
+
+                    // Event type label
+                    var typeLabels = { 'Exam': 'Kiểm tra / Thi', 'Class': 'Học nhóm', 'Other': 'Bài tập / Nộp bài', 'SelfStudy': 'Tự học' };
+                    document.getElementById('popover-type').innerText = typeLabels[type] || 'Tự học';
+
+                    // Description (show/hide)
+                    var desc = info.event.extendedProps.description || '';
+                    var descRow = document.getElementById('popover-desc-row');
+                    if (desc.trim()) {
+                        document.getElementById('popover-desc').innerText = desc;
+                        descRow.style.display = 'flex';
+                    } else {
+                        descRow.style.display = 'none';
+                    }
+
+                    // Location (show/hide)
+                    var loc = info.event.extendedProps.location || '';
+                    var locRow = document.getElementById('popover-location-row');
+                    if (loc.trim()) {
+                        document.getElementById('popover-location').innerText = loc;
+                        locRow.style.display = 'flex';
+                    } else {
+                        locRow.style.display = 'none';
+                    }
                     
                     // Position popover
                     var rect = info.el.getBoundingClientRect();

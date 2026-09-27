@@ -21,7 +21,7 @@
         <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <label class="sh-label" for="event-date">Ngày</label>
-                <input id="event-date" type="date" class="sh-input" value="@todayStr" />
+                <input id="event-date" type="date" class="sh-input" value="@todayStr" min="@todayStr" />
             </div>
             <div class="col-md-3 col-6">
                 <label class="sh-label" for="event-start">Bắt đầu</label>
@@ -117,6 +117,22 @@
             if (start.length === 5) start += ":00";
             if (end.length === 5) end += ":00";
 
+            // Extract reminders
+            const reminderMinutes = [];
+            document.querySelectorAll('#notifications-container .d-flex').forEach(row => {
+                const inputs = row.querySelectorAll('input, select');
+                if (inputs.length >= 3) {
+                    let val = parseInt(inputs[1].value);
+                    const unit = inputs[2].value;
+                    if (!isNaN(val) && val > 0) {
+                        if (unit === 'hours') val *= 60;
+                        else if (unit === 'days') val *= 1440;
+                        else if (unit === 'weeks') val *= 10080;
+                        reminderMinutes.push(val);
+                    }
+                }
+            });
+
             const data = {
                 Title: title,
                 Date: date,
@@ -124,7 +140,8 @@
                 EndTime: end,
                 EventType: category,
                 Location: loc,
-                Description: desc
+                Description: desc,
+                ReminderMinutes: reminderMinutes
             };
 
             try {

@@ -8,4 +8,6 @@ public interface ICalendarService
     Task<ScheduleEventDto?> GetEventAsync(long userId, long id);
     Task<ScheduleEventDto> CreateEventAsync(long userId, CreateEventDto request);
     Task UpdateEventAsync(long userId, UpdateEventDto request);
-    Task DeleteEventAsync(long userId, long id);}
+    Task DeleteEventAsync(long userId, long id);
+    Task<List<ScheduleEventDto>> GetActiveRemindersAsync(long userId);
+}
