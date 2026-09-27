@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using StudyHub.BLL.Services.Flashcards;
+using StudyHub.BLL.Services.Flashcards.Implementations;
+using StudyHub.BLL.Services.Flashcards.Interfaces;
 using StudyHub.BLL.Services.StudyGroups;
 using StudyHub.DAL.Persistence;
 using StudyHub.DAL.Repositories.Common;
@@ -15,6 +18,8 @@ builder.Services.AddDbContext<StudyHubDbContext>(options => options.UseSqlServer
 builder.Services.AddScoped<IStudyGroupRepository, SqlStudyGroupRepository>();
 builder.Services.AddScoped<IRepository, EfRepository>();
 builder.Services.AddScoped<IStudyGroupService, StudyGroupService>();
+builder.Services.AddScoped<IFlashcardDeckService, FlashcardDeckService>();
+builder.Services.AddScoped<IFlashcardService, FlashcardService>();
 
 var app = builder.Build();
 
