@@ -15,6 +15,7 @@ builder.Services.AddDbContext<StudyHubDbContext>(options => options.UseSqlServer
 builder.Services.AddScoped<IStudyGroupRepository, SqlStudyGroupRepository>();
 builder.Services.AddScoped<IRepository, EfRepository>();
 builder.Services.AddScoped<IStudyGroupService, StudyGroupService>();
+builder.Services.AddScoped<StudyHub.BLL.Services.Calendar.ICalendarService, StudyHub.BLL.Services.Calendar.CalendarService>();
 
 var app = builder.Build();
 
