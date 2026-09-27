@@ -1,0 +1,429 @@
+.notes-ui {
+    --notes-accent: #5145cd;
+    --notes-border: #e7e9f1;
+    color: #25283d;
+    max-width: 1400px;
+    margin-inline: auto;
+}
+
+    /* Bootstrap buttons */
+
+    .notes-ui .btn {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: .6rem 1rem;
+    }
+
+    .notes-ui .btn-primary {
+        --bs-btn-bg: #5145cd;
+        --bs-btn-border-color: #5145cd;
+        --bs-btn-hover-bg: #4236b2;
+        --bs-btn-hover-border-color: #4236b2;
+        --bs-btn-active-bg: #3c30a5;
+        --bs-btn-active-border-color: #3c30a5;
+        --bs-btn-disabled-bg: #5145cd;
+        --bs-btn-disabled-border-color: #5145cd;
+        --bs-btn-focus-shadow-rgb: 81, 69, 205;
+    }
+
+    .notes-ui .notes-secondary {
+        background: #fff;
+        border: 1px solid #dddfea;
+        color: #46465e;
+    }
+
+        .notes-ui .notes-secondary:hover {
+            background: #f7f6ff;
+            border-color: #c7c2ed;
+        }
+
+    /* Forms */
+
+    .notes-ui .form-control,
+    .notes-ui .form-select {
+        border-color: #dfe2ec;
+        border-radius: 10px;
+        padding: .65rem .85rem;
+    }
+
+        .notes-ui .form-control:focus,
+        .notes-ui .form-select:focus {
+            border-color: #9389e5;
+            box-shadow: 0 0 0 .2rem rgb(81 69 205 / 10%);
+        }
+
+    /* Library header */
+
+    .notes-ui .notes-hero {
+        padding: 30px;
+        border: 1px solid #e3e0f4;
+        border-radius: 20px;
+        background: linear-gradient( 115deg, #f0edff 0%, #faf9ff 68%, #fff 100% );
+    }
+
+        .notes-ui .notes-hero h2 {
+            font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+            letter-spacing: -.04em;
+        }
+
+    .notes-ui .notes-eyebrow {
+        color: #71678e;
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .12em;
+    }
+
+    /* Cards */
+
+    .notes-ui .notes-surface {
+        border: 1px solid var(--notes-border);
+        border-radius: 16px;
+        box-shadow: 0 3px 14px rgb(31 35 71 / 3%);
+    }
+
+    .notes-ui .notes-item {
+        transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+        .notes-ui .notes-item:hover {
+            border-color: #c9c3ec;
+            box-shadow: 0 8px 24px rgb(51 39 108 / 7%);
+        }
+
+    .notes-ui .notes-icon {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        background: #eeebff;
+        color: #6755cf;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+
+    .notes-ui .notes-icon-pdf {
+        background: #fff0e9;
+        color: #c87146;
+    }
+
+    .notes-ui .notes-title {
+        color: #29293f;
+        text-decoration: none;
+        overflow-wrap: anywhere;
+        line-height: 1.55;
+    }
+
+        .notes-ui .notes-title:hover,
+        .notes-ui .notes-open,
+        .notes-ui .notes-accent {
+            color: var(--notes-accent);
+        }
+
+    .notes-ui .notes-open {
+        text-decoration: none;
+    }
+
+    .notes-ui .notes-preview {
+        font-size: .86rem;
+        line-height: 1.8;
+        min-height: 4.65rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+    }
+
+    .notes-ui .notes-format {
+        background: #f4f5f9;
+        color: #70738b;
+        font-weight: 500;
+    }
+
+    .notes-ui .notes-delete {
+        padding: .35rem .6rem;
+        border-color: transparent;
+        color: #8d6570;
+    }
+
+        .notes-ui .notes-delete:hover {
+            color: white;
+        }
+
+    .notes-ui .notes-pdf-cover {
+        min-height: 118px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 5px;
+        background: #faf3ee;
+        border-radius: 12px;
+        color: #bd7956;
+    }
+
+        .notes-ui .notes-pdf-cover i {
+            font-size: 2.2rem;
+        }
+
+        .notes-ui .notes-pdf-cover span {
+            font-size: .65rem;
+            letter-spacing: .15em;
+            font-weight: 700;
+        }
+
+    /* Tabs and search */
+
+    .notes-ui .notes-tabs .nav-link {
+        color: #6c7086;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        padding: .65rem 1rem;
+        font-weight: 600;
+    }
+
+        .notes-ui .notes-tabs .nav-link.active {
+            color: var(--notes-accent);
+            background: #eeebff;
+            border-color: #e3dffc;
+        }
+
+    .notes-ui .notes-tabs .badge {
+        background: rgb(81 69 205 / 9%);
+        color: inherit;
+    }
+
+    .notes-ui .notes-empty {
+        padding: 60px 20px;
+        background: white;
+        border: 1px dashed #dce0ec;
+        border-radius: 16px;
+    }
+
+    .notes-ui .notes-search .input-group-text {
+        border-color: #dfe2ec;
+        border-radius: 10px 0 0 10px;
+        padding-left: 18px;
+    }
+
+    .notes-ui .notes-search .input-group > .form-control {
+        border-radius: 0;
+    }
+
+    .notes-ui .notes-search .input-group > .btn {
+        border-radius: 0 10px 10px 0;
+    }
+
+    /* Text editor */
+
+    .notes-ui .notes-editor {
+        max-width: 1050px;
+        margin-inline: auto;
+        overflow: hidden;
+    }
+
+    .notes-ui .notes-title-input {
+        border: 0;
+        padding: .4rem 0;
+        border-radius: 0;
+        font-size: clamp(1.35rem, 2vw, 1.8rem);
+        font-weight: 700;
+        color: #29293f;
+    }
+
+    .notes-ui .notes-writing {
+        min-height: 52vh;
+        border: 0;
+        padding: 0;
+        line-height: 1.95;
+        resize: vertical;
+        font-size: 1rem;
+    }
+
+        .notes-ui .notes-writing:focus {
+            box-shadow: none;
+            outline: 2px solid #eae7fa;
+            outline-offset: 8px;
+        }
+
+    /* PDF toolbar */
+
+    .notes-ui .notes-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        align-items: center;
+    }
+
+    .notes-ui .notes-toolgroup {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .notes-ui .notes-toolbar .btn {
+        padding: .5rem .7rem;
+        font-size: .82rem;
+    }
+
+    .notes-ui .notes-toolbar .form-control,
+    .notes-ui .notes-toolbar .form-select {
+        padding: .5rem .6rem;
+        font-size: .82rem;
+    }
+
+    .notes-ui .notes-toolbar .form-select {
+        padding-right: 2rem;
+    }
+
+    .notes-ui .notes-page-input {
+        width: 65px;
+    }
+
+    .notes-ui .notes-width-input {
+        width: 60px;
+    }
+
+    .notes-ui .notes-zoom {
+        width: 90px;
+    }
+
+    .notes-ui .notes-tool-select {
+        width: 130px;
+    }
+
+    .notes-ui .form-control-color {
+        width: 38px;
+        height: 38px;
+        padding: 4px !important;
+    }
+
+    .notes-ui .notes-reader-heading {
+        min-width: 0;
+        flex: 1;
+    }
+
+        .notes-ui .notes-reader-heading > a {
+            flex-shrink: 0;
+        }
+
+    .notes-ui .min-w-0 {
+        min-width: 0;
+    }
+
+    /* PDF workspace */
+
+    .notes-ui .notes-reader-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 280px;
+        gap: 18px;
+        align-items: stretch;
+    }
+
+    .notes-ui .notes-stage {
+        min-width: 0;
+        border: 1px solid #dce1eb;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #e8ecf3;
+    }
+
+    .notes-ui .notes-viewport {
+        overflow: auto;
+        height: 72vh;
+        padding: 24px;
+        scrollbar-color: #b8bece transparent;
+    }
+
+    .notes-ui #paper {
+        position: relative;
+        width: fit-content;
+        margin-inline: auto;
+        background: white;
+        box-shadow: 0 6px 28px rgb(31 40 64 / 12%);
+    }
+
+    .notes-ui canvas {
+        display: block;
+    }
+
+    .notes-ui #ink {
+        position: absolute;
+        inset: 0;
+        touch-action: none;
+    }
+
+    /* Page notes */
+
+    .notes-ui .notes-side-panel {
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .notes-ui .notes-page-writing {
+        min-height: 260px;
+        border-color: #ecebf3;
+        background: #fdfcfe;
+        resize: vertical;
+        font-size: .9rem;
+        line-height: 1.8;
+    }
+
+    .notes-ui .notes-status {
+        padding: 18px;
+        background: #f8f7fd;
+        border-top: 1px solid var(--notes-border);
+        overflow-wrap: anywhere;
+    }
+
+/* Responsive */
+
+@media (max-width: 1199.98px) {
+    .notes-ui .notes-reader-grid {
+        grid-template-columns: minmax(0, 1fr) 240px;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .notes-ui .notes-reader-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .notes-ui .notes-viewport {
+        height: 62vh;
+    }
+
+    .notes-ui .notes-page-writing {
+        min-height: 180px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .notes-ui .notes-hero {
+        padding: 22px;
+    }
+
+        .notes-ui .notes-hero .btn {
+            width: 100%;
+        }
+
+        .notes-ui .notes-hero .d-flex.gap-2 {
+            width: 100%;
+        }
+
+    .notes-ui .notes-viewport {
+        padding: 12px;
+    }
+
+    .notes-ui .notes-toolbar {
+        gap: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .notes-ui .notes-item {
+        transition: none;
+    }
+}
