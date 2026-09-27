@@ -65,6 +65,7 @@ Chạy bản ASP.NET Core:
 dotnet run --project StudyHub.Web/StudyHub.Web.csproj --launch-profile https
 ```
 
+
 ## Feature nhóm học tập
 
 - Tạo, sửa và xóa nhóm; cấu hình môn học, mục tiêu, sức chứa, hình thức, lịch và liên kết liên hệ.

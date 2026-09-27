@@ -11,4 +11,10 @@ public sealed class LoginViewModel
     public string Password { get; set; } = string.Empty;
 
     public bool RememberMe { get; set; }
+
+    public string? ReturnUrl { get; set; }
+
+    public bool GoogleEnabled { get; set; }
+
+    public string? ErrorMessage { get; set; }
 }

@@ -9,7 +9,8 @@ namespace StudyHub.Web.Controllers.StudyGroups;
 public sealed class StudyGroupsApiController(IStudyGroupService studyGroups) : ControllerBase
 {
     [HttpGet]
-    public IActionResult GetAll() => Ok(studyGroups.GetGroups());
+    public IActionResult GetAll([FromQuery] string? search = null) =>
+        Ok(studyGroups.GetGroups(search));
 
     [HttpGet("{groupId}")]
     public IActionResult GetById(string groupId)

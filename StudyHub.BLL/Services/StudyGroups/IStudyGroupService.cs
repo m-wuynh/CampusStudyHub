@@ -4,7 +4,7 @@ namespace StudyHub.BLL.Services.StudyGroups;
 
 public interface IStudyGroupService
 {
-    IReadOnlyList<GroupSummaryResponse> GetGroups();
+    IReadOnlyList<GroupSummaryResponse> GetGroups(string? searchText = null);
     GroupDetailsResponse? GetGroup(string groupId);
     GroupDetailsResponse? Join(string groupId);
     GroupDetailsResponse? Leave(string groupId);

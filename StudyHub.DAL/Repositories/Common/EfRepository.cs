@@ -1,14 +1,17 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using StudyHub.DAL.Persistence;
+using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.StudyGroups;
 
 namespace StudyHub.DAL.Repositories.Common;
 
 public sealed class EfRepository(
     StudyHubDbContext context,
+    IGoogleAuthRepository googleAuth,
     IStudyGroupRepository studyGroups) : IRepository
 {
+    public IGoogleAuthRepository GoogleAuth { get; } = googleAuth;
     public IStudyGroupRepository StudyGroups { get; } = studyGroups;
 
     public IQueryable<TEntity> Query<TEntity>(bool asNoTracking = true) where TEntity : class

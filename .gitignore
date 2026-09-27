@@ -21,3 +21,6 @@ StudyHub.Web/App_Data/*.tmp
 
 # Environment
 .env*
+
+# Local application configuration
+StudyHub.Web/appsettings.json

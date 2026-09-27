@@ -1,19 +1,20 @@
 using StudyHub.BLL.DTOs;
+using StudyHub.BLL.Services.Auth;
 using StudyHub.DAL.Repositories.Common;
 using StudyHub.DAL.Repositories.StudyGroups.Models;
 
 namespace StudyHub.BLL.Services.StudyGroups;
 
-public sealed class StudyGroupService(IRepository repository) : IStudyGroupService
+public sealed class StudyGroupService(IRepository repository, ICurrentUser currentUser) : IStudyGroupService
 {
-    public const string CurrentUserId = "1";
-    public const string CurrentUserName = "Nguyễn Minh Anh (demo)";
-
     private readonly object _sync = new();
+    private string CurrentUserId => currentUser.UserId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private string CurrentUserName => currentUser.DisplayName;
 
-    public IReadOnlyList<GroupSummaryResponse> GetGroups()
+    public IReadOnlyList<GroupSummaryResponse> GetGroups(string? searchText = null)
     {
-        return repository.StudyGroups.GetAll()
+        return repository.StudyGroups.GetAll(searchText)
+            .Where(group => group.IsPublic || group.MemberUserIds.Contains(CurrentUserId))
             .OrderByDescending(group => group.MemberUserIds.Contains(CurrentUserId))
             .ThenBy(group => group.Name)
             .Select(ToSummary)
@@ -91,12 +92,12 @@ public sealed class StudyGroupService(IRepository repository) : IStudyGroupServi
         }
     }
 
-    private static GroupSummaryResponse ToSummary(StudyGroupData group) => new(
+    private GroupSummaryResponse ToSummary(StudyGroupData group) => new(
         group.Id, group.Name, group.Subject, group.SubjectCssClass, group.Description,
         group.MemberUserIds.Count, group.MemberUserIds.Contains(CurrentUserId),
         group.OwnerUserId == CurrentUserId, group.IsPublic);
 
-    private static GroupDetailsResponse ToDetails(StudyGroupData group) => new(
+    private GroupDetailsResponse ToDetails(StudyGroupData group) => new(
         group.Id, group.Name, group.Subject, group.SubjectCssClass, group.Description,
         group.MemberUserIds.Count, group.MemberUserIds.Contains(CurrentUserId),
         group.OwnerUserId == CurrentUserId,
@@ -104,7 +105,7 @@ public sealed class StudyGroupService(IRepository repository) : IStudyGroupServi
             ? group.Messages.OrderBy(message => message.SentAt).Select(ToMessage).ToList()
             : []);
 
-    private static GroupChatMessageResponse ToMessage(GroupChatMessageData message) => new(
+    private GroupChatMessageResponse ToMessage(GroupChatMessageData message) => new(
         message.Id, message.AuthorName, message.Content, message.SentAt,
         message.UserId == CurrentUserId);
 
