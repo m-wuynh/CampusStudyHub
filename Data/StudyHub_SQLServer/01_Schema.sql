@@ -124,14 +124,23 @@ BEGIN TRY
         SubjectId int NULL,
         GroupName nvarchar(150) NOT NULL,
         Description nvarchar(2000) NULL,
+        Goal nvarchar(500) NULL,
+        MeetingFormat varchar(10) NOT NULL CONSTRAINT DF_StudyGroups_MeetingFormat DEFAULT ('Online'),
+        MeetingSchedule nvarchar(250) NULL,
+        ContactUrl nvarchar(2048) NULL,
+        Rules nvarchar(2000) NULL,
         Visibility varchar(10) NOT NULL CONSTRAINT DF_StudyGroups_Visibility DEFAULT ('Private'),
+        JoinMode varchar(15) NOT NULL CONSTRAINT DF_StudyGroups_JoinMode DEFAULT ('Approval'),
         MaxMembers smallint NOT NULL CONSTRAINT DF_StudyGroups_Max DEFAULT (20),
         IsArchived bit NOT NULL CONSTRAINT DF_StudyGroups_Archived DEFAULT (0),
         CreatedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_StudyGroups_Created DEFAULT (SYSUTCDATETIME()),
+        UpdatedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_StudyGroups_Updated DEFAULT (SYSUTCDATETIME()),
         RowVersion rowversion NOT NULL,
         CONSTRAINT FK_StudyGroups_Owner FOREIGN KEY (OwnerUserId) REFERENCES dbo.Users(UserId),
         CONSTRAINT FK_StudyGroups_Subject FOREIGN KEY (SubjectId) REFERENCES dbo.Subjects(SubjectId),
         CONSTRAINT CK_StudyGroups_Visibility CHECK (Visibility IN ('Public','Private')),
+        CONSTRAINT CK_StudyGroups_JoinMode CHECK (JoinMode IN ('Open','Approval','InviteOnly')),
+        CONSTRAINT CK_StudyGroups_MeetingFormat CHECK (MeetingFormat IN ('Online','Offline','Hybrid')),
         CONSTRAINT CK_StudyGroups_Max CHECK (MaxMembers BETWEEN 2 AND 500),
         CONSTRAINT CK_StudyGroups_Name CHECK (LEN(LTRIM(RTRIM(GroupName))) > 0)
     );
@@ -157,14 +166,31 @@ BEGIN TRY
         StudyGroupId bigint NOT NULL,
         AuthorUserId bigint NOT NULL,
         Body nvarchar(max) NOT NULL,
+        PostType varchar(15) NOT NULL CONSTRAINT DF_GroupPosts_PostType DEFAULT ('Message'),
         IsPinned bit NOT NULL CONSTRAINT DF_GroupPosts_Pinned DEFAULT (0),
         IsDeleted bit NOT NULL CONSTRAINT DF_GroupPosts_Deleted DEFAULT (0),
         CreatedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_GroupPosts_Created DEFAULT (SYSUTCDATETIME()),
         UpdatedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_GroupPosts_Updated DEFAULT (SYSUTCDATETIME()),
         CONSTRAINT FK_GroupPosts_Member FOREIGN KEY (StudyGroupId, AuthorUserId) REFERENCES dbo.GroupMembers(StudyGroupId, UserId),
+        CONSTRAINT CK_GroupPosts_Type CHECK (PostType IN ('Message','Announcement')),
         CONSTRAINT CK_GroupPosts_Body CHECK (LEN(LTRIM(RTRIM(Body))) > 0)
     );
     CREATE INDEX IX_GroupPosts_Feed ON dbo.GroupPosts(StudyGroupId, IsDeleted, CreatedAtUtc DESC);
+
+    CREATE TABLE dbo.GroupInvites (
+        InviteCode varchar(64) NOT NULL CONSTRAINT PK_GroupInvites PRIMARY KEY,
+        StudyGroupId bigint NOT NULL,
+        CreatedByUserId bigint NOT NULL,
+        ExpiresAtUtc datetime2(3) NOT NULL,
+        MaxUses int NOT NULL CONSTRAINT DF_GroupInvites_MaxUses DEFAULT (20),
+        UseCount int NOT NULL CONSTRAINT DF_GroupInvites_UseCount DEFAULT (0),
+        IsRevoked bit NOT NULL CONSTRAINT DF_GroupInvites_Revoked DEFAULT (0),
+        CreatedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_GroupInvites_Created DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT FK_GroupInvites_Group FOREIGN KEY (StudyGroupId) REFERENCES dbo.StudyGroups(StudyGroupId),
+        CONSTRAINT FK_GroupInvites_Creator FOREIGN KEY (CreatedByUserId) REFERENCES dbo.Users(UserId),
+        CONSTRAINT CK_GroupInvites_Uses CHECK (MaxUses BETWEEN 1 AND 1000 AND UseCount BETWEEN 0 AND MaxUses)
+    );
+    CREATE INDEX IX_GroupInvites_Group ON dbo.GroupInvites(StudyGroupId, IsRevoked, ExpiresAtUtc);
 
     -- 4. NOTES AND DOCUMENTS. Group visibility requires exactly one group.
     -- Composite subject/owner FK prevents attaching another user's subject.
@@ -619,8 +645,10 @@ BEGIN TRY
             IF @OwnTransaction = 1 BEGIN TRANSACTION;
             IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE UserId = @OwnerUserId AND Status = ''Active'')
                 THROW 51020, N''Active owner not found.'', 1;
-            INSERT dbo.StudyGroups(OwnerUserId, SubjectId, GroupName, Visibility, MaxMembers)
-            VALUES (@OwnerUserId, @SubjectId, @GroupName, @Visibility, @MaxMembers);
+            INSERT dbo.StudyGroups(OwnerUserId, SubjectId, GroupName, Visibility, JoinMode, MaxMembers)
+            VALUES (@OwnerUserId, @SubjectId, @GroupName, @Visibility,
+                CASE WHEN @Visibility = ''Private'' THEN ''InviteOnly'' ELSE ''Approval'' END,
+                @MaxMembers);
             SET @StudyGroupId = CONVERT(bigint, SCOPE_IDENTITY());
             INSERT dbo.GroupMembers(StudyGroupId, UserId, MemberRole, Status, JoinedAtUtc)
             VALUES (@StudyGroupId, @OwnerUserId, ''Moderator'', ''Active'', SYSUTCDATETIME());

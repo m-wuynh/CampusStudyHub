@@ -42,6 +42,8 @@ public partial class StudyHubDbContext : DbContext
 
     public virtual DbSet<GroupMember> GroupMembers { get; set; }
 
+    public virtual DbSet<GroupInvite> GroupInvites { get; set; }
+
     public virtual DbSet<GroupPost> GroupPosts { get; set; }
 
     public virtual DbSet<Note> Notes { get; set; }
@@ -504,10 +506,32 @@ public partial class StudyHubDbContext : DbContext
                 .HasConstraintName("FK_GroupMembers_User");
         });
 
+        modelBuilder.Entity<GroupInvite>(entity =>
+        {
+            entity.HasKey(e => e.InviteCode);
+            entity.HasIndex(e => new { e.StudyGroupId, e.IsRevoked, e.ExpiresAtUtc }, "IX_GroupInvites_Group");
+            entity.Property(e => e.InviteCode).HasMaxLength(64).IsUnicode(false);
+            entity.Property(e => e.ExpiresAtUtc).HasPrecision(3);
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.MaxUses).HasDefaultValue(20);
+            entity.HasOne(e => e.StudyGroup).WithMany(e => e.GroupInvites)
+                .HasForeignKey(e => e.StudyGroupId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GroupInvites_Group");
+            entity.HasOne(e => e.CreatedByUser).WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GroupInvites_Creator");
+        });
+
         modelBuilder.Entity<GroupPost>(entity =>
         {
             entity.HasIndex(e => new { e.StudyGroupId, e.IsDeleted, e.CreatedAtUtc }, "IX_GroupPosts_Feed").IsDescending(false, false, true);
 
+            entity.Property(e => e.PostType)
+                .HasMaxLength(15)
+                .IsUnicode(false)
+                .HasDefaultValue("Message");
             entity.Property(e => e.CreatedAtUtc)
                 .HasPrecision(3)
                 .HasDefaultValueSql("(sysutcdatetime())");
@@ -665,7 +689,19 @@ public partial class StudyHubDbContext : DbContext
                 .HasPrecision(3)
                 .HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Goal).HasMaxLength(500);
+            entity.Property(e => e.MeetingFormat)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasDefaultValue("Online");
+            entity.Property(e => e.MeetingSchedule).HasMaxLength(250);
+            entity.Property(e => e.ContactUrl).HasMaxLength(2048);
+            entity.Property(e => e.Rules).HasMaxLength(2000);
             entity.Property(e => e.GroupName).HasMaxLength(150);
+            entity.Property(e => e.JoinMode)
+                .HasMaxLength(15)
+                .IsUnicode(false)
+                .HasDefaultValue("Approval");
             entity.Property(e => e.MaxMembers).HasDefaultValue((short)20);
             entity.Property(e => e.RowVersion)
                 .IsRowVersion()
@@ -674,6 +710,9 @@ public partial class StudyHubDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasDefaultValue("Private");
+            entity.Property(e => e.UpdatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
 
             entity.HasOne(d => d.OwnerUser).WithMany(p => p.StudyGroups)
                 .HasForeignKey(d => d.OwnerUserId)

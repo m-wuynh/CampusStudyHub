@@ -10,11 +10,14 @@ using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.Common;
 using StudyHub.DAL.Repositories.StudyGroups;
 using StudyHub.Web.Authentication;
+using StudyHub.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
+builder.Services.AddSignalR();
 
 var authentication = builder.Services.AddAuthentication(options =>
 {
@@ -91,6 +94,7 @@ app.UseAuthorization();
 
 app.MapStaticAssets().AllowAnonymous();
 app.MapControllers();
+app.MapHub<StudyGroupHub>("/hubs/study-groups");
 app.MapControllerRoute(
         name: "default",
         pattern: "{controller=Dashboard}/{action=Index}/{id?}")
