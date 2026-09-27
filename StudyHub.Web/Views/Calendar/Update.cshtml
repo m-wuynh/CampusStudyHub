@@ -156,17 +156,18 @@
             if (end.length === 5) end += ":00";
 
             // Extract reminders
-            const reminderMinutes = [];
+            const reminders = [];
             document.querySelectorAll('#notifications-container .d-flex').forEach(row => {
                 const inputs = row.querySelectorAll('input, select');
                 if (inputs.length >= 3) {
+                    const channel = inputs[0].value;
                     let val = parseInt(inputs[1].value);
                     const unit = inputs[2].value;
                     if (!isNaN(val) && val > 0) {
                         if (unit === 'hours') val *= 60;
                         else if (unit === 'days') val *= 1440;
                         else if (unit === 'weeks') val *= 10080;
-                        reminderMinutes.push(val);
+                        reminders.push({ channel: channel, minutes: val });
                     }
                 }
             });
@@ -179,7 +180,7 @@
                 EventType: category,
                 Location: loc,
                 Description: desc,
-                ReminderMinutes: reminderMinutes
+                Reminders: reminders
             };
 
             try {

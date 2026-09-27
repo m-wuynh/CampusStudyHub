@@ -493,8 +493,7 @@
               
               // Pop toast for new notifications
               unreadItems.forEach(item => {
-                  const toastKey = item.id + '_' + item.timeLabel;
-                  if (!toastedIds.includes(toastKey)) {
+                  if (!toastedIds.includes(item.id)) {
                       // Custom on-screen notification that cannot be blocked by browser!
                       const pop = document.createElement('div');
                       pop.style.position = 'fixed';
@@ -536,7 +535,7 @@
                           audio.play().catch(e => console.log('Autoplay blocked'));
                       } catch(e) {}
                       
-                      toastedIds.push(toastKey);
+                      toastedIds.push(item.id);
                   }
               });
               saveToasted();

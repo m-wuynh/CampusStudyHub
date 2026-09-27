@@ -94,17 +94,17 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         await repository.AddAsync(entity);
         await repository.SaveChangesAsync();
 
-        if (request.ReminderMinutes != null && request.ReminderMinutes.Any())
+        if (request.Reminders != null && request.Reminders.Any())
         {
-            foreach (var min in request.ReminderMinutes)
+            foreach (var rem in request.Reminders)
             {
-                var remindAt = startLocal.AddMinutes(-min).ToUniversalTime();
+                var remindAt = startLocal.AddMinutes(-rem.Minutes).ToUniversalTime();
                 var reminder = new Reminder
                 {
                     UserId = userId,
                     ScheduleEventId = entity.ScheduleEventId,
                     OccurrenceDate = request.Date,
-                    Channel = "InApp",
+                    Channel = rem.Channel == "email" ? "Email" : "InApp",
                     RemindAtUtc = remindAt,
                     Status = "Pending",
                     SentAtUtc = null
@@ -169,17 +169,17 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             repository.RemoveRange(existingReminders);
         }
         
-        if (request.ReminderMinutes != null && request.ReminderMinutes.Any())
+        if (request.Reminders != null && request.Reminders.Any())
         {
-            foreach (var min in request.ReminderMinutes)
+            foreach (var rem in request.Reminders)
             {
-                var remindAt = startDateTime.AddMinutes(-min).ToUniversalTime();
+                var remindAt = startDateTime.AddMinutes(-rem.Minutes).ToUniversalTime();
                 var reminder = new Reminder
                 {
                     UserId = userId,
                     ScheduleEventId = entity.ScheduleEventId,
                     OccurrenceDate = request.Date,
-                    Channel = "InApp",
+                    Channel = rem.Channel == "email" ? "Email" : "InApp",
                     RemindAtUtc = remindAt,
                     Status = "Pending"
                 };
