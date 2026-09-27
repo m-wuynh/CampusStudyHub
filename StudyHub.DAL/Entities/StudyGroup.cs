@@ -15,13 +15,27 @@ public partial class StudyGroup
 
     public string? Description { get; set; }
 
+    public string? Goal { get; set; }
+
+    public string MeetingFormat { get; set; } = null!;
+
+    public string? MeetingSchedule { get; set; }
+
+    public string? ContactUrl { get; set; }
+
+    public string? Rules { get; set; }
+
     public string Visibility { get; set; } = null!;
+
+    public string JoinMode { get; set; } = null!;
 
     public short MaxMembers { get; set; }
 
     public bool IsArchived { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
+
+    public DateTime UpdatedAtUtc { get; set; }
 
     public byte[] RowVersion { get; set; } = null!;
 
@@ -30,6 +44,8 @@ public partial class StudyGroup
     public virtual ICollection<FlashcardDeck> FlashcardDecks { get; set; } = new List<FlashcardDeck>();
 
     public virtual ICollection<GroupMember> GroupMembers { get; set; } = new List<GroupMember>();
+
+    public virtual ICollection<GroupInvite> GroupInvites { get; set; } = new List<GroupInvite>();
 
     public virtual ICollection<Note> Notes { get; set; } = new List<Note>();
 

@@ -14,6 +14,7 @@ Dùng SQL Server **2019 trở lên**, bao gồm Express/LocalDB, và SQL Server 
 4. Trên môi trường phát triển, chạy `02_SeedDemo.sql` để xóa dữ liệu nghiệp vụ hiện tại và tạo lại bộ dữ liệu mẫu THPT. Script giữ nguyên schema và `SystemSettings`; không chạy trên database có dữ liệu cần bảo toàn.
 5. Chạy `03_ChecksAndQueries.sql` để kiểm tra ràng buộc và xem ví dụ truy vấn.
 6. Trên database phát triển, chạy riêng `04_SmokeTests.sql`: 9 kiểm thử chức năng. Script rollback dữ liệu thử; số IDENTITY có thể vẫn bị nhảy, đây là bình thường.
+7. Sau khi tạo schema nền, chạy `dotnet ef database update` theo README ở thư mục gốc để áp dụng các EF Core Migration. Migration `AddDiscordStudyGroupFlow` bổ sung chế độ tham gia, lời mời và loại bài đăng cho nhóm học tập.
 
 Chạy từng file theo thứ tự; gặp lỗi thì dừng và đọc thông báo. Sao lưu trước khi chạy lại file 02 vì thao tác reset dữ liệu không thể hoàn tác sau khi transaction đã commit. Muốn đổi tên database, sửa tên trong file 00 và cả `USE`/`DB_NAME()` ở các file còn lại.
 
@@ -23,7 +24,7 @@ Chạy từng file theo thứ tự; gặp lỗi thì dừng và đọc thông b�
 
 ## 2. Tiện ích tương ứng với bảng nào?
 
-Schema gồm **27 bảng, 4 view, 2 stored procedure**.
+Schema gồm **28 bảng, 4 view, 2 stored procedure**.
 
 | Phần giao diện | Bảng chính | Công dụng |
 | --- | --- | --- |
@@ -32,12 +33,12 @@ Schema gồm **27 bảng, 4 view, 2 stored procedure**.
 | Ghi chú & Tài liệu | `Notes`, `Documents`, `DocumentBookmarks` | Ghi chú Markdown, file/link tài liệu, lưu yêu thích |
 | Flashcard | `FlashcardDecks`, `Flashcards`, `FlashcardProgress`, `FlashcardReviews` | Bộ thẻ, nội dung, tiến độ và lịch sử ôn riêng từng người |
 | Lịch học cá nhân | `ScheduleEvents`, `ScheduleExceptions`, `Deadlines`, `Reminders` | Lịch một lần/hằng tuần, đổi/hủy buổi, hạn nộp, nhắc lịch |
-| Nhóm học tập | `StudyGroups`, `GroupMembers`, `GroupPosts` | Nhóm, yêu cầu tham gia/thành viên, bài thảo luận |
+| Nhóm học tập | `StudyGroups`, `GroupMembers`, `GroupPosts`, `GroupInvites` | Nhóm, yêu cầu tham gia, vai trò, chat/thông báo và lời mời |
 | Điểm số & Mục tiêu | `GradeEntries`, `Goals` | Điểm theo thang và hệ số; mục tiêu cá nhân |
 | Tổng quan & chuỗi ngày học | `StudySessions`, `ActivityEvents` | Phiên học tập trung, sự kiện sử dụng, cơ sở tính streak |
 | Cài đặt & quản trị | `SystemSettings`, `ContentReports`, `AuditLogs` | Cấu hình ứng dụng, báo cáo nội dung, lịch sử quản trị |
 
-Không tạo bảng riêng cho Dashboard: tổng hợp từ dữ liệu nghiệp vụ. Không thêm marketplace, thanh toán, subscription hay chat thời gian thực vì không nằm trong các tiện ích hiện tại.
+Không tạo bảng riêng cho Dashboard: tổng hợp từ dữ liệu nghiệp vụ. Không thêm marketplace, thanh toán hoặc subscription. Chat thời gian thực dùng SignalR và lưu lịch sử trong `GroupPosts`.
 
 ## 3. Quan hệ quan trọng
 
@@ -76,6 +77,7 @@ Tham khảo: [Google OpenID Connect — định danh `sub` và xác minh ID toke
 - Mặc định nội dung Private, nhóm Private, `AllowPublicSharing=false`. Backend phải chặn việc bật Public khi cấu hình này tắt; tắt cấu hình không tự thu hồi nội dung Public đã tồn tại. Nếu muốn thu hồi, cần thao tác quản trị riêng.
 - Trước khi chia sẻ vào nhóm, kiểm tra người đăng là thành viên Active. Khóa ngoại chỉ kiểm tra nhóm tồn tại, không thay thế chính sách này.
 - Owner được xác định duy nhất từ `StudyGroups.OwnerUserId`, không từ `MemberRole`. `Moderator` là quyền điều phối, không đồng nghĩa chủ nhóm.
+- `JoinMode` tách khỏi `Visibility`: `Open` vào ngay, `Approval` tạo membership Pending, `InviteOnly` yêu cầu mã trong `GroupInvites`.
 - Tạo nhóm qua `usp_CreateStudyGroup` hoặc transaction tương đương. Duyệt thành viên phải khóa dòng nhóm trong transaction và kiểm tra `MaxMembers`; DB chưa tự enforce sức chứa. Không cho owner rời nhóm nếu chưa chuyển quyền hoặc lưu trữ nhóm.
 - `GroupPosts` có FK membership, nhưng backend vẫn cần kiểm tra membership đang Active. Thành viên rời nhóm không làm mất lịch sử bài đăng.
 - `Documents` chỉ lưu metadata. File thật nằm ở nơi lưu trữ riêng; `StorageKey` là khóa nội bộ, không phải URL tải công khai. Kiểm tra quyền mỗi lần tải và tạo URL ngắn hạn nếu cần.

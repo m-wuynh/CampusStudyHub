@@ -1,0 +1,32 @@
+@model StudyGroupInviteViewModel
+@{
+    ViewData["Title"] = "Lời mời vào nhóm";
+    ViewData["PageTitle"] = "Lời mời vào nhóm";
+    ViewData["PageSubtitle"] = "Xác nhận trước khi tham gia không gian học tập";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div style="max-width:560px;margin:40px auto;">
+  <section class="sh-card p-4 p-md-5 text-center">
+    <div class="sidebar-brand-logo mx-auto mb-3" style="width:56px;height:56px;border-radius:18px;"><i class="bi bi-people-fill fs-4"></i></div>
+    <span class="subject-badge subject-toan mb-3">@Model.Invite.Subject</span>
+    <h1 class="fw-black mb-2" style="font-size:24px;">@Model.Invite.GroupName</h1>
+    <p style="font-size:12px;color:var(--sh-slate-500);">Bạn được mời tham gia nhóm học tập này. Khi chấp nhận, bạn sẽ trở thành thành viên và truy cập được chat, thông báo cùng tài nguyên của nhóm.</p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+      <div class="alert alert-danger py-2" style="font-size:12px;">@Model.ErrorMessage</div>
+    }
+
+    <div class="d-flex justify-content-center gap-4 my-4" style="font-size:11px;color:var(--sh-slate-500);">
+      <span><i class="bi bi-clock me-1"></i>Hết hạn @Model.Invite.ExpiresAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+      <span><i class="bi bi-ticket-perforated me-1"></i>@(Model.Invite.MaxUses - Model.Invite.UseCount) lượt còn lại</span>
+    </div>
+
+    <form asp-controller="StudyGroups" asp-action="AcceptInvite" asp-route-inviteCode="@Model.Invite.InviteCode" method="post" class="d-flex gap-2 justify-content-center">
+      @Html.AntiForgeryToken()
+      <a asp-controller="StudyGroups" asp-action="Index" class="btn-secondary-sh">Để sau</a>
+      <button type="submit" class="btn-primary-sh"><i class="bi bi-box-arrow-in-right"></i>Chấp nhận lời mời</button>
+    </form>
+  </section>
+</div>

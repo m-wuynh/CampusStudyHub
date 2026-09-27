@@ -13,6 +13,8 @@ public partial class GroupPost
 
     public string Body { get; set; } = null!;
 
+    public string PostType { get; set; } = null!;
+
     public bool IsPinned { get; set; }
 
     public bool IsDeleted { get; set; }

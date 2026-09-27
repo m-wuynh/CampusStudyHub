@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudyHub.BLL.DTOs;
 using StudyHub.BLL.Services.StudyGroups;
@@ -5,65 +6,93 @@ using StudyHub.BLL.Services.StudyGroups;
 namespace StudyHub.Web.Controllers.StudyGroups;
 
 [ApiController]
+[Authorize]
 [Route("api/groups")]
 public sealed class StudyGroupsApiController(IStudyGroupService studyGroups) : ControllerBase
 {
     [HttpGet]
-    public IActionResult GetAll([FromQuery] string? search = null) =>
-        Ok(studyGroups.GetGroups(search));
+    public async Task<IActionResult> GetAll([FromQuery] string? search, CancellationToken cancellationToken) =>
+        Ok(await studyGroups.GetGroupsAsync(search, cancellationToken));
 
-    [HttpGet("{groupId}")]
-    public IActionResult GetById(string groupId)
+    [HttpGet("{groupId:long}")]
+    public async Task<IActionResult> GetById(string groupId, CancellationToken cancellationToken)
     {
-        var group = studyGroups.GetGroup(groupId);
+        var group = await studyGroups.GetGroupAsync(groupId, cancellationToken);
         return group is null ? NotFound() : Ok(group);
     }
 
-    [HttpPost("{groupId}/join")]
-    public IActionResult Join(string groupId)
-    {
-        var group = studyGroups.Join(groupId);
-        return group is null ? NotFound() : Ok(group);
-    }
+    [ValidateAntiForgeryToken]
+    [HttpPost("{groupId:long}/join")]
+    public Task<IActionResult> Join(string groupId, CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await studyGroups.JoinAsync(groupId, cancellationToken)));
 
-    [HttpDelete("{groupId}/join")]
-    public IActionResult Leave(string groupId)
+    [ValidateAntiForgeryToken]
+    [HttpDelete("{groupId:long}/join")]
+    public Task<IActionResult> Leave(string groupId, CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await studyGroups.LeaveOrWithdrawAsync(groupId, cancellationToken)));
+
+    [ValidateAntiForgeryToken]
+    [HttpPost("{groupId:long}/messages")]
+    public Task<IActionResult> AddMessage(
+        string groupId,
+        SendGroupMessageRequest request,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await studyGroups.AddMessageAsync(
+            groupId, request.Content ?? string.Empty, cancellationToken)));
+
+    [ValidateAntiForgeryToken]
+    [HttpPost("{groupId:long}/announcements")]
+    public Task<IActionResult> AddAnnouncement(
+        string groupId,
+        CreateAnnouncementRequest request,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await studyGroups.AddAnnouncementAsync(
+            groupId, request.Content ?? string.Empty, request.IsPinned, cancellationToken)));
+
+    [ValidateAntiForgeryToken]
+    [HttpPost]
+    public Task<IActionResult> Create(CreateGroupRequest request, CancellationToken cancellationToken) =>
+        ExecuteAsync(async () =>
+        {
+            var group = await studyGroups.CreateGroupAsync(request, cancellationToken);
+            return Created($"/api/groups/{group.Id}", group);
+        });
+
+    [ValidateAntiForgeryToken]
+    [HttpPost("{groupId:long}/members/{userId:long}")]
+    public Task<IActionResult> ManageMember(
+        string groupId,
+        string userId,
+        ManageGroupMemberRequest request,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(async () =>
+        {
+            await studyGroups.ManageMemberAsync(
+                groupId, userId, request.Action ?? string.Empty, cancellationToken);
+            return Ok(new { message = "Đã cập nhật thành viên." });
+        });
+
+    [ValidateAntiForgeryToken]
+    [HttpPost("{groupId:long}/invites")]
+    public Task<IActionResult> CreateInvite(
+        string groupId,
+        CreateGroupInviteRequest request,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await studyGroups.CreateInviteAsync(
+            groupId, request.ExpiresInDays, request.MaxUses, cancellationToken)));
+
+    private static async Task<IActionResult> ExecuteAsync(Func<Task<IActionResult>> action)
     {
         try
         {
-            var group = studyGroups.Leave(groupId);
-            return group is null ? NotFound() : Ok(group);
+            return await action();
         }
-        catch (InvalidOperationException exception)
+        catch (StudyGroupException exception)
         {
-            return BadRequest(new { message = exception.Message });
+            return new ObjectResult(new { code = exception.Code, message = exception.Message })
+            {
+                StatusCode = exception.StatusCode
+            };
         }
-    }
-
-    [HttpPost("{groupId}/messages")]
-    public IActionResult AddMessage(string groupId, SendGroupMessageRequest request)
-    {
-        var content = request.Content?.Trim();
-        if (string.IsNullOrWhiteSpace(content))
-            return BadRequest(new { message = "Nội dung tin nhắn không được để trống." });
-        if (content.Length > 1000)
-            return BadRequest(new { message = "Tin nhắn không được dài quá 1000 ký tự." });
-
-        var message = studyGroups.AddMessage(groupId, content);
-        return message is null
-            ? BadRequest(new { message = "Bạn cần tham gia nhóm trước khi gửi tin nhắn." })
-            : Ok(message);
-    }
-
-    [HttpPost]
-    public IActionResult Create(CreateGroupRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Subject))
-            return BadRequest(new { message = "Tên nhóm và môn học là bắt buộc." });
-        if (request.Name.Trim().Length > 100 || (request.Description?.Length ?? 0) > 500)
-            return BadRequest(new { message = "Tên nhóm hoặc mô tả vượt quá độ dài cho phép." });
-
-        var group = studyGroups.CreateGroup(request);
-        return Created($"/api/groups/{group.Id}", group);
     }
 }
