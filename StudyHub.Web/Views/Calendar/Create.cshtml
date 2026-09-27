@@ -1,0 +1,167 @@
+@using StudyHub.BLL.DTOs
+@{
+    ViewData["Title"] = "Thêm sự kiện";
+    ViewData["PageTitle"] = "Thêm sự kiện mới";
+    ViewData["PageSubtitle"] = "Lên lịch cho học tập, bài tập, và kiểm tra";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var todayStr = DateTime.Today.ToString("yyyy-MM-dd");
+}
+
+<div style="max-width: 600px; margin: 0 auto;">
+    <div class="sh-card p-4">
+        <h3 class="fw-bold mb-4" style="font-size: 18px; color: var(--sh-slate-900);">
+            <i class="bi bi-calendar-plus me-2 text-indigo"></i>Thông tin sự kiện
+        </h3>
+        
+        <div class="mb-3">
+            <label class="sh-label" for="event-title">Tên sự kiện</label>
+            <input id="event-title" type="text" class="sh-input" placeholder="Ví dụ: Kiểm tra 1 tiết Toán" />
+        </div>
+        
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="sh-label" for="event-date">Ngày</label>
+                <input id="event-date" type="date" class="sh-input" value="@todayStr" min="@todayStr" />
+            </div>
+            <div class="col-md-3 col-6">
+                <label class="sh-label" for="event-start">Bắt đầu</label>
+                <input id="event-start" type="time" class="sh-input" value="08:00" />
+            </div>
+            <div class="col-md-3 col-6">
+                <label class="sh-label" for="event-end">Kết thúc</label>
+                <input id="event-end" type="time" class="sh-input" value="09:30" />
+            </div>
+        </div>
+        
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="sh-label" for="event-category">Loại sự kiện</label>
+                <select id="event-category" class="sh-input">
+                    <option value="SelfStudy">Tự học</option>
+                    <option value="Other">Bài tập / Nộp bài</option>
+                    <option value="Exam">Kiểm tra / Thi</option>
+                    <option value="Class">Học nhóm</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="sh-label" for="event-location">Địa điểm (tùy chọn)</label>
+                <input id="event-location" type="text" class="sh-input" placeholder="Phòng học, thư viện..." />
+            </div>
+        </div>
+        
+        <!-- Notifications UI -->
+        <div class="mb-4">
+            <div id="notifications-container" class="d-flex flex-column gap-2 mb-2">
+                <!-- Notification rows will be appended here -->
+            </div>
+            <button type="button" class="btn btn-sm btn-light rounded-pill px-3 py-2 text-primary" onclick="addNotification()" style="background-color: #e8f0fe !important; color: #1a73e8 !important; font-weight: 500; font-size: 0.9rem;">
+                <i class="bi bi-bell me-2" style="color: #5f6368;"></i>Thêm thông báo
+            </button>
+        </div>
+
+        <div class="mb-4">
+            <label class="sh-label" for="event-description">Mô tả thêm</label>
+            <textarea id="event-description" class="sh-input" rows="4"
+                      placeholder="Ghi chú thêm về sự kiện này..."></textarea>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-2">
+            <a href="/Calendar" class="btn-secondary-sh text-decoration-none">Hủy</a>
+            <button type="button" class="btn-primary-sh" onclick="submitEvent()">
+                <i class="bi bi-calendar-check me-1"></i>Lưu sự kiện
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function addNotification() {
+            const container = document.getElementById('notifications-container');
+            const row = document.createElement('div');
+            row.className = 'd-flex align-items-center gap-2 mb-1';
+            row.innerHTML = `
+                <i class="bi bi-bell ms-1 me-2 text-muted" style="font-size: 1.1rem;"></i>
+                <select class="form-select form-select-sm border-0 bg-light" style="width: auto; cursor: pointer;">
+                    <option value="notification">Thông báo</option>
+                    <option value="email">Email</option>
+                </select>
+                <input type="number" class="form-control form-control-sm border-0 bg-light text-center" value="10" style="width: 50px;">
+                <select class="form-select form-select-sm border-0 bg-light" style="width: auto; cursor: pointer;">
+                    <option value="minutes">phút</option>
+                    <option value="hours">giờ</option>
+                    <option value="days">ngày</option>
+                    <option value="weeks">tuần</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-light border-0 text-muted ms-2 bg-transparent" onclick="this.parentElement.remove()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            `;
+            container.appendChild(row);
+        }
+
+        async function submitEvent() {
+            const title = document.getElementById('event-title').value;
+            const date = document.getElementById('event-date').value;
+            let start = document.getElementById('event-start').value;
+            let end = document.getElementById('event-end').value;
+            const category = document.getElementById('event-category').value;
+            const loc = document.getElementById('event-location').value;
+            const desc = document.getElementById('event-description').value;
+
+            if (!title || !date || !start || !end || !category) {
+                showToast('Vui lòng điền đủ thông tin bắt buộc', 'error');
+                return;
+            }
+
+            if (start.length === 5) start += ":00";
+            if (end.length === 5) end += ":00";
+
+            // Extract reminders
+            const reminderMinutes = [];
+            document.querySelectorAll('#notifications-container .d-flex').forEach(row => {
+                const inputs = row.querySelectorAll('input, select');
+                if (inputs.length >= 3) {
+                    let val = parseInt(inputs[1].value);
+                    const unit = inputs[2].value;
+                    if (!isNaN(val) && val > 0) {
+                        if (unit === 'hours') val *= 60;
+                        else if (unit === 'days') val *= 1440;
+                        else if (unit === 'weeks') val *= 10080;
+                        reminderMinutes.push(val);
+                    }
+                }
+            });
+
+            const data = {
+                Title: title,
+                Date: date,
+                StartTime: start,
+                EndTime: end,
+                EventType: category,
+                Location: loc,
+                Description: desc,
+                ReminderMinutes: reminderMinutes
+            };
+
+            try {
+                const res = await fetch('/Calendar/CreateEvent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    showToast('Đã thêm sự kiện vào lịch!', 'success');
+                    setTimeout(() => window.location.href = '/Calendar', 1000);
+                } else {
+                    const errorText = await res.text();
+                    console.error('Lỗi Backend:', errorText);
+                    showToast('Lỗi khi thêm sự kiện', 'error');
+                }
+            } catch (err) {
+                console.error('Lỗi mạng:', err);
+                showToast('Lỗi mạng', 'error');
+            }
+        }
+    </script>
+}
