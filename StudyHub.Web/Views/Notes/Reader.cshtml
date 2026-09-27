@@ -1,0 +1,203 @@
+@model StudyHub.BLL.DTOs.Notes.PdfNoteDto
+
+@{
+    Layout = "~/Views/Notes/_NotesLayout.cshtml";
+    ViewData["Title"] = Model.Title;
+    var start = int.TryParse(Context.Request.Query["page"], out var p) && p > 0
+        ? p
+        : 1;
+}
+
+<div id="reader"
+     class="fn-reader"
+     data-title="@Model.Title"
+     data-page="@start"
+     data-pdf="@Url.Action("Pdf", "Notes", new { id = Model.Id })"
+     data-notes="@Url.Action("Page", "Notes", new { id = Model.Id, page = 1 })"
+     data-export-notes="@Url.Action("PdfNotes", "NotesExport", new { id = Model.Id })">
+
+    @Html.AntiForgeryToken()
+
+    <header class="fn-topbar flex-wrap">
+        <a asp-controller="Notes"
+           asp-action="Index"
+           class="fn-icon-button"
+           title="Về thư viện">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+
+        <span class="fn-topbar-title">@Model.Title</span>
+
+        <button id="download-annotated"
+                type="button"
+                class="btn fn-btn-light"
+                disabled>
+            <i class="bi bi-download"></i> PDF đã đánh dấu
+        </button>
+
+        <button type="button"
+                class="fn-icon-button"
+                data-toggle-note
+                aria-controls="note-panel"
+                aria-expanded="true"
+                title="Ẩn/hiện ghi chú">
+            <i class="bi bi-layout-sidebar-reverse"></i>
+        </button>
+
+        <button id="save"
+                type="button"
+                class="btn fn-btn-primary"
+                disabled>
+            Lưu
+        </button>
+    </header>
+
+    <div class="fn-document-tab">
+        <i class="bi bi-file-earmark-pdf me-2"></i>
+        <span class="text-truncate">@Model.Title</span>
+    </div>
+
+    <div class="fn-penbar" role="toolbar" aria-label="Công cụ">
+        <button type="button" class="fn-tool active"
+                data-note-tool="pen" title="Bút" aria-label="Bút"
+                aria-pressed="true" disabled>
+            <i class="bi bi-pen"></i>
+        </button>
+        <button type="button" class="fn-tool"
+                data-note-tool="highlight" title="Highlight"
+                aria-label="Highlight" aria-pressed="false" disabled>
+            <i class="bi bi-pencil-fill"></i>
+        </button>
+        <button type="button" class="fn-tool"
+                data-note-tool="eraser" title="Tẩy"
+                aria-label="Tẩy" aria-pressed="false" disabled>
+            <i class="bi bi-eraser"></i>
+        </button>
+
+        <select id="tool" hidden disabled>
+            <option value="pen">Bút</option>
+            <option value="highlight">Highlight</option>
+            <option value="eraser">Tẩy</option>
+        </select>
+
+        <span class="fn-divider"></span>
+
+        <button type="button" class="fn-swatch"
+                style="--swatch:#292e36" data-note-color="#292e36"
+                aria-label="Đen" disabled></button>
+        <button type="button" class="fn-swatch"
+                style="--swatch:#2563eb" data-note-color="#2563eb"
+                aria-label="Xanh" disabled></button>
+        <button type="button" class="fn-swatch"
+                style="--swatch:#dc566c" data-note-color="#dc566c"
+                aria-label="Hồng" disabled></button>
+        <button type="button" class="fn-swatch"
+                style="--swatch:#facc15" data-note-color="#facc15"
+                aria-label="Vàng" disabled></button>
+
+        <input id="color" type="color" class="fn-color"
+               value="#2563eb" aria-label="Màu tùy chọn" disabled />
+
+        <label for="width" class="small">Cỡ</label>
+        <input id="width" type="number"
+               class="form-control fn-width"
+               min="1" max="40" value="3" disabled />
+
+        <span class="fn-divider"></span>
+
+        <button id="undo" type="button" class="fn-tool"
+                title="Hoàn tác" aria-label="Hoàn tác" disabled>
+            <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+        <button id="clear" type="button" class="fn-tool"
+                title="Xóa nét trang" aria-label="Xóa nét trang" disabled>
+            <i class="bi bi-trash3"></i>
+        </button>
+    </div>
+
+    <div class="fn-reading-area">
+        <aside id="thumbnails"
+               class="fn-thumbnails"
+               aria-label="Danh sách trang"></aside>
+
+        <main class="fn-canvas-area">
+            <div class="fn-canvas-scroll">
+                <div id="paper">
+                    <canvas id="pdf"></canvas>
+                    <canvas id="ink" aria-label="Vùng viết trên PDF"></canvas>
+                </div>
+            </div>
+        </main>
+
+        <aside id="note-panel" class="fn-note-panel">
+            <div class="fn-note-panel-title">
+                Ghi chú trang hiện tại
+            </div>
+
+            <textarea id="text"
+                      maxlength="20000"
+                      aria-label="Ghi chú của trang"
+                      placeholder="Viết ghi chú tại đây…"
+                      disabled></textarea>
+
+            <div class="p-2 border-top">
+                <p class="small mb-2">Tải ghi chú chữ của tất cả các trang:</p>
+                <div class="d-flex gap-2">
+                    <button id="export-txt" type="button"
+                            class="btn fn-btn-light" disabled>
+                        TXT
+                    </button>
+                    <button id="export-md" type="button"
+                            class="btn fn-btn-light" disabled>
+                        Markdown
+                    </button>
+                </div>
+            </div>
+
+            <div class="fn-note-help">
+                Tự lưu sau khi dừng nhập · Ctrl+S để lưu ngay.
+                Ghi chú chữ được tải thành file riêng.
+            </div>
+        </aside>
+    </div>
+
+    <footer class="fn-reader-footer">
+        <div class="d-flex align-items-center gap-2">
+            <button id="prev" type="button" class="fn-icon-button"
+                    aria-label="Trang trước" disabled>
+                <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <input id="page" type="number"
+                   class="form-control fn-page"
+                   aria-label="Số trang"
+                   min="1" value="@start" disabled />
+
+            <span id="count" class="small text-nowrap"></span>
+
+            <button id="next" type="button" class="fn-icon-button"
+                    aria-label="Trang sau" disabled>
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+
+        <p id="status" class="small mb-0"
+           role="status" aria-live="polite">
+            Đang tải PDF…
+        </p>
+
+        <select id="zoom" class="form-select fn-zoom"
+                aria-label="Phóng to" disabled>
+            <option value="0.75">75%</option>
+            <option value="1" selected>100%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+        </select>
+    </footer>
+</div>
+
+@section Scripts {
+    <script type="module"
+            src="~/js/notes/reader.js"
+            asp-append-version="true"></script>
+}

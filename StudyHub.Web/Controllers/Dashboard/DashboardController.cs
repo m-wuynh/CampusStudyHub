@@ -7,5 +7,5 @@ public sealed class DashboardController : Controller
 {
     [HttpGet("/")]
     [HttpGet("/Dashboard")]
-    public IActionResult Index() => View(new DashboardIndexViewModel("Nguyễn Minh Anh", 12));
+    public IActionResult Index() => View(new DashboardIndexViewModel(User.Identity?.Name ?? "Sinh viên", 12));
 }

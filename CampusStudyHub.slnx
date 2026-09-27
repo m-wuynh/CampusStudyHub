@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="StudyHub.BLL/StudyHub.BLL.csproj" />
+  <Project Path="StudyHub.DAL/StudyHub.DAL.csproj" />
+  <Project Path="StudyHub.Web/StudyHub.Web.csproj" />
+</Solution>

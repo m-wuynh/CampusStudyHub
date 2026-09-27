@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.StudyGroups;
 
 namespace StudyHub.DAL.Repositories.Common;
@@ -8,6 +9,7 @@ namespace StudyHub.DAL.Repositories.Common;
 /// </summary>
 public interface IRepository
 {
+    IGoogleAuthRepository GoogleAuth { get; }
     IStudyGroupRepository StudyGroups { get; }
 
     IQueryable<TEntity> Query<TEntity>(bool asNoTracking = true) where TEntity : class;
