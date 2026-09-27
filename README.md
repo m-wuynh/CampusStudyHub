@@ -77,6 +77,18 @@ Chạy bản ASP.NET Core:
 dotnet run --project StudyHub.Web/StudyHub.Web.csproj --launch-profile https
 ```
 
+Ở môi trường `Development`, trang đăng nhập có nút **Đăng nhập phát triển**. Nút này
+tự tạo một tài khoản local trong database nên thành viên trong nhóm có thể chạy và
+kiểm thử ứng dụng mà không cần Google Client ID/Client Secret. Endpoint tương ứng bị
+vô hiệu hóa hoàn toàn khi ứng dụng không chạy ở môi trường `Development`.
+
+Chỉ khi cần kiểm thử đăng nhập Google thật, cấu hình secrets riêng trên máy:
+
+```powershell
+dotnet user-secrets set "Authentication:Google:ClientId" "YOUR_CLIENT_ID.apps.googleusercontent.com" --project StudyHub.Web/StudyHub.Web.csproj
+dotnet user-secrets set "Authentication:Google:ClientSecret" "YOUR_CLIENT_SECRET" --project StudyHub.Web/StudyHub.Web.csproj
+```
+
 
 ## Feature nhóm học tập
 

@@ -129,6 +129,27 @@
         </div>
       }
 
+      @if (Model.DevelopmentLoginEnabled)
+      {
+        <div class="d-flex align-items-center gap-2 my-3" aria-hidden="true">
+          <span class="border-top flex-grow-1"></span>
+          <span style="font-size:10px;color:var(--sh-slate-400);font-weight:700;">DEVELOPMENT</span>
+          <span class="border-top flex-grow-1"></span>
+        </div>
+        <form asp-controller="Account"
+              asp-action="Development"
+              asp-route-returnUrl="@Model.ReturnUrl"
+              method="post">
+          <button type="submit" class="google-button">
+            <i class="bi bi-person-workspace" aria-hidden="true"></i>
+            <span>Đăng nhập phát triển</span>
+          </button>
+        </form>
+        <p class="text-center mt-2 mb-0" style="font-size:10px;color:var(--sh-slate-500);">
+          Chỉ xuất hiện khi chạy local ở môi trường Development; không cần cấu hình Google.
+        </p>
+      }
+
       <p class="text-center mb-0 mt-4" style="font-size:11px; color:var(--sh-slate-500); line-height:1.6;">
         Study Hub chỉ nhận tên, email và ảnh đại diện do Google cung cấp. Ứng dụng không nhận mật khẩu Google của bạn.
       </p>

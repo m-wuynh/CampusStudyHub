@@ -32,4 +32,20 @@ public sealed class AuthService(IRepository repository) : IAuthService
             account.RoleCode,
             account.Status));
     }
+
+    public async Task<AuthResultDto> LoginForDevelopmentAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var account = await repository.GoogleAuth.FindOrCreateDevelopmentAsync(cancellationToken);
+
+        if (!string.Equals(account.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            return AuthResultDto.Failure("Tài khoản phát triển đã bị khóa hoặc ngừng hoạt động.");
+
+        return AuthResultDto.Success(new UserProfileDto(
+            account.UserId,
+            account.DisplayName,
+            account.Email,
+            account.RoleCode,
+            account.Status));
+    }
 }
