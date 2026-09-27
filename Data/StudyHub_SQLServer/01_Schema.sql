@@ -54,7 +54,7 @@ BEGIN TRY
         CONSTRAINT PK_ExternalLogins PRIMARY KEY (Provider, ProviderSubject),
         CONSTRAINT UQ_ExternalLogins_UserProvider UNIQUE (UserId, Provider),
         CONSTRAINT FK_ExternalLogins_User FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId),
-        CONSTRAINT CK_ExternalLogins_Provider CHECK (Provider = 'Google'),
+        CONSTRAINT CK_ExternalLogins_Provider CHECK (Provider IN ('Google','Development')),
         CONSTRAINT CK_ExternalLogins_Subject CHECK (LEN(ProviderSubject) > 0)
     );
 

@@ -284,6 +284,10 @@ public partial class StudyHubDbContext : DbContext
 
         modelBuilder.Entity<ExternalLogin>(entity =>
         {
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_ExternalLogins_Provider",
+                "[Provider] IN ('Google', 'Development')"));
+
             entity.HasKey(e => new { e.Provider, e.ProviderSubject });
 
             entity.HasIndex(e => new { e.UserId, e.Provider }, "UQ_ExternalLogins_UserProvider").IsUnique();
