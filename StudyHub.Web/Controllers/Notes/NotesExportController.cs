@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using StudyHub.BLL.DTOs.Notes;
@@ -36,7 +37,7 @@ public sealed class NotesExportController : Controller
     {
         return users.ResolveAsync(
             User.Identity?.IsAuthenticated == true,
-            User.FindFirst(NotesUserResolver.UserIdClaim)?.Value,
+            User.FindFirstValue(ClaimTypes.NameIdentifier),
             environment.IsDevelopment(),
             ct);
     }

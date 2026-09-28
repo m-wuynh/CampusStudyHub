@@ -8,8 +8,6 @@ public sealed class NotesUserResolver(IRepository repository)
 {
     private static readonly SemaphoreSlim DemoLock = new(1, 1);
 
-    public const string UserIdClaim = "studyhub:user_id";
-
     public async Task<NotesUserDto> ResolveAsync(
         bool authenticated,
         string? idClaim,
@@ -22,8 +20,7 @@ public sealed class NotesUserResolver(IRepository repository)
             if (!long.TryParse(idClaim, out var id) || id <= 0)
             {
                 throw new NotesException(
-                    "Tài khoản đăng nhập chưa có claim " +
-                    "studyhub:user_id hợp lệ.",
+                    "Tài khoản đăng nhập chưa có mã người dùng hợp lệ.",
                     401);
             }
 
