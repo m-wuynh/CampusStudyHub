@@ -76,6 +76,8 @@ builder.Services.AddScoped<IRepository, EfRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<IStudyGroupService, StudyGroupService>();
+builder.Services.AddScoped<StudyHub.BLL.Services.Grades.IGradeService, StudyHub.BLL.Services.Grades.GradeService>();
+builder.Services.AddScoped<StudyHub.BLL.Services.Grades.IGoalService, StudyHub.BLL.Services.Grades.GoalService>();
 builder.Services.AddScoped<StudyHub.BLL.Services.Calendar.ICalendarService, StudyHub.BLL.Services.Calendar.CalendarService>();
 
 var app = builder.Build();
