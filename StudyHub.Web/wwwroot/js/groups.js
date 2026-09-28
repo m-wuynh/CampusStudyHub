@@ -12,6 +12,7 @@
   let activeTabId = 'my-groups';
   let searchTimer;
   let loadSequence = 0;
+  let subjectOptions = [];
 
   const escapeHtml = value => String(value ?? '')
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -55,10 +56,21 @@
         <button type="button" class="membership-btn btn-primary-sh flex-grow-1 justify-content-center" data-group-id="${escapeHtml(group.id)}" data-action="join" ${inviteOnly ? 'disabled' : ''}>${inviteOnly ? 'Cần mã mời' : (group.joinMode === 'Open' ? 'Tham gia ngay' : 'Gửi yêu cầu')}</button>`;
     }
 
+    const subjects = group.subjects?.length
+      ? group.subjects
+      : [{ name: group.subject || 'Học tập', cssClass: group.subjectCssClass || 'subject-toan' }];
+    const subjectBadges = subjects
+      .slice(0, 3)
+      .map(subject => `<span class="subject-badge ${escapeHtml(subject.cssClass)}">${escapeHtml(subject.name)}</span>`)
+      .join('');
+    const remainingSubjects = subjects.length > 3
+      ? `<span class="group-access-badge">+${subjects.length - 3} môn</span>`
+      : '';
+
     column.innerHTML = `
       <article class="sh-card group-discord-card p-4 h-100 d-flex flex-column" data-group-id="${escapeHtml(group.id)}">
         <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-          <span class="subject-badge ${escapeHtml(group.subjectCssClass)}">${escapeHtml(group.subject)}</span>
+          <div class="d-flex flex-wrap gap-1">${subjectBadges}${remainingSubjects}</div>
           <span class="group-access-badge"><i class="bi ${group.isPublic ? 'bi-globe2' : 'bi-lock-fill'}"></i>${escapeHtml(accessLabel(group))}</span>
         </div>
         <h3 class="fw-bold mb-1" style="font-size:15px;">${escapeHtml(group.name)}</h3>
@@ -123,6 +135,53 @@
   searchInput.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadGroups, 350); });
   clearSearchButton.addEventListener('click', () => { searchInput.value = ''; loadGroups(); });
 
+  function renderSubjectOptions() {
+    const container = document.getElementById('group-subject-options');
+    if (!subjectOptions.length) {
+      container.innerHTML = '<span class="text-muted" style="font-size:11px;">Chưa có môn gợi ý. Hãy nhập môn mới ở phía trên.</span>';
+      return;
+    }
+    container.innerHTML = subjectOptions.map((subject, index) => `
+      <label class="group-subject-option" for="group-subject-${index}">
+        <input id="group-subject-${index}" type="checkbox" value="${escapeHtml(subject.name)}" />
+        <span>${escapeHtml(subject.name)}</span>
+        ${subject.isCustom ? '<small>Cá nhân</small>' : ''}
+      </label>`).join('');
+  }
+
+  async function loadSubjectOptions() {
+    try {
+      subjectOptions = await requestJson(`${apiUrl}/subjects`);
+      renderSubjectOptions();
+    } catch (error) {
+      document.getElementById('group-subject-options').innerHTML =
+        `<span class="text-danger" style="font-size:11px;">${escapeHtml(error.message)}</span>`;
+    }
+  }
+
+  function addCustomSubject() {
+    const input = document.getElementById('group-subject-new');
+    const name = input.value.trim();
+    if (!name) return window.showToast('Hãy nhập tên môn học.', 'error');
+    if (name.length > 150) return window.showToast('Tên môn học tối đa 150 ký tự.', 'error');
+    let index = subjectOptions.findIndex(item => item.name.localeCompare(name, 'vi', { sensitivity: 'base' }) === 0);
+    if (index < 0) {
+      subjectOptions.push({ name, isCustom: true });
+      subjectOptions.sort((left, right) => left.name.localeCompare(right.name, 'vi'));
+      renderSubjectOptions();
+      index = subjectOptions.findIndex(item => item.name === name);
+    }
+    document.getElementById(`group-subject-${index}`).checked = true;
+    input.value = '';
+  }
+
+  document.getElementById('add-group-subject-btn').addEventListener('click', addCustomSubject);
+  document.getElementById('group-subject-new').addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    addCustomSubject();
+  });
+
   view.addEventListener('click', async event => {
     const openButton = event.target.closest('.open-group-btn');
     if (openButton) return location.assign(`/Groups/${encodeURIComponent(openButton.dataset.groupId)}`);
@@ -143,9 +202,12 @@
   document.getElementById('create-group-btn').addEventListener('click', async event => {
     const button = event.currentTarget;
     const access = document.getElementById('group-access').value;
+    const subjects = [...document.querySelectorAll('#group-subject-options input:checked')]
+      .map(input => input.value);
+    if (!subjects.length) return window.showToast('Hãy chọn hoặc thêm ít nhất một môn học.', 'error');
     const payload = {
       name: document.getElementById('group-name').value.trim(),
-      subject: document.getElementById('group-subject').value,
+      subjects,
       description: document.getElementById('group-desc').value.trim(),
       goal: document.getElementById('group-goal').value.trim(),
       meetingFormat: document.getElementById('group-format').value,
@@ -175,5 +237,6 @@
 
   searchInput.value = view.dataset.initialSearch || '';
   showTab(activeTabId);
+  loadSubjectOptions();
   loadGroups();
 })();

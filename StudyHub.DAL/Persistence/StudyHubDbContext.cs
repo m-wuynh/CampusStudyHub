@@ -56,6 +56,8 @@ public partial class StudyHubDbContext : DbContext
 
     public virtual DbSet<StudyGroup> StudyGroups { get; set; }
 
+    public virtual DbSet<StudyGroupSubject> StudyGroupSubjects { get; set; }
+
     public virtual DbSet<StudySession> StudySessions { get; set; }
 
     public virtual DbSet<Subject> Subjects { get; set; }
@@ -723,9 +725,39 @@ public partial class StudyHubDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_StudyGroups_Owner");
 
-            entity.HasOne(d => d.Subject).WithMany(p => p.StudyGroups)
-                .HasForeignKey(d => d.SubjectId)
-                .HasConstraintName("FK_StudyGroups_Subject");
+        });
+
+        modelBuilder.Entity<StudyGroupSubject>(entity =>
+        {
+            entity.HasKey(e => e.StudyGroupSubjectId);
+
+            entity.HasIndex(e => new { e.StudyGroupId, e.SubjectId }, "UX_StudyGroupSubjects_Catalog")
+                .IsUnique()
+                .HasFilter("[SubjectId] IS NOT NULL");
+            entity.HasIndex(e => new { e.StudyGroupId, e.CustomSubjectName }, "UX_StudyGroupSubjects_Custom")
+                .IsUnique()
+                .HasFilter("[CustomSubjectName] IS NOT NULL");
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_StudyGroupSubjects_Choice",
+                "([SubjectId] IS NOT NULL AND [CustomSubjectName] IS NULL) OR ([SubjectId] IS NULL AND [CustomSubjectName] IS NOT NULL)"));
+
+            entity.Property(e => e.CustomSubjectName).HasMaxLength(150);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(e => e.StudyGroup).WithMany(e => e.StudyGroupSubjects)
+                .HasForeignKey(e => e.StudyGroupId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_StudyGroupSubjects_Group");
+            entity.HasOne(e => e.Subject).WithMany(e => e.StudyGroupSubjects)
+                .HasForeignKey(e => e.SubjectId)
+                .HasConstraintName("FK_StudyGroupSubjects_Subject");
+            entity.HasOne(e => e.AddedByUser).WithMany(e => e.AddedStudyGroupSubjects)
+                .HasForeignKey(e => e.AddedByUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StudyGroupSubjects_AddedBy");
         });
 
         modelBuilder.Entity<StudySession>(entity =>

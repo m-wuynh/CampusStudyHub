@@ -11,6 +11,7 @@
 <div id="group-details-page"
      data-group-id="@Model.Group.Id"
      data-is-member="@Model.Group.IsMember.ToString().ToLowerInvariant()"
+     data-is-owner="@Model.Group.IsOwner.ToString().ToLowerInvariant()"
      style="max-width:1240px;margin:0 auto;">
   <form id="group-antiforgery" hidden>@Html.AntiForgeryToken()</form>
 
@@ -18,10 +19,18 @@
     <a asp-controller="StudyGroups" asp-action="Index" class="d-inline-flex align-items-center gap-2 text-decoration-none" style="font-size:12px;color:var(--sh-slate-600);">
       <i class="bi bi-arrow-left"></i>Danh sách nhóm
     </a>
-    @if (Model.Group.IsMember && !Model.Group.IsOwner)
-    {
-      <button id="leave-group-btn" type="button" class="btn-secondary-sh" style="color:var(--sh-rose-600);"><i class="bi bi-box-arrow-left"></i>Rời nhóm</button>
-    }
+    <div class="d-flex gap-2">
+      @if (Model.Group.IsOwner)
+      {
+        <button type="button" class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#editGroupModal">
+          <i class="bi bi-pencil-square"></i>Chỉnh sửa nhóm
+        </button>
+      }
+      else if (Model.Group.IsMember)
+      {
+        <button id="leave-group-btn" type="button" class="btn-secondary-sh" style="color:var(--sh-rose-600);"><i class="bi bi-box-arrow-left"></i>Rời nhóm</button>
+      }
+    </div>
   </div>
 
   @if (TempData["GroupSuccess"] is string success)
@@ -34,7 +43,10 @@
       <div class="d-flex flex-column flex-lg-row justify-content-between gap-4">
         <div class="flex-grow-1">
           <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-            <span class="subject-badge @Model.Group.SubjectCssClass">@Model.Group.Subject</span>
+            @foreach (var subject in Model.Group.Subjects)
+            {
+              <span class="subject-badge @subject.CssClass">@subject.Name</span>
+            }
             <span class="group-access-badge"><i class="bi @(Model.Group.IsPublic ? "bi-globe2" : "bi-lock-fill")"></i>@(Model.Group.IsPublic ? "Công khai" : "Riêng tư")</span>
             <span class="group-access-badge">@(Model.Group.JoinMode == "Open" ? "Vào ngay" : Model.Group.JoinMode == "Approval" ? "Cần duyệt" : "Chỉ lời mời")</span>
           </div>
@@ -232,6 +244,95 @@
     </div>
   }
 </div>
+
+@if (Model.Group.IsOwner)
+{
+  <div class="modal fade" id="editGroupModal" tabindex="-1" aria-labelledby="editGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow rounded-4">
+        <div class="modal-header px-4 py-3">
+          <div>
+            <h5 class="modal-title fw-bold" id="editGroupModalLabel">Chỉnh sửa nhóm học tập</h5>
+            <p class="mb-0" style="font-size:11px;color:var(--sh-slate-500);">Cập nhật thông tin, môn học và cách thành viên tham gia nhóm.</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+        </div>
+        <div class="modal-body px-4 py-4">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="sh-label" for="edit-group-name">Tên nhóm <span class="text-danger">*</span></label>
+              <input id="edit-group-name" class="sh-input" maxlength="150" value="@Model.Group.Name" />
+            </div>
+            <div class="col-12">
+              <label class="sh-label" for="edit-group-subject-new">Môn học <span class="text-danger">*</span></label>
+              <div class="d-flex gap-2 mb-2">
+                <input id="edit-group-subject-new" class="sh-input" maxlength="150" placeholder="Nhập một môn học mới" />
+                <button id="add-edit-group-subject-btn" type="button" class="btn-secondary-sh flex-shrink-0">
+                  <i class="bi bi-plus-lg"></i>Thêm môn
+                </button>
+              </div>
+              <div id="edit-group-subject-options" class="group-subject-picker" aria-live="polite">
+                @foreach (var subject in Model.Group.Subjects)
+                {
+                  <label class="group-subject-option">
+                    <input type="checkbox" value="@subject.Name" checked />
+                    <span>@subject.Name</span>
+                    @if (subject.IsCustom) { <small>Cá nhân</small> }
+                  </label>
+                }
+              </div>
+              <p class="mb-0 mt-2" style="font-size:10px;color:var(--sh-slate-500);">Có thể chọn nhiều môn hoặc thêm môn mới, tối đa 10 môn.</p>
+            </div>
+            <div class="col-12">
+              <label class="sh-label" for="edit-group-desc">Mô tả</label>
+              <textarea id="edit-group-desc" class="sh-input" rows="2" maxlength="2000">@Model.Group.Description</textarea>
+            </div>
+            <div class="col-12">
+              <label class="sh-label" for="edit-group-goal">Mục tiêu</label>
+              <input id="edit-group-goal" class="sh-input" maxlength="500" value="@Model.Group.Goal" />
+            </div>
+            <div class="col-md-4">
+              <label class="sh-label" for="edit-group-format">Hình thức</label>
+              <select id="edit-group-format" class="sh-input" data-current-value="@Model.Group.MeetingFormat">
+                <option value="Online">Online</option>
+                <option value="Offline">Offline</option>
+                <option value="Hybrid">Kết hợp</option>
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label class="sh-label" for="edit-group-schedule">Lịch dự kiến</label>
+              <input id="edit-group-schedule" class="sh-input" maxlength="250" value="@Model.Group.MeetingSchedule" />
+            </div>
+            <div class="col-md-3">
+              <label class="sh-label" for="edit-group-max-members">Tối đa</label>
+              <input id="edit-group-max-members" class="sh-input" type="number" min="@(Math.Max(2, Model.Group.MemberCount))" max="500" value="@Model.Group.MaxMembers" />
+            </div>
+            <div class="col-md-6">
+              <label class="sh-label" for="edit-group-access">Cách tham gia</label>
+              <select id="edit-group-access" class="sh-input" data-current-value="@Model.Group.JoinMode">
+                <option value="Approval">Công khai · Cần duyệt</option>
+                <option value="Open">Công khai · Vào ngay</option>
+                <option value="InviteOnly">Riêng tư · Chỉ qua lời mời</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="sh-label" for="edit-group-contact">Liên kết liên hệ/họp</label>
+              <input id="edit-group-contact" class="sh-input" maxlength="2048" value="@Model.Group.ContactUrl" placeholder="https://meet.google.com/..." />
+            </div>
+            <div class="col-12">
+              <label class="sh-label" for="edit-group-rules">Nội quy nhóm</label>
+              <textarea id="edit-group-rules" class="sh-input" rows="3" maxlength="2000">@Model.Group.Rules</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer px-4 py-3">
+          <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+          <button id="save-group-changes-btn" type="button" class="btn-primary-sh"><i class="bi bi-check-lg"></i>Lưu thay đổi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
 
 @section Scripts {
   <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@9.0.6/dist/browser/signalr.min.js"></script>

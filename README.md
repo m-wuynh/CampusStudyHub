@@ -92,6 +92,8 @@ dotnet user-secrets set "Authentication:Google:ClientSecret" "YOUR_CLIENT_SECRET
 
 ## Feature nhóm học tập
 
+- Mỗi nhóm có thể chọn tối đa 10 môn. Danh sách gợi ý gồm môn chuẩn, môn cá nhân và các tên môn tùy chỉnh người dùng từng tạo; người dùng cũng có thể nhập môn mới ngay trong form tạo nhóm.
+- Trưởng nhóm có thể chỉnh sửa thông tin, danh sách môn, lịch học, nội quy, giới hạn thành viên và cách tham gia sau khi tạo nhóm.
 - Ba cách tham gia theo mô hình Discord: nhóm công khai vào ngay (`Open`), nhóm công khai cần duyệt (`Approval`) và nhóm riêng tư chỉ qua lời mời (`InviteOnly`).
 - Thành viên có vòng đời `Pending`, `Active`, `Rejected`, `Left`, `Banned`; người bị ban không thể tự tham gia lại và nhóm không thể vượt `MaxMembers`.
 - Ba vai trò gọn cho ứng dụng học tập: Owner, Moderator và Member. Owner/Moderator được duyệt, từ chối, mời ra hoặc cấm thành viên; Owner được bổ nhiệm Moderator.

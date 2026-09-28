@@ -14,7 +14,7 @@ Dùng SQL Server **2019 trở lên**, bao gồm Express/LocalDB, và SQL Server 
 4. Trên môi trường phát triển, chạy `02_SeedDemo.sql` để xóa dữ liệu nghiệp vụ hiện tại và tạo lại bộ dữ liệu mẫu THPT. Script giữ nguyên schema và `SystemSettings`; không chạy trên database có dữ liệu cần bảo toàn.
 5. Chạy `03_ChecksAndQueries.sql` để kiểm tra ràng buộc và xem ví dụ truy vấn.
 6. Trên database phát triển, chạy riêng `04_SmokeTests.sql`: 9 kiểm thử chức năng. Script rollback dữ liệu thử; số IDENTITY có thể vẫn bị nhảy, đây là bình thường.
-7. Sau khi tạo schema nền, chạy `dotnet ef database update` theo README ở thư mục gốc để áp dụng các EF Core Migration. Migration `AddDiscordStudyGroupFlow` bổ sung chế độ tham gia, lời mời và loại bài đăng cho nhóm học tập.
+7. Sau khi tạo schema nền, chạy `dotnet ef database update` theo README ở thư mục gốc để áp dụng các EF Core Migration. Migration `AddMultiSubjectStudyGroups` chuyển nhóm sang nhiều môn và hỗ trợ tên môn cá nhân.
 
 Chạy từng file theo thứ tự; gặp lỗi thì dừng và đọc thông báo. Sao lưu trước khi chạy lại file 02 vì thao tác reset dữ liệu không thể hoàn tác sau khi transaction đã commit. Muốn đổi tên database, sửa tên trong file 00 và cả `USE`/`DB_NAME()` ở các file còn lại.
 
@@ -24,7 +24,7 @@ Chạy từng file theo thứ tự; gặp lỗi thì dừng và đọc thông b�
 
 ## 2. Tiện ích tương ứng với bảng nào?
 
-Schema gồm **28 bảng, 4 view, 2 stored procedure**.
+Schema gồm **29 bảng, 4 view, 2 stored procedure**.
 
 | Phần giao diện | Bảng chính | Công dụng |
 | --- | --- | --- |
@@ -33,7 +33,7 @@ Schema gồm **28 bảng, 4 view, 2 stored procedure**.
 | Ghi chú & Tài liệu | `Notes`, `Documents`, `DocumentBookmarks` | Ghi chú Markdown, file/link tài liệu, lưu yêu thích |
 | Flashcard | `FlashcardDecks`, `Flashcards`, `FlashcardProgress`, `FlashcardReviews` | Bộ thẻ, nội dung, tiến độ và lịch sử ôn riêng từng người |
 | Lịch học cá nhân | `ScheduleEvents`, `ScheduleExceptions`, `Deadlines`, `Reminders` | Lịch một lần/hằng tuần, đổi/hủy buổi, hạn nộp, nhắc lịch |
-| Nhóm học tập | `StudyGroups`, `GroupMembers`, `GroupPosts`, `GroupInvites` | Nhóm, yêu cầu tham gia, vai trò, chat/thông báo và lời mời |
+| Nhóm học tập | `StudyGroups`, `StudyGroupSubjects`, `GroupMembers`, `GroupPosts`, `GroupInvites` | Nhóm nhiều môn, môn tự nhập, yêu cầu tham gia, vai trò, chat/thông báo và lời mời |
 | Điểm số & Mục tiêu | `GradeEntries`, `Goals` | Điểm theo thang và hệ số; mục tiêu cá nhân |
 | Tổng quan & chuỗi ngày học | `StudySessions`, `ActivityEvents` | Phiên học tập trung, sự kiện sử dụng, cơ sở tính streak |
 | Cài đặt & quản trị | `SystemSettings`, `ContentReports`, `AuditLogs` | Cấu hình ứng dụng, báo cáo nội dung, lịch sử quản trị |
@@ -43,11 +43,11 @@ Không tạo bảng riêng cho Dashboard: tổng hợp từ dữ liệu nghiệp
 ## 3. Quan hệ quan trọng
 
 - Một `User` có nhiều `AcademicTerms`; mỗi học kỳ chứa các `UserSubjects`.
-- `Subjects` là danh mục dùng chung. `UserSubjects` là việc **một người học môn đó trong một học kỳ**. Học lại ở học kỳ khác là một dòng mới, không ghi đè điểm cũ.
+- `Subjects` là danh mục dùng chung. `UserSubjects` có thể trỏ tới danh mục hoặc dùng `CustomSubjectName` cho môn cá nhân trong một học kỳ. Học lại ở học kỳ khác là một dòng mới, không ghi đè điểm cũ.
 - `Notes`, `Documents`, `FlashcardDecks`, `ScheduleEvents`, `Deadlines`, `Goals`, `StudySessions` có thể gắn với `UserSubjectId`; để NULL nếu không thuộc môn cụ thể.
 - Khóa ngoại ghép `(UserSubjectId, UserId/OwnerUserId)` ngăn dữ liệu cá nhân tham chiếu môn của người khác. Khóa ghép tương tự bảo vệ học kỳ và mục tiêu nhắc lịch.
 - `GradeEntries` thuộc `UserSubjects`; chủ sở hữu được xác định qua môn, không lặp `UserId` không cần thiết.
-- Nhóm có một `OwnerUserId`; `GroupMembers` dùng khóa `(StudyGroupId, UserId)`. Người tạo nhóm cũng phải có membership Active.
+- Nhóm có một `OwnerUserId`; `GroupMembers` dùng khóa `(StudyGroupId, UserId)`. `StudyGroupSubjects` cho phép mỗi nhóm gắn nhiều môn chuẩn hoặc tên môn tự nhập. Người tạo nhóm cũng phải có membership Active.
 - Mỗi deck có nhiều card. Tiến độ dùng khóa `(UserId, FlashcardId)` vì nhiều người học cùng thẻ nhưng ngày ôn tiếp theo khác nhau.
 - Một reminder chỉ trỏ tới một deadline hoặc một buổi lịch. Một content report chỉ trỏ tới một trong bốn loại nội dung được hỗ trợ.
 

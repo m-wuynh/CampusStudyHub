@@ -72,16 +72,25 @@
       </div>
       <div class="modal-body px-4 py-4">
         <div class="row g-3">
-          <div class="col-md-8">
+          <div class="col-12">
             <label class="sh-label" for="group-name">Tên nhóm</label>
             <input id="group-name" class="sh-input" maxlength="150" placeholder="Ví dụ: Ôn thi Cơ sở dữ liệu" />
           </div>
-          <div class="col-md-4">
-            <label class="sh-label" for="group-subject">Môn học</label>
-            <select id="group-subject" class="sh-input">
-              <option>Toán</option><option>Vật lý</option><option>Hóa học</option>
-              <option>Sinh học</option><option>Lịch sử</option><option>Tiếng Anh</option><option>Cơ sở dữ liệu</option>
-            </select>
+          <div class="col-12">
+            <label class="sh-label" for="group-subject-new">Môn học <span class="text-danger">*</span></label>
+            <div class="d-flex gap-2 mb-2">
+              <input id="group-subject-new" class="sh-input" maxlength="150"
+                     placeholder="Nhập môn mới, ví dụ: Lập trình game" />
+              <button id="add-group-subject-btn" type="button" class="btn-secondary-sh flex-shrink-0">
+                <i class="bi bi-plus-lg"></i>Thêm môn
+              </button>
+            </div>
+            <div id="group-subject-options" class="group-subject-picker" aria-live="polite">
+              <span class="text-muted" style="font-size:11px;">Đang tải danh sách môn học...</span>
+            </div>
+            <p class="mb-0 mt-2" style="font-size:10px;color:var(--sh-slate-500);">
+              Có thể tích nhiều môn hoặc nhập môn mới. Tối đa 10 môn cho mỗi nhóm.
+            </p>
           </div>
           <div class="col-12">
             <label class="sh-label" for="group-desc">Mô tả</label>
