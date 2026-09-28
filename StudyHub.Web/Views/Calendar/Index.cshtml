@@ -1,0 +1,402 @@
+@using StudyHub.BLL.Services.Calendar
+@model CalendarIndexViewModel
+@{
+    ViewData["Title"]        = "Lịch học";
+    ViewData["PageTitle"]    = "Thời khóa biểu & Kế hoạch";
+    ViewData["PageSubtitle"] = "Theo dõi lịch học, bài tập và kỳ thi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div id="calendar-view" style="max-width:1280px; margin:0 auto; display: flex; flex-direction: column;">
+  <!-- Header Actions -->
+  <div class="d-flex justify-content-end mb-3">
+    <a href="/Calendar/Create" class="btn-primary-sh text-decoration-none shadow-sm px-4" style="border-radius: 20px;">
+      <i class="bi bi-plus-lg me-2"></i>Thêm sự kiện
+    </a>
+  </div>
+
+  <!-- Calendar Container -->
+  <div class="sh-card p-0 overflow-hidden" style="background: #fff; border: 1px solid var(--sh-slate-200); border-radius: 12px; height: calc(100vh - 140px); min-height: 900px; position: relative;">
+    <div id="calendar" style="height: 100%;"></div>
+
+    <!-- Event Popover (Hidden by default) -->
+    <div id="event-popover" class="position-absolute bg-white rounded-3 p-2 d-none" style="width: 360px; z-index: 1050; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: opacity 0.1s;">
+      <div class="d-flex justify-content-end mb-1 gap-1">
+        <button class="btn btn-sm btn-light border-0 rounded-circle" id="btn-edit-event" style="width: 32px; height: 32px;"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-light border-0 rounded-circle" id="btn-delete-event" style="width: 32px; height: 32px;"><i class="bi bi-trash"></i></button>
+        <button class="btn btn-sm btn-light border-0 rounded-circle" style="width: 32px; height: 32px;"><i class="bi bi-envelope"></i></button>
+        <button class="btn btn-sm btn-light border-0 rounded-circle" style="width: 32px; height: 32px;"><i class="bi bi-three-dots-vertical"></i></button>
+        <button class="btn btn-sm btn-light border-0 rounded-circle ms-1" onclick="document.getElementById('event-popover').classList.add('d-none')" style="width: 32px; height: 32px;"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="px-3 pb-3">
+        <div class="d-flex gap-3 mb-2">
+          <div style="width: 14px; height: 14px; border-radius: 4px; margin-top: 6px; flex-shrink:0;" id="popover-color"></div>
+          <div>
+            <h4 class="mb-1" id="popover-title" style="font-size: 1.2rem; font-weight: 500; color: #3c4043;"></h4>
+            <p class="mb-0 text-muted" id="popover-time" style="font-size: 0.82rem;"></p>
+          </div>
+        </div>
+
+        <div class="d-flex flex-column gap-2 ms-1" style="font-size: 0.88rem;">
+
+          <!-- Description -->
+          <div id="popover-desc-row" class="d-flex align-items-start gap-3 text-muted" style="display:none !important;">
+            <i class="bi bi-text-left fs-5 flex-shrink-0"></i>
+            <span id="popover-desc" style="white-space: pre-wrap; color:#3c4043;"></span>
+          </div>
+
+          <!-- Location -->
+          <div id="popover-location-row" class="d-flex align-items-center gap-3 text-muted" style="display:none !important;">
+            <i class="bi bi-geo-alt fs-5 flex-shrink-0"></i>
+            <span id="popover-location" style="color:#3c4043;"></span>
+          </div>
+
+          <!-- Event Type -->
+          <div class="d-flex align-items-center gap-3 text-muted">
+            <i class="bi bi-tag fs-5 flex-shrink-0"></i>
+            <span id="popover-type" style="color:#3c4043;"></span>
+          </div>
+
+          <!-- Reminders -->
+          <div id="popover-reminders-row" class="d-flex align-items-start gap-3 text-muted" style="display:none !important;">
+            <i class="bi bi-bell fs-5 flex-shrink-0"></i>
+            <div id="popover-reminders-list" class="d-flex flex-column" style="color:#3c4043;"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@fullcalendar/core@6.1.15/locales/vi.global.min.js"></script>
+    <style>
+        .fc {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #3c4043;
+        }
+        
+        /* Grid Borders */
+        .fc-theme-standard th, 
+        .fc-theme-standard td, 
+        .fc-theme-standard .fc-scrollgrid {
+            border-color: #dadce0;
+        }
+        .fc-scrollgrid {
+            border-left: none !important;
+            border-right: none !important;
+            border-bottom: none !important;
+        }
+        
+        /* Toolbar (Top Area) */
+        .fc-header-toolbar {
+            padding: 12px 24px;
+            margin-bottom: 0 !important;
+            border-bottom: 1px solid #dadce0;
+            display: flex;
+            align-items: center;
+        }
+        .fc-toolbar-title {
+            font-size: 1.375rem !important;
+            font-weight: 400 !important;
+            color: #3c4043;
+            margin-left: 16px !important;
+        }
+
+        /* Toolbar Buttons */
+        .fc-button-primary {
+            background-color: #fff !important;
+            color: #3c4043 !important;
+            border: 1px solid #dadce0 !important;
+            border-radius: 4px !important;
+            text-transform: capitalize;
+            font-weight: 500 !important;
+            box-shadow: none !important;
+            padding: 6px 16px !important;
+            font-size: 14px !important;
+            transition: background-color 0.15s;
+        }
+        .fc-button-primary:hover {
+            background-color: #f1f3f4 !important;
+        }
+        .fc-button-primary:not(:disabled).fc-button-active, 
+        .fc-button-primary:not(:disabled):active {
+            background-color: #e8f0fe !important;
+            color: #1a73e8 !important;
+            border-color: #e8f0fe !important;
+        }
+        .fc-today-button {
+            border-radius: 20px !important;
+            padding: 6px 20px !important;
+            margin-right: 16px !important;
+        }
+        
+        /* Day Headers */
+        .fc-col-header-cell {
+            padding: 8px 0 4px 0;
+            border-bottom: 1px solid #dadce0 !important;
+        }
+        .fc-col-header-cell-cushion {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none !important;
+            color: #70757a;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        /* Custom date number inside header */
+        .sh-date-num {
+            font-size: 24px;
+            font-weight: 400;
+            width: 46px;
+            height: 46px;
+            line-height: 46px;
+            border-radius: 50%;
+            display: inline-block;
+            text-align: center;
+            margin-top: 4px;
+            color: #3c4043;
+        }
+        
+        /* Highlight Today */
+        .fc-day-today .fc-col-header-cell-cushion {
+            color: #1a73e8;
+        }
+        .fc-day-today .sh-date-num {
+            background-color: #1a73e8;
+            color: #fff;
+        }
+        
+        /* Time Axis (Y-Axis) */
+        .fc-timegrid-axis-cushion {
+            font-size: 10px;
+            color: #70757a;
+            font-weight: 500;
+            padding: 8px !important;
+        }
+        .fc-timegrid-slot-label-cushion {
+            font-size: 11px;
+            color: #70757a;
+            text-transform: uppercase;
+            position: relative;
+            top: 0px; /* align with line like Google Calendar */
+        }
+        .fc-timegrid-slot.fc-timegrid-slot-lane {
+            height: 80px !important; 
+        }
+        .fc-timegrid-slot.fc-timegrid-slot-label {
+            height: 80px !important;
+        }
+        .fc-timegrid-slot-minor {
+            border-top-style: none !important;
+        }
+        /* Always show hour label cells */
+        .fc-timegrid-slot-label {
+            vertical-align: top !important;
+        }
+        .fc-timegrid-slot-label-cushion {
+            padding-top: 4px !important;
+        }
+        /* Fix event overflow onto time axis */
+        .fc-timegrid-col-events {
+            margin: 0 !important;
+        }
+        .fc-timegrid-now-indicator-arrow {
+            display: none;
+        }
+        .fc-timegrid-event-harness {
+            margin-right: 2px !important;
+        }
+
+        /* Events */
+        .fc-event {
+            border: none !important;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .fc-timegrid-event {
+            padding: 2px 4px;
+        }
+        
+        .event-type-exam { background: #d93025 !important; color: #fff !important; }
+        .event-type-class { background: #1e8e3e !important; color: #fff !important; }
+        .event-type-other { background: #9334e6 !important; color: #fff !important; }
+        .event-type-study { background: #1a73e8 !important; color: #fff !important; }
+
+        .fc-v-event .fc-event-title {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .fc-v-event .fc-event-time {
+            font-size: 10px;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                locale: 'en',
+                initialView: 'timeGridWeek',
+                firstDay: 0, // 0 = Sunday, 1 = Monday
+                headerToolbar: {
+                    left: 'today prev,next title',
+                    center: '',
+                    right: 'timeGridWeek,timeGridDay'
+                },
+                buttonText: {
+                    today: 'Hôm nay',
+                    week: 'Tuần',
+                    day: 'Ngày'
+                },
+                allDaySlot: false,
+                slotMinTime: '00:00:00',
+                slotMaxTime: '24:00:00',
+                slotDuration: '01:00:00',
+                slotLabelInterval: '01:00',
+                scrollTime: '07:00:00',
+                eventMinHeight: 30,
+                slotLabelFormat: {
+                    hour: 'numeric',
+                    meridiem: 'short',
+                    omitZeroMinute: true
+                },
+                dayHeaderContent: function(arg) {
+                    var dayNames = ['CN', 'THỨ 2', 'THỨ 3', 'THỨ 4', 'THỨ 5', 'THỨ 6', 'THỨ 7'];
+                    var dayName = dayNames[arg.date.getDay()];
+                    var dateNum = arg.date.getDate();
+                    
+                    var html = '<div>' + dayName + '</div>' + 
+                               '<div class="sh-date-num">' + dateNum + '</div>';
+                    return { html: html };
+                },
+                events: '/Calendar/GetEvents',
+                eventClassNames: function(arg) {
+                    var type = arg.event.extendedProps.type;
+                    if (type === 'Exam') return ['event-type-exam'];
+                    if (type === 'Class') return ['event-type-class'];
+                    if (type === 'Other') return ['event-type-other'];
+                    return ['event-type-study'];
+                },
+                eventClick: function(info) {
+                    var popover = document.getElementById('event-popover');
+                    
+                    // Populate data
+                    document.getElementById('popover-title').innerText = info.event.title;
+                    
+                    var start = info.event.start;
+                    var end = info.event.end;
+                    var timeStr = start.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ';
+                    
+                    var formatTime = function(date) {
+                        var h = date.getHours();
+                        var m = date.getMinutes();
+                        var ampm = h >= 12 ? 'PM' : 'AM';
+                        h = h % 12;
+                        h = h ? h : 12; // the hour '0' should be '12'
+                        var mStr = m < 10 ? '0' + m : m;
+                        return h + ':' + mStr + ampm;
+                    };
+                    
+                    timeStr += formatTime(start) + ' – ' + (end ? formatTime(end) : '');
+                    document.getElementById('popover-time').innerText = timeStr;
+                    
+                    // Set color box based on type
+                    var type = info.event.extendedProps.type;
+                    var color = type === 'Exam' ? '#d93025' : type === 'Class' ? '#1e8e3e' : type === 'Other' ? '#9334e6' : '#1a73e8';
+                    document.getElementById('popover-color').style.backgroundColor = color;
+
+                    // Event type label
+                    var typeLabels = { 'Exam': 'Kiểm tra / Thi', 'Class': 'Học nhóm', 'Other': 'Bài tập / Nộp bài', 'SelfStudy': 'Tự học' };
+                    document.getElementById('popover-type').innerText = typeLabels[type] || 'Tự học';
+
+                    // Description (show/hide)
+                    var desc = info.event.extendedProps.description || '';
+                    var descRow = document.getElementById('popover-desc-row');
+                    if (desc.trim()) {
+                        document.getElementById('popover-desc').innerText = desc;
+                        descRow.style.display = 'flex';
+                    } else {
+                        descRow.style.display = 'none';
+                    }
+
+                    // Location (show/hide)
+                    var loc = info.event.extendedProps.location || '';
+                    var locRow = document.getElementById('popover-location-row');
+                    if (loc.trim()) {
+                        document.getElementById('popover-location').innerText = loc;
+                        locRow.style.display = 'flex';
+                    } else {
+                        locRow.style.display = 'none';
+                    }
+                    
+                    // Position popover
+                    var rect = info.el.getBoundingClientRect();
+                    var calendarRect = document.getElementById('calendar').getBoundingClientRect();
+                    
+                    var top = rect.top - calendarRect.top + 20;
+                    var left = rect.right - calendarRect.left + 10;
+                    
+                    // Adjust if it goes off screen
+                    if (left + 360 > calendarRect.width) {
+                        left = rect.left - calendarRect.left - 370; // show on left
+                    }
+                    
+                    popover.style.top = top + 'px';
+                    popover.style.left = left + 'px';
+                    popover.classList.remove('d-none');
+                    
+                    // Fetch Reminders
+                    var remRow = document.getElementById('popover-reminders-row');
+                    var remList = document.getElementById('popover-reminders-list');
+                    remRow.style.setProperty('display', 'none', 'important');
+                    remList.innerHTML = '';
+                    
+                    fetch('/Calendar/GetEventReminders/' + info.event.id)
+                        .then(r => r.json())
+                        .then(minutes => {
+                            if (minutes && minutes.length > 0) {
+                                remList.innerHTML = minutes.map(m => {
+                                    if (m % 10080 === 0) return (m / 10080) + ' tuần trước';
+                                    if (m % 1440 === 0) return (m / 1440) + ' ngày trước';
+                                    if (m % 60 === 0) return (m / 60) + ' giờ trước';
+                                    return m + ' phút trước';
+                                }).join('<br/>');
+                                remRow.style.setProperty('display', 'flex', 'important');
+                            }
+                        });
+
+                    // Set Edit/Delete URLs
+                    document.getElementById('btn-edit-event').onclick = function() {
+                        window.location.href = '/Calendar/Update/' + info.event.id;
+                    };
+                    document.getElementById('btn-delete-event').onclick = function() {
+                        if (confirm('Bạn có chắc chắn muốn xóa sự kiện này?')) {
+                            fetch('/Calendar/DeleteEvent/' + info.event.id, { method: 'DELETE' })
+                                .then(res => {
+                                    if (res.ok) window.location.reload();
+                                    else alert('Lỗi khi xóa!');
+                                });
+                        }
+                    };
+                }
+            });
+            calendar.render();
+            
+            // Add GMT+00 to top left corner
+            setTimeout(() => {
+                var axisEl = document.querySelector('.fc-timegrid-axis-cushion');
+                if(axisEl) {
+                    axisEl.innerHTML = 'GMT+00';
+                }
+            }, 50);
+        });
+    </script>
+}

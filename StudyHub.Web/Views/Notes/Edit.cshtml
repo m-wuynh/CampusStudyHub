@@ -1,0 +1,967 @@
+@model StudyHub.BLL.DTOs.Notes.NotebookEditDto
+
+@{
+    Layout = "~/Views/Notes/_NotesLayout.cshtml";
+    ViewData["Title"] = Model.Title;
+
+    var currentNumber =
+        Model.Pages.FindIndex(p => p.Id == Model.PageId) + 1;
+}
+
+<style>
+    .nb-shell {
+        --nb-blue: #547aa7;
+        --nb-border: #dde3eb;
+        --nb-muted: #8793a2;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        color: #354052;
+        background: #e8ecf1;
+    }
+
+    .nb-shell * {
+        box-sizing: border-box;
+    }
+
+    .nb-topbar {
+        min-height: 62px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 22px;
+        background: #fff;
+        border-bottom: 1px solid var(--nb-border);
+        flex-shrink: 0;
+    }
+
+    .nb-icon {
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: #778497;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+
+    .nb-icon:hover {
+        color: var(--nb-blue);
+        background: #edf2f8;
+    }
+
+    .nb-book-icon {
+        width: 34px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        color: #6684a4;
+        background: #e6edf5;
+        border-radius: 4px 8px 8px 4px;
+        border-left: 4px solid #b4c6da;
+        flex-shrink: 0;
+    }
+
+    .nb-heading {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .nb-book-title {
+        display: block;
+        width: min(100%, 520px);
+        padding: 2px 0;
+        background: transparent;
+        border: 0;
+        color: #354052;
+        font-size: 15px !important;
+        font-weight: 600;
+        text-overflow: ellipsis;
+    }
+
+    .nb-heading small {
+        display: block;
+        color: var(--nb-muted);
+        font-size: 10px;
+        margin-top: 2px;
+    }
+
+    .nb-top-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .nb-save {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 17px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--nb-blue);
+        color: white;
+        font-size: 12px !important;
+        cursor: pointer;
+    }
+
+    .nb-save:hover {
+        background: #456b97;
+    }
+
+    .nb-export {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 12px;
+        border: 1px solid var(--nb-border);
+        border-radius: 8px;
+        background: white;
+        color: #65768b;
+        font-size: 12px !important;
+    }
+
+    .nb-tabs {
+        display: flex;
+        align-items: stretch;
+        min-height: 38px;
+        padding-left: 18px;
+        background: #f4f6f9;
+        border-bottom: 1px solid var(--nb-border);
+        flex-shrink: 0;
+    }
+
+    .nb-tab {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        max-width: 320px;
+        padding: 9px 20px;
+        background: #e7eef7;
+        border-bottom: 2px solid #7193ba;
+        color: #567599;
+        font-size: 11px;
+    }
+
+    .nb-tab span {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .nb-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        min-height: 49px;
+        padding: 8px 24px;
+        background: #fff;
+        border-bottom: 1px solid var(--nb-border);
+        flex-shrink: 0;
+    }
+
+    .nb-toolbar-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .nb-mode {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #607c9e;
+    }
+
+    .nb-mode i {
+        display: grid;
+        place-items: center;
+        width: 29px;
+        height: 29px;
+        border-radius: 6px;
+        background: #edf3fa;
+    }
+
+    .nb-divider {
+        width: 1px;
+        height: 23px;
+        background: #e3e7ed;
+    }
+
+    .nb-format {
+        width: 124px;
+        border: 1px solid #e0e5ec;
+        border-radius: 6px;
+        padding: 5px 8px;
+        background: #f9fafc;
+        color: #68778b;
+        font-size: 11px !important;
+    }
+
+    .nb-toolbar-hint {
+        color: #8e99a7;
+        font-size: 10px;
+    }
+
+    .nb-workspace {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 184px minmax(0, 1fr);
+    }
+
+    .nb-sidebar {
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #d8dfe8;
+        background: #f0f3f7;
+    }
+
+    .nb-sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 17px 18px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #6a788b;
+    }
+
+    .nb-sidebar-header span:last-child {
+        display: grid;
+        place-items: center;
+        min-width: 23px;
+        height: 21px;
+        border-radius: 5px;
+        background: #e3e9f1;
+        color: #718298;
+        font-size: 10px;
+    }
+
+    .nb-pages {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 10px 22px 20px;
+        scrollbar-width: thin;
+        scrollbar-color: #ccd5e0 transparent;
+    }
+
+    .nb-page-button {
+        display: block;
+        width: 100%;
+        border: 0;
+        padding: 0;
+        margin: 0 0 21px;
+        color: #8592a3;
+        background: transparent;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .nb-page-preview {
+        position: relative;
+        display: block;
+        width: 110px;
+        height: 145px;
+        margin: 0 auto 8px;
+        padding: 18px 12px 12px;
+        background: #fffefa;
+        border: 1px solid #dce1e8;
+        border-radius: 3px;
+        box-shadow: 0 3px 7px #3542540b;
+        overflow: hidden;
+        text-align: left;
+        transition: border-color .15s, box-shadow .15s;
+    }
+
+    .nb-page-button:hover .nb-page-preview {
+        border-color: #9bb3cf;
+        box-shadow: 0 4px 12px #35425415;
+    }
+
+    .nb-page-button.is-active .nb-page-preview {
+        outline: 2px solid #7197c0;
+        outline-offset: 3px;
+        border-color: #b9cce0;
+    }
+
+    .nb-page-button.is-active {
+        color: #567ca5;
+    }
+
+    .nb-preview-title {
+        display: block;
+        font-size: 8px;
+        font-weight: 600;
+        color: #748093;
+        margin-bottom: 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .nb-preview-body {
+        display: block;
+        height: 82px;
+        overflow: hidden;
+        color: #a2aaba;
+        font-size: 6px;
+        line-height: 13px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 12px,
+            #e8ecf2 12px 13px
+        );
+    }
+
+    .nb-page-number {
+        position: absolute;
+        bottom: 7px;
+        right: 9px;
+        font-size: 7px;
+        color: #abb3bf;
+    }
+
+    .nb-page-caption {
+        display: block;
+        font-size: 10px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        padding: 2px 0;
+    }
+
+    .nb-add-wrap {
+        padding: 13px 16px;
+        border-top: 1px solid #dee4ed;
+    }
+
+    .nb-add {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 7px;
+        width: 100%;
+        padding: 10px;
+        border: 1px dashed #b5c5d8;
+        border-radius: 7px;
+        color: #6b86a6;
+        background: #f7f9fc;
+        font-size: 11px !important;
+        cursor: pointer;
+    }
+
+    .nb-add:hover {
+        background: #e8eff8;
+    }
+
+    .nb-desk {
+        min-width: 0;
+        min-height: 0;
+        overflow: auto;
+        padding: 32px 36px 50px;
+        background: #e8ecf1;
+        scrollbar-width: thin;
+        scrollbar-color: #c4ceda transparent;
+    }
+
+    .nb-paper {
+        position: relative;
+        max-width: 810px;
+        min-height: 950px;
+        margin: 0 auto;
+        padding: 55px 64px 36px;
+        background: #fffefa;
+        border-radius: 2px;
+        box-shadow: 0 5px 24px #38495e12, 0 1px 3px #38495e0a;
+    }
+
+    .nb-paper-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 29px;
+        color: #a1a9b4;
+        font-size: 9px;
+        letter-spacing: 1.2px;
+    }
+
+    .nb-paper-title {
+        width: 100%;
+        display: block;
+        padding: 0 0 17px;
+        margin-bottom: 22px;
+        background: transparent;
+        border: 0;
+        border-bottom: 1px solid #e5e9ed;
+        color: #3a4656;
+        font-size: 27px !important;
+        font-weight: 600;
+        letter-spacing: -.6px;
+    }
+
+    .nb-paper-title::placeholder {
+        color: #b6bec8;
+    }
+
+    .nb-body {
+        display: block;
+        width: 100%;
+        min-height: 690px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        resize: vertical;
+        color: #485464;
+        font-size: 15px !important;
+        line-height: 32px;
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 31px,
+            #e7ebee 31px 32px
+        );
+    }
+
+    .nb-body::placeholder {
+        color: #b5bdc8;
+    }
+
+    .nb-shell .nb-body:focus,
+    .nb-shell .nb-paper-title:focus {
+        outline: none;
+        box-shadow: none;
+    }
+
+    .nb-shell .nb-body:focus-visible {
+        box-shadow: -2px 0 #c2d2e5;
+    }
+
+    .nb-paper-bottom {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 28px;
+        color: #acb3bd;
+        font-size: 9px;
+    }
+
+    .nb-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 22px;
+        border-top: 1px solid var(--nb-border);
+        background: #fafbfd;
+        color: #8a97a7;
+        font-size: 10px;
+        flex-shrink: 0;
+    }
+
+    .nb-footer strong {
+        color: #627b98;
+        font-weight: 500;
+    }
+
+    .nb-errors {
+        max-width: 810px;
+        margin: 0 auto 16px;
+    }
+
+    .nb-shell .dropdown-menu {
+        border: 1px solid #e3e8ee;
+        border-radius: 10px;
+        padding: 7px;
+        box-shadow: 0 8px 30px #35425418;
+    }
+
+    .nb-shell .dropdown-item {
+        padding: 9px 12px;
+        border-radius: 5px;
+        font-size: 12px;
+        color: #607087;
+    }
+
+    .nb-shell .dropdown-item:hover {
+        background: #edf3fa;
+    }
+
+    @@media (max-width: 900px) {
+        .nb-workspace {
+            grid-template-columns: 146px minmax(0, 1fr);
+        }
+
+        .nb-pages {
+            padding-inline: 15px;
+        }
+
+        .nb-page-preview {
+            width: 96px;
+            height: 129px;
+        }
+
+        .nb-desk {
+            padding: 25px 22px;
+        }
+
+        .nb-paper {
+            padding: 38px 32px 25px;
+        }
+
+        .nb-toolbar-hint {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .nb-topbar {
+            padding: 9px 10px;
+            gap: 8px;
+        }
+
+        .nb-book-icon,
+        .nb-heading small,
+        .nb-export-label {
+            display: none;
+        }
+
+        .nb-book-title {
+            font-size: 13px !important;
+        }
+
+        .nb-save {
+            padding: 9px 11px;
+        }
+
+        .nb-export {
+            padding: 9px;
+        }
+
+        .nb-tabs {
+            padding-left: 0;
+        }
+
+        .nb-toolbar {
+            padding: 7px 12px;
+        }
+
+        .nb-mode {
+            font-size: 11px;
+        }
+
+        .nb-workspace {
+            grid-template-columns: 91px minmax(0, 1fr);
+        }
+
+        .nb-sidebar-header {
+            padding: 13px 9px 8px;
+            font-size: 10px;
+        }
+
+        .nb-pages {
+            padding: 8px 10px;
+        }
+
+        .nb-page-preview {
+            width: 60px;
+            height: 82px;
+            padding: 10px 6px;
+        }
+
+        .nb-preview-title {
+            font-size: 6px;
+            margin-bottom: 4px;
+        }
+
+        .nb-preview-body {
+            height: 42px;
+            font-size: 4px;
+            line-height: 8px;
+            background: none;
+        }
+
+        .nb-page-caption {
+            font-size: 8px;
+        }
+
+        .nb-add-wrap {
+            padding: 10px 7px;
+        }
+
+        .nb-add {
+            padding: 9px 3px;
+            font-size: 9px !important;
+            gap: 3px;
+        }
+
+        .nb-desk {
+            padding: 16px 12px;
+        }
+
+        .nb-paper {
+            min-height: 750px;
+            padding: 25px 19px;
+        }
+
+        .nb-paper-title {
+            font-size: 21px !important;
+        }
+
+        .nb-body {
+            font-size: 13px !important;
+            min-height: 560px;
+        }
+
+        .nb-paper-meta {
+            font-size: 7px;
+            letter-spacing: .5px;
+        }
+
+        .nb-footer {
+            padding: 9px 12px;
+        }
+
+        .nb-footer-hint {
+            display: none;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .nb-page-preview {
+            transition: none;
+        }
+    }
+</style>
+
+<form asp-controller="Notes"
+      asp-action="Edit"
+      asp-route-id="@Model.Id"
+      method="post"
+      class="nb-shell">
+
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="Version" type="hidden" />
+    <input asp-for="PageId" type="hidden" />
+
+    <header class="nb-topbar">
+        <a asp-controller="Notes"
+           asp-action="Index"
+           class="nb-icon"
+           title="Về thư viện"
+           aria-label="Về thư viện">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+
+        <div class="nb-book-icon" aria-hidden="true">
+            <i class="bi bi-journal-text"></i>
+        </div>
+
+        <div class="nb-heading">
+            <label asp-for="Title" class="visually-hidden">
+                Tên notebook
+            </label>
+
+            <input asp-for="Title"
+                   class="nb-book-title"
+                   placeholder="Tên notebook"
+                   maxlength="200"
+                   title="Bấm để đổi tên notebook"
+                   required />
+
+            <small>Notebook cá nhân · @Model.Pages.Count trang</small>
+        </div>
+
+        <div class="nb-top-actions">
+            @if (Model.Id.HasValue)
+            {
+                <div class="dropdown">
+                    <button type="button"
+                            class="nb-export"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
+                            aria-label="Tải bản đã lưu"
+                            title="Tải bản đã lưu">
+                        <i class="bi bi-download"></i>
+                        <span class="nb-export-label">Xuất file</span>
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li class="dropdown-header">
+                            CẢ NOTEBOOK
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item"
+                               asp-controller="NotesExport"
+                               asp-action="Download"
+                               asp-route-id="@Model.Id"
+                               asp-route-format="txt">
+                                <i class="bi bi-file-earmark-text me-2"></i>
+                                Văn bản · TXT
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item"
+                               asp-controller="NotesExport"
+                               asp-action="Download"
+                               asp-route-id="@Model.Id"
+                               asp-route-format="md">
+                                <i class="bi bi-markdown me-2"></i>
+                                Markdown · MD
+                            </a>
+                        </li>
+
+                        <li><hr class="dropdown-divider" /></li>
+
+                        <li class="dropdown-header">
+                            TRANG HIỆN TẠI
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item"
+                               asp-controller="NotesExport"
+                               asp-action="Download"
+                               asp-route-id="@Model.Id"
+                               asp-route-pageId="@Model.PageId"
+                               asp-route-format="txt">
+                                <i class="bi bi-file-earmark-text me-2"></i>
+                                Văn bản · TXT
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item"
+                               asp-controller="NotesExport"
+                               asp-action="Download"
+                               asp-route-id="@Model.Id"
+                               asp-route-pageId="@Model.PageId"
+                               asp-route-format="md">
+                                <i class="bi bi-markdown me-2"></i>
+                                Markdown · MD
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            }
+
+            <button type="submit"
+                    name="command"
+                    value="save"
+                    class="nb-save">
+                <i class="bi bi-check2"></i>
+                Lưu
+            </button>
+        </div>
+    </header>
+
+    <div class="nb-tabs">
+        <div class="nb-tab">
+            <i class="bi bi-journal-text"></i>
+            <span>@Model.Title</span>
+        </div>
+    </div>
+
+    <div class="nb-toolbar">
+        <div class="nb-toolbar-group">
+            <span class="nb-mode">
+                <i class="bi bi-fonts"></i>
+                Soạn văn bản
+            </span>
+
+            <span class="nb-divider"></span>
+
+            <label for="Format" class="visually-hidden">
+                Định dạng nội dung
+            </label>
+
+            <select asp-for="Format" class="nb-format">
+                <option value="PlainText">Văn bản</option>
+                <option value="Markdown">Markdown</option>
+            </select>
+        </div>
+
+        <div class="nb-toolbar-group">
+            <span class="nb-toolbar-hint">
+                Chuyển trang sẽ lưu nội dung đang viết
+            </span>
+
+            @if (Model.Pages.Count > 1)
+            {
+                <button type="button"
+                        class="nb-icon"
+                        data-bs-toggle="modal"
+                        data-bs-target="#delete-page-modal"
+                        title="Xóa trang hiện tại"
+                        aria-label="Xóa trang hiện tại">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="nb-workspace">
+        <aside class="nb-sidebar" aria-label="Các trang notebook">
+            <div class="nb-sidebar-header">
+                <span>Các trang</span>
+                <span>@Model.Pages.Count</span>
+            </div>
+
+            <div class="nb-pages">
+                @for (var i = 0; i < Model.Pages.Count; i++)
+                {
+                    var notePage = Model.Pages[i];
+                    var isActive = notePage.Id == Model.PageId;
+
+                    var preview = notePage.Body ?? "";
+                    if (preview.Length > 160)
+                    {
+                        preview = preview[..160];
+                    }
+
+                    <button type="submit"
+                            name="command"
+                            value="@($"go:{notePage.Id}")"
+                            class="nb-page-button @(isActive ? "is-active" : "")"
+                            aria-current="@(isActive ? "page" : "false")"
+                            aria-label="Mở trang @(i + 1): @notePage.Title">
+
+                        <span class="nb-page-preview">
+                            <span class="nb-preview-title">
+                                @notePage.Title
+                            </span>
+
+                            <span class="nb-preview-body">@preview</span>
+
+                            <span class="nb-page-number">
+                                @(i + 1)
+                            </span>
+                        </span>
+
+                        <span class="nb-page-caption">
+                            @(i + 1). @notePage.Title
+                        </span>
+                    </button>
+                }
+            </div>
+
+            <div class="nb-add-wrap">
+                <button type="submit"
+                        name="command"
+                        value="add"
+                        class="nb-add">
+                    <i class="bi bi-plus-lg"></i>
+                    Thêm trang
+                </button>
+            </div>
+        </aside>
+
+        <main class="nb-desk">
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div asp-validation-summary="All"
+                     class="alert alert-danger nb-errors"
+                     role="alert">
+                </div>
+            }
+
+            <article class="nb-paper">
+                <div class="nb-paper-meta">
+                    <span>STUDY NOTES</span>
+                    <span>TRANG @currentNumber</span>
+                </div>
+
+                <label asp-for="PageTitle" class="visually-hidden">
+                    Tiêu đề trang
+                </label>
+
+                <input asp-for="PageTitle"
+                       class="nb-paper-title"
+                       placeholder="Tiêu đề trang"
+                       maxlength="100"
+                       required />
+
+                <label asp-for="Body" class="visually-hidden">
+                    Nội dung trang
+                </label>
+
+                <textarea asp-for="Body"
+                          class="nb-body"
+                          maxlength="200000"
+                          placeholder="Bắt đầu viết những điều bạn muốn ghi nhớ…"></textarea>
+
+                <div class="nb-paper-bottom">
+                    <span>Study Hub</span>
+                    <span>@currentNumber / @Model.Pages.Count</span>
+                </div>
+            </article>
+        </main>
+    </div>
+
+    <footer class="nb-footer">
+        <span>
+            <i class="bi bi-journal-text me-1"></i>
+            Trang <strong>@currentNumber</strong>
+            / @Model.Pages.Count
+        </span>
+
+        <span class="nb-footer-hint">
+            Nhấn Lưu trước khi xuất file hoặc về thư viện
+        </span>
+
+        <span>
+            @(Model.Format == "Markdown" ? "Markdown" : "Văn bản")
+        </span>
+    </footer>
+
+    <div class="modal fade"
+         id="delete-page-modal"
+         tabindex="-1"
+         aria-labelledby="delete-page-title"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4">
+                <div class="modal-header border-0">
+                    <h2 id="delete-page-title" class="modal-title fs-5">
+                        Xóa trang hiện tại?
+                    </h2>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Đóng"></button>
+                </div>
+
+                <div class="modal-body text-break">
+                    Trang “@Model.PageTitle” sẽ bị xóa khỏi notebook.
+                    Các trang khác vẫn được giữ lại.
+                </div>
+
+                <div class="modal-footer border-0">
+                    <button type="button"
+                            class="btn fn-btn-light"
+                            data-bs-dismiss="modal">
+                        Giữ lại
+                    </button>
+
+                    <button type="submit"
+                            name="command"
+                            value="delete"
+                            class="btn btn-danger">
+                        Xóa trang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

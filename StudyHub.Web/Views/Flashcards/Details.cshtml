@@ -1,0 +1,386 @@
+@model FlashcardDeckDetailViewModel
+
+@{
+    ViewData["Title"] = Model.Deck.Title;
+}
+
+<div class="container py-4">
+
+    <a asp-controller="Flashcards"
+       asp-action="Index"
+       class="btn btn-outline-secondary mb-3">
+        <i class="bi bi-arrow-left"></i>
+        My Flashcards
+    </a>
+
+    <div class="d-flex gap-2">
+
+        @if (Model.Cards.Count > 0)
+        {
+            <a asp-controller="Flashcards"
+               asp-action="Study"
+               asp-route-deckId="@Model.Deck.DeckId"
+               class="btn btn-success">
+                <i class="bi bi-play-fill"></i>
+                Bắt đầu học
+            </a>
+        }
+
+        <button class="btn btn-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#createCardModal">
+            <i class="bi bi-plus-lg"></i>
+            Thêm thẻ
+        </button>
+
+    </div>
+
+
+    @if (TempData["FlashcardSuccess"] is string success)
+    {
+        <div class="alert alert-success">
+            @success
+        </div>
+    }
+
+    @if (TempData["FlashcardError"] is string error)
+    {
+        <div class="alert alert-danger">
+            @error
+        </div>
+    }
+
+
+    @if (Model.Cards.Count == 0)
+    {
+        <div class="border rounded-4
+            p-5 text-center bg-white">
+            <h5>Deck này chưa có flashcard</h5>
+            <p class="text-muted">
+                Hãy thêm thẻ đầu tiên.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-3">
+
+            @foreach (var card in Model.Cards)
+            {
+                <div class="card shadow-sm">
+                    <div class="card-body">
+
+                        <div class="d-flex
+                            justify-content-between
+                            align-items-start">
+
+                            <div class="flex-grow-1">
+
+                                <div class="small text-muted mb-1">
+                                    Mặt trước
+                                </div>
+
+                                <div class="fw-semibold mb-3">
+                                    @card.FrontText
+                                </div>
+
+                                <div class="small text-muted mb-1">
+                                    Mặt sau
+                                </div>
+
+                                <div>
+                                    @card.BackText
+                                </div>
+
+                            </div>
+
+                            <div class="ms-3 d-flex gap-2">
+
+                                <button type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editCardModal"
+                                        data-card-id="@card.Id"
+                                        data-front="@card.FrontText"
+                                        data-back="@card.BackText"
+                                        data-sort-order="@card.SortOrder">
+                                    Sửa
+                                </button>
+
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteCardModal"
+                                        data-card-id="@card.Id">
+                                    Xóa
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                        <div class="small text-muted mt-3">
+                            SortOrder: @card.SortOrder
+                        </div>
+
+                    </div>
+                </div>
+            }
+
+        </div>
+    }
+</div>
+
+<div class="modal fade"
+     id="createCardModal"
+     tabindex="-1">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <form asp-controller="Flashcards"
+                  asp-action="CreateCard"
+                  asp-route-deckId="@Model.Deck.DeckId"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        Thêm Flashcard
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Mặt trước
+                        </label>
+
+                        <textarea name="FrontText"
+                                  class="form-control"
+                                  maxlength="4000"
+                                  rows="4"
+                                  required></textarea>
+                    </div>
+
+                    <div>
+                        <label class="form-label">
+                            Mặt sau
+                        </label>
+
+                        <textarea name="BackText"
+                                  class="form-control"
+                                  maxlength="4000"
+                                  rows="4"
+                                  required></textarea>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Hủy
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary">
+                        Thêm thẻ
+                    </button>
+
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade"
+     id="editCardModal"
+     tabindex="-1">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <form id="editCardForm"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        Chỉnh sửa Flashcard
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Mặt trước
+                        </label>
+
+                        <textarea id="editFrontText"
+                                  name="FrontText"
+                                  class="form-control"
+                                  maxlength="4000"
+                                  rows="4"
+                                  required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Mặt sau
+                        </label>
+
+                        <textarea id="editBackText"
+                                  name="BackText"
+                                  class="form-control"
+                                  maxlength="4000"
+                                  rows="4"
+                                  required></textarea>
+                    </div>
+
+                    <div>
+                        <label class="form-label">
+                            Thứ tự
+                        </label>
+
+                        <input id="editSortOrder"
+                               name="SortOrder"
+                               type="number"
+                               min="0"
+                               class="form-control"
+                               required />
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit"
+                            class="btn btn-primary">
+                        Lưu thay đổi
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade"
+     id="deleteCardModal"
+     tabindex="-1">
+
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <form id="deleteCardForm"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        Xóa Flashcard
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    Bạn có chắc muốn xóa thẻ này?
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Hủy
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-danger">
+                        Xóa
+                    </button>
+
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const deckId = '@Model.Deck.DeckId';
+
+
+            const editModal =
+                document.getElementById('editCardModal');
+
+            editModal?.addEventListener(
+                'show.bs.modal',
+                function(event) {
+
+                    const button = event.relatedTarget;
+
+                    const cardId =
+                        button.getAttribute('data-card-id');
+
+                    document.getElementById('editFrontText').value =
+                        button.getAttribute('data-front') ?? '';
+
+                    document.getElementById('editBackText').value =
+                        button.getAttribute('data-back') ?? '';
+
+                    document.getElementById('editSortOrder').value =
+                        button.getAttribute('data-sort-order') ?? 0;
+
+                    document.getElementById('editCardForm').action =
+                        `/Flashcards/${deckId}/Cards/${cardId}/Edit`;
+                });
+
+
+            const deleteModal =
+                document.getElementById('deleteCardModal');
+
+            deleteModal?.addEventListener(
+                'show.bs.modal',
+                function(event) {
+
+                    const button = event.relatedTarget;
+
+                    const cardId =
+                        button.getAttribute('data-card-id');
+
+                    document.getElementById('deleteCardForm').action =
+                        `/Flashcards/${deckId}/Cards/${cardId}/Delete`;
+                });
+
+        });
+    </script>
+}

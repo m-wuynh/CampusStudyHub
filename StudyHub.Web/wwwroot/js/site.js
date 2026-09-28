@@ -144,24 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ── 7. Group Join Toggle ── */
-  document.querySelectorAll('.join-group-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const isMember = this.getAttribute('data-member') === 'true';
-      if (isMember) {
-        this.setAttribute('data-member', 'false');
-        this.className = 'join-group-btn btn-primary-sh';
-        this.textContent = 'Tham gia';
-        window.showToast('Bạn đã rời nhóm', 'info');
-      } else {
-        this.setAttribute('data-member', 'true');
-        this.className = 'join-group-btn btn-secondary-sh';
-        this.textContent = 'Đã tham gia';
-        window.showToast('Tham gia nhóm thành công!', 'success');
-      }
-    });
-  });
-
   /* ── 8. Login/Register Toggle ── */
   const toggleAuthModeBtn = document.getElementById('toggle-auth-mode-btn');
   if (toggleAuthModeBtn) {
@@ -236,10 +218,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
-  if (confirmLogoutBtn) {
-    confirmLogoutBtn.addEventListener('click', () => {
-      window.location.href = '/Login';
-    });
-  }
 });

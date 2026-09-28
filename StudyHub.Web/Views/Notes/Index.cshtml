@@ -1,0 +1,496 @@
+@model StudyHub.Web.ViewModels.Notes.NotesWorkspaceViewModel
+@using System.Linq
+
+@{
+	Layout = "~/Views/Notes/_NotesLayout.cshtml";
+	ViewData["Title"] = "Thư viện";
+
+	var error = TempData["NotesError"] as string;
+
+	// Gộp note và PDF thành cùng một danh sách để sắp xếp ghim.
+	var items = Model.Data.Notes
+		.Select(n => new
+		{
+			Id = n.Id,
+			Title = n.Title,
+			IsPinned = n.IsPinned,
+			Kind = "note",
+			Format = n.Format,
+			Size = 0L
+		})
+		.Concat(
+			Model.Data.Documents.Select(d => new
+			{
+				Id = d.Id,
+				Title = d.Title,
+				IsPinned = d.IsPinned,
+				Kind = "pdf",
+				Format = "",
+				Size = d.Size
+			}))
+		.OrderByDescending(item => item.IsPinned)
+		.ToList();
+
+	var total = items.Count;
+}
+
+<div class="fn-library">
+	<aside class="fn-sidebar">
+		<a asp-controller="Dashboard"
+		   asp-action="Index"
+		   class="fn-brand">
+			<i class="bi bi-journals"></i>
+			<span>
+				Study Hub
+				<small>NOTES</small>
+			</span>
+		</a>
+
+		<div class="fn-nav-label">THƯ VIỆN</div>
+
+		<nav class="fn-nav" aria-label="Lọc tài liệu">
+			<button type="button"
+					class="active"
+					data-filter="all"
+					aria-pressed="true">
+				<i class="bi bi-grid"></i>
+				<span>Tất cả tài liệu</span>
+				<small>@total</small>
+			</button>
+
+			<button type="button"
+					data-filter="note"
+					aria-pressed="false">
+				<i class="bi bi-journal-text"></i>
+				<span>Ghi chú</span>
+				<small>@Model.Data.Notes.Count</small>
+			</button>
+
+			<button type="button"
+					data-filter="pdf"
+					aria-pressed="false">
+				<i class="bi bi-file-earmark-pdf"></i>
+				<span>Tài liệu PDF</span>
+				<small>@Model.Data.Documents.Count</small>
+			</button>
+		</nav>
+
+		<div class="fn-sidebar-bottom">
+			<div class="small text-secondary mb-3">
+				<i class="bi bi-person-circle me-2"></i>
+				@(Model.User.IsDemo
+					? "Không gian dùng thử"
+					: Model.User.Name)
+			</div>
+
+			<a asp-controller="Dashboard" asp-action="Index">
+				<i class="bi bi-arrow-left me-2"></i>
+				Về Study Hub
+			</a>
+		</div>
+	</aside>
+
+	<main class="fn-library-main">
+		<header class="fn-library-header">
+			<h1>Thư viện của tôi</h1>
+
+			<div class="d-flex gap-2">
+				<button type="button"
+						class="btn fn-btn-light"
+						data-bs-toggle="modal"
+						data-bs-target="#upload-modal">
+					<i class="bi bi-box-arrow-in-down me-2"></i>
+					Nhập PDF
+				</button>
+
+				<a asp-action="Edit" class="btn fn-btn-primary">
+					<i class="bi bi-plus-lg me-2"></i>
+					Tạo ghi chú
+				</a>
+			</div>
+		</header>
+
+		<div class="fn-library-content">
+			@if (error != null)
+			{
+				<div class="alert alert-danger" role="alert">
+					@error
+				</div>
+			}
+
+			<div class="fn-library-toolbar">
+				<form asp-action="Index"
+					  method="get"
+					  class="fn-search">
+					<label for="library-search" class="visually-hidden">
+						Tìm theo tên
+					</label>
+
+					<i class="bi bi-search"></i>
+
+					<input id="library-search"
+						   name="search"
+						   value="@Model.Search"
+						   placeholder="Tìm tài liệu…" />
+
+					<button type="submit" class="btn btn-sm">
+						Tìm
+					</button>
+				</form>
+
+				<div class="d-flex align-items-center gap-3">
+					<span class="small text-secondary">
+						@total kết quả
+					</span>
+
+					<div class="btn-group"
+						 role="group"
+						 aria-label="Kiểu hiển thị">
+						<button type="button"
+								class="btn fn-view active"
+								data-view="grid"
+								aria-label="Dạng lưới"
+								aria-pressed="true">
+							<i class="bi bi-grid"></i>
+						</button>
+
+						<button type="button"
+								class="btn fn-view"
+								data-view="list"
+								aria-label="Dạng danh sách"
+								aria-pressed="false">
+							<i class="bi bi-list-ul"></i>
+						</button>
+					</div>
+				</div>
+			</div>
+
+			@if (!string.IsNullOrWhiteSpace(Model.Search))
+			{
+				<p class="small text-secondary">
+					Kết quả cho “@Model.Search” ·
+					<a asp-action="Index">Xóa tìm kiếm</a>
+				</p>
+			}
+
+			<div id="library-items" class="fn-books">
+				@foreach (var item in items)
+				{
+					var isPdf = item.Kind == "pdf";
+					var openAction = isPdf ? "Reader" : "Edit";
+					var pinAction = isPdf ? "TogglePdfPin" : "TogglePin";
+					var deleteTarget = isPdf
+						? $"#delete-pdf-{item.Id}"
+						: $"#delete-{item.Id}";
+
+					<article class="fn-book" data-kind="@item.Kind">
+						<a asp-action="@openAction"
+						   asp-route-id="@item.Id"
+						   class="fn-cover-link"
+						   aria-label="Mở @item.Title">
+
+							@if (isPdf)
+							{
+								<div class="fn-cover fn-pdf">
+									<span class="fn-pdf-label">PDF</span>
+									<i class="bi bi-file-earmark-pdf"></i>
+									<strong>@item.Title</strong>
+									<span class="fn-paper-lines"
+										  aria-hidden="true"></span>
+								</div>
+							}
+							else
+							{
+								<div class="fn-cover fn-notebook tone-@(item.Id % 4)">
+									<div class="fn-cover-label">
+										<small>STUDY NOTES</small>
+										<strong>@item.Title</strong>
+										<span>GHI CHÚ</span>
+									</div>
+								</div>
+							}
+						</a>
+
+						<div class="fn-book-info">
+							<a asp-action="@openAction"
+							   asp-route-id="@item.Id"
+							   class="fn-book-title">
+								@item.Title
+							</a>
+
+							<span>
+								@if (item.IsPinned)
+								{
+									<i class="bi bi-pin-angle-fill text-warning"
+									   title="Đã ghim"
+									   aria-label="Đã ghim"></i>
+								}
+
+								@if (isPdf)
+								{
+									<text>
+										PDF · @((item.Size / 1024d / 1024).ToString("0.00")) MiB
+									</text>
+								}
+								else
+								{
+									@(item.Format == "Markdown"
+										? "Markdown"
+										: "Ghi chú văn bản")
+								}
+							</span>
+						</div>
+
+						<div class="fn-book-actions">
+							<form asp-action="@pinAction"
+								  asp-route-id="@item.Id"
+								  method="post"
+								  class="d-inline">
+								<button type="submit"
+										class="btn fn-book-menu @(item.IsPinned ? "is-pinned" : "")"
+										aria-label="@(item.IsPinned ? "Bỏ ghim" : "Ghim") @item.Title"
+										aria-pressed="@(item.IsPinned ? "true" : "false")"
+										title="@(item.IsPinned ? "Bỏ ghim" : "Ghim tài liệu")">
+									<i class="bi @(item.IsPinned ? "bi-pin-angle-fill" : "bi-pin-angle")"></i>
+								</button>
+							</form>
+
+							@if (isPdf)
+							{
+								<button type="button"
+										class="btn fn-book-menu"
+										data-bs-toggle="modal"
+										data-bs-target="#rename-pdf-@item.Id"
+										aria-label="Đổi tên @item.Title"
+										title="Đổi tên PDF">
+									<i class="bi bi-pencil"></i>
+								</button>
+							}
+							else
+							{
+								<a asp-action="Edit"
+								   asp-route-id="@item.Id"
+								   class="btn fn-book-menu"
+								   aria-label="Sửa @item.Title"
+								   title="Sửa ghi chú">
+									<i class="bi bi-pencil"></i>
+								</a>
+							}
+
+							<button type="button"
+									class="btn fn-book-menu"
+									data-bs-toggle="modal"
+									data-bs-target="@deleteTarget"
+									aria-label="Xóa @item.Title"
+									title="Xóa tài liệu">
+								<i class="bi bi-trash3"></i>
+							</button>
+						</div>
+					</article>
+				}
+			</div>
+
+			<div id="library-empty"
+				 class="fn-empty"
+				 hidden="@(total != 0)">
+				<i class="bi bi-journals"></i>
+				<h2>Chưa có tài liệu phù hợp</h2>
+				<p>Tạo một ghi chú hoặc nhập PDF để bắt đầu.</p>
+			</div>
+		</div>
+	</main>
+</div>
+
+<div class="modal fade"
+	 id="upload-modal"
+	 tabindex="-1"
+	 aria-labelledby="upload-title"
+	 aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content rounded-4 border-0">
+			<form asp-action="Upload"
+				  method="post"
+				  enctype="multipart/form-data">
+
+				<div class="modal-header border-0">
+					<h2 id="upload-title" class="modal-title fs-5">
+						Nhập tài liệu PDF
+					</h2>
+					<button type="button"
+							class="btn-close"
+							data-bs-dismiss="modal"
+							aria-label="Đóng"></button>
+				</div>
+
+				<div class="modal-body">
+					<div class="fn-import-icon">
+						<i class="bi bi-cloud-arrow-up"></i>
+					</div>
+
+					<label for="pdf-file" class="form-label">
+						Chọn file PDF · tối đa 20 MiB
+					</label>
+
+					<input id="pdf-file"
+						   name="file"
+						   type="file"
+						   class="form-control"
+						   accept=".pdf,application/pdf"
+						   required />
+				</div>
+
+				<div class="modal-footer border-0">
+					<button type="button"
+							class="btn fn-btn-light"
+							data-bs-dismiss="modal">
+						Hủy
+					</button>
+					<button type="submit" class="btn fn-btn-primary">
+						Nhập & mở tài liệu
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+@foreach (var d in Model.Data.Documents)
+{
+	<div class="modal fade"
+		 id="rename-pdf-@d.Id"
+		 tabindex="-1"
+		 aria-labelledby="rename-pdf-title-@d.Id"
+		 aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content rounded-4 border-0">
+				<form asp-action="RenamePdf"
+					  asp-route-id="@d.Id"
+					  method="post">
+
+					<div class="modal-header border-0">
+						<h2 class="modal-title fs-5"
+							id="rename-pdf-title-@d.Id">
+							Đổi tên PDF
+						</h2>
+						<button type="button"
+								class="btn-close"
+								data-bs-dismiss="modal"
+								aria-label="Đóng"></button>
+					</div>
+
+					<div class="modal-body">
+						<label for="pdf-title-@d.Id" class="form-label">
+							Tên tài liệu
+						</label>
+						<input id="pdf-title-@d.Id"
+							   name="title"
+							   value="@d.Title"
+							   class="form-control"
+							   maxlength="200"
+							   required />
+					</div>
+
+					<div class="modal-footer border-0">
+						<button type="button"
+								class="btn fn-btn-light"
+								data-bs-dismiss="modal">
+							Hủy
+						</button>
+						<button type="submit" class="btn fn-btn-primary">
+							Lưu tên
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade"
+		 id="delete-pdf-@d.Id"
+		 tabindex="-1"
+		 aria-labelledby="delete-pdf-title-@d.Id"
+		 aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content rounded-4 border-0">
+				<form asp-action="DeletePdf"
+					  asp-route-id="@d.Id"
+					  method="post">
+
+					<div class="modal-header border-0">
+						<h2 class="modal-title fs-5"
+							id="delete-pdf-title-@d.Id">
+							Xóa tài liệu PDF?
+						</h2>
+						<button type="button"
+								class="btn-close"
+								data-bs-dismiss="modal"
+								aria-label="Đóng"></button>
+					</div>
+
+					<div class="modal-body text-break">
+						Xóa “@d.Title” và các note trên từng trang?
+					</div>
+
+					<div class="modal-footer border-0">
+						<button type="button"
+								class="btn fn-btn-light"
+								data-bs-dismiss="modal">
+							Giữ lại
+						</button>
+						<button type="submit" class="btn btn-danger">
+							Xóa PDF
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+}
+
+@foreach (var n in Model.Data.Notes)
+{
+	<div class="modal fade"
+		 id="delete-@n.Id"
+		 tabindex="-1"
+		 aria-labelledby="delete-title-@n.Id"
+		 aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content rounded-4 border-0">
+				<form asp-action="Delete"
+					  asp-route-id="@n.Id"
+					  method="post">
+
+					<input type="hidden"
+						   name="version"
+						   value="@n.Version" />
+
+					<div class="modal-header border-0">
+						<h2 class="modal-title fs-5"
+							id="delete-title-@n.Id">
+							Xóa ghi chú?
+						</h2>
+						<button type="button"
+								class="btn-close"
+								data-bs-dismiss="modal"
+								aria-label="Đóng"></button>
+					</div>
+
+					<div class="modal-body text-break">
+						Xóa “@n.Title” khỏi thư viện?
+					</div>
+
+					<div class="modal-footer border-0">
+						<button type="button"
+								class="btn fn-btn-light"
+								data-bs-dismiss="modal">
+							Giữ lại
+						</button>
+						<button type="submit" class="btn btn-danger">
+							Xóa
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+}
