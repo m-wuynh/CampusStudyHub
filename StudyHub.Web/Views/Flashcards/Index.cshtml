@@ -302,6 +302,9 @@
                   method="post">
 
                 @Html.AntiForgeryToken()
+                
+
+                <input type="hidden" id="editDeckSubjectId" name="UserSubjectId"/>
 
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold"
@@ -430,10 +433,12 @@
                 const title = button.getAttribute('data-title') ?? '';
                 const description =
                     button.getAttribute('data-description') ?? '';
+                const subjectId = button.getAttribute('data-subject-id') ?? '';
 
                 const form =
                     document.getElementById('editDeckForm');
 
+                document.getElementById('editDeckSubjectId').value = subjectId;
                 document.getElementById('editDeckTitle').value =
                     title;
 
