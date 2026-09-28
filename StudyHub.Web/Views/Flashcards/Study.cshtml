@@ -133,6 +133,15 @@
 
             </div>
 
+            <div class="d-flex justify-content-center mt-3">
+                <button type="button"
+                        id="finishStudyButton"
+                        class="btn btn-outline-danger">
+                    <i class="bi bi-check2-circle"></i>
+                    Kết thúc
+                </button>
+            </div>
+
         </div>
     }
 
@@ -216,6 +225,18 @@
 
         const currentCardNumber =
             document.getElementById('currentCardNumber');
+
+        const studyContainer =
+            document.getElementById('studyContainer');
+
+        const studyCompleted =
+            document.getElementById('studyCompleted');
+
+        const finishStudyButton =
+            document.getElementById('finishStudyButton');
+
+        const studyAgainButton =
+            document.getElementById('studyAgainButton');
 
 
         function getCardProperty(card, pascalName, camelName) {
@@ -318,12 +339,27 @@
 
 
         // Cho phép click trực tiếp lên card để lật.
-        flashcard?.addEventListener(
+        finishStudyButton?.addEventListener(
             'click',
-            flipCard
+            function(){
+
+               studyContainer.classList.add('d-none');
+               studyCompleted.classList.remove('d-none');
+            }
         );
 
+        studyAgainButton?.addEventListener(
+            'click',
+            function() {
+                currentIndex = 0;
+                isFlipped = false;
 
+                studyCompleted.classList.add('d-none');
+                studyContainer.classList.remove('d-none');
+
+                renderCard();
+            }
+        );
         renderCard();
     </script>
 }
