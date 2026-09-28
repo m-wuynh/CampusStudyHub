@@ -48,21 +48,21 @@ public partial class AddDiscordStudyGroupFlow : Migration
                 WHERE name = 'CK_StudyGroups_JoinMode'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
                 EXEC(N'ALTER TABLE dbo.StudyGroups ADD CONSTRAINT CK_StudyGroups_JoinMode
-                    CHECK (JoinMode IN (''Open'', ''Approval'', ''InviteOnly''));');
+                    CHECK (JoinMode IN (''Open'', ''Approval'', ''InviteOnly''))');
 
             IF NOT EXISTS (
                 SELECT 1 FROM sys.check_constraints
                 WHERE name = 'CK_StudyGroups_MeetingFormat'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
                 EXEC(N'ALTER TABLE dbo.StudyGroups ADD CONSTRAINT CK_StudyGroups_MeetingFormat
-                    CHECK (MeetingFormat IN (''Online'', ''Offline'', ''Hybrid''));');
+                    CHECK (MeetingFormat IN (''Online'', ''Offline'', ''Hybrid''))');
 
             IF @JoinModeAdded = 1
                 EXEC(N'UPDATE dbo.StudyGroups
                     SET JoinMode = CASE
                         WHEN Visibility = ''Private'' THEN ''InviteOnly''
                         ELSE ''Approval''
-                    END;');
+                    END');
 
             IF COL_LENGTH('dbo.GroupPosts', 'PostType') IS NULL
                 ALTER TABLE dbo.GroupPosts ADD PostType varchar(15) NOT NULL
@@ -73,7 +73,7 @@ public partial class AddDiscordStudyGroupFlow : Migration
                 WHERE name = 'CK_GroupPosts_Type'
                   AND parent_object_id = OBJECT_ID('dbo.GroupPosts'))
                 EXEC(N'ALTER TABLE dbo.GroupPosts ADD CONSTRAINT CK_GroupPosts_Type
-                    CHECK (PostType IN (''Message'', ''Announcement''));');
+                    CHECK (PostType IN (''Message'', ''Announcement''))');
 
             IF OBJECT_ID('dbo.GroupInvites', 'U') IS NULL
             BEGIN
