@@ -1,3 +1,5 @@
+using StudyHub.BLL.DTOs;
+
 namespace StudyHub.Web.ViewModels.Grades;
 
-public sealed record GradesIndexViewModel(long? AcademicTermId = null);
+public sealed record GradesIndexViewModel(GradesPageDto Data);

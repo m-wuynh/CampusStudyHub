@@ -1,9 +1,11 @@
-@model GradesIndexViewModel
+@model StudyHub.Web.ViewModels.Grades.GradesIndexViewModel
 @{
-    ViewData["Title"]        = "Điểm số &amp; Mục tiêu";
-    ViewData["PageTitle"]    = "Điểm số &amp; Mục tiêu học tập";
+    ViewData["Title"]        = "Điểm số & Mục tiêu";
+    ViewData["PageTitle"]    = "Điểm số & Mục tiêu học tập";
     ViewData["PageSubtitle"] = "Theo dõi điểm trung bình và biểu đồ tiến bộ";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var data = Model.Data;
 }
 
 <div id="grades-view" style="max-width:1280px; margin:0 auto;">
@@ -12,29 +14,31 @@
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
       <div class="stat-card text-center">
-        <div class="fw-black" style="font-size:32px; color:var(--sh-indigo-600);">8.4</div>
-        <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500); font-weight:600;">ĐTB Chung HK1</p>
+        <div class="fw-black" style="font-size:32px; color:var(--sh-indigo-600);">@(data.Summary.CurrentAverage10?.ToString("0.0") ?? "-")</div>
+        <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500); font-weight:600;">ĐTB Chung</p>
         <span class="mt-1 d-inline-block px-2 py-0 rounded-full fw-bold"
-              style="font-size:10px; background:var(--sh-emerald-100); color:var(--sh-emerald-700);">Học sinh Giỏi</span>
+              style="font-size:10px; background:var(--sh-emerald-100); color:var(--sh-emerald-700);">
+            @(data.Summary.CurrentAverage10 >= 8.0m ? "Học sinh Giỏi" : (data.Summary.CurrentAverage10 >= 6.5m ? "Khá" : "Trung bình"))
+        </span>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="stat-card text-center">
-        <div class="fw-black" style="font-size:32px; color:var(--sh-emerald-600);">9.0</div>
+        <div class="fw-black" style="font-size:32px; color:var(--sh-emerald-600);">@(data.Summary.HighestScore?.ToString("0.0") ?? "-")</div>
         <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500); font-weight:600;">Điểm cao nhất</p>
-        <p class="mb-0 mt-1" style="font-size:10px; color:var(--sh-slate-400);">Toán (HK1)</p>
+        <p class="mb-0 mt-1" style="font-size:10px; color:var(--sh-slate-400);">@(data.Summary.HighestSubjectName)</p>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="stat-card text-center">
-        <div class="fw-black" style="font-size:32px; color:var(--sh-amber-600);">7.5</div>
+        <div class="fw-black" style="font-size:32px; color:var(--sh-amber-600);">@(data.Summary.LowestScore?.ToString("0.0") ?? "-")</div>
         <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500); font-weight:600;">Điểm thấp nhất</p>
-        <p class="mb-0 mt-1" style="font-size:10px; color:var(--sh-slate-400);">Lịch sử (HK1)</p>
+        <p class="mb-0 mt-1" style="font-size:10px; color:var(--sh-slate-400);">@(data.Summary.LowestSubjectName)</p>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="stat-card text-center">
-        <div class="fw-black" style="font-size:32px; color:var(--sh-rose-600);">3</div>
+        <div class="fw-black" style="font-size:32px; color:var(--sh-rose-600);">@data.Summary.SubjectsBelowTarget</div>
         <p class="mb-0" style="font-size:11px; color:var(--sh-slate-500); font-weight:600;">Môn dưới mục tiêu</p>
         <p class="mb-0 mt-1" style="font-size:10px; color:var(--sh-rose-600);">Cần cải thiện</p>
       </div>
@@ -62,15 +66,37 @@
   <!-- ═══ GRADES TAB ═══ -->
   <div id="grades-tab">
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-3">
-      <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">Bảng điểm Học kỳ 1, 2026</h3>
+      <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">
+        Bảng điểm @(data.Terms.FirstOrDefault(t => t.Id == data.SelectedTermId)?.TermName ?? "Chưa chọn")
+      </h3>
       <div class="d-flex gap-2">
-        <select class="sh-input" style="font-size:12px; width:auto; padding:6px 12px;">
-          <option>Học kỳ 1</option>
-          <option>Học kỳ 2</option>
-        </select>
-        <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#addGradeModal">
-          <i class="bi bi-plus-lg"></i>Nhập điểm
+        <form method="get" asp-action="Index" class="d-flex m-0">
+          <select name="academicTermId" class="sh-input" style="font-size:12px; width:auto; padding:6px 12px;" onchange="this.form.submit()">
+            @if(!data.Terms.Any()) {
+                <option value="">Chưa có học kỳ</option>
+            }
+            @foreach(var term in data.Terms) {
+                if (term.Id == data.SelectedTermId) {
+                    <option value="@term.Id" selected>@term.TermName</option>
+                } else {
+                    <option value="@term.Id">@term.TermName</option>
+                }
+            }
+          </select>
+        </form>
+        <button class="btn-secondary-sh" style="padding: 6px 12px;" data-bs-toggle="modal" data-bs-target="#addTermModal" title="Thêm học kỳ">
+          <i class="bi bi-calendar-plus"></i> Thêm HK
         </button>
+        @if(data.SelectedTermId.HasValue) {
+            <button class="btn-secondary-sh" style="padding: 6px 12px;" data-bs-toggle="modal" data-bs-target="#addUserSubjectModal" title="Thêm môn học">
+              <i class="bi bi-book"></i> Thêm Môn
+            </button>
+            @if(data.SubjectDetails.Any()) {
+                <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#addGradeModal">
+                  <i class="bi bi-plus-lg"></i> Nhập điểm
+                </button>
+            }
+        }
       </div>
     </div>
 
@@ -87,44 +113,86 @@
               <th>Cuối kỳ</th>
               <th>ĐTB Môn</th>
               <th class="pe-4">Tiến độ</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            @{
-              var subjects = new[]
-              {
-                new { name="Toán",       oral="9.0", q15="8.5,9.0", q1p="9.0", mid="8.5", fin="9.0", avg=9.0, target=9.0 },
-                new { name="Vật lý",     oral="8.0", q15="7.5,8.0", q1p="8.0", mid="7.8", fin="8.5", avg=8.1, target=8.5 },
-                new { name="Hóa học",    oral="8.5", q15="8.0,8.5", q1p="8.5", mid="8.0", fin="8.5", avg=8.4, target=8.0 },
-                new { name="Ngữ văn",    oral="8.0", q15="7.5,8.0", q1p="7.5", mid="7.8", fin="8.0", avg=7.8, target=8.0 },
-                new { name="Tiếng Anh",  oral="9.0", q15="8.5,9.0", q1p="8.5", mid="8.8", fin="9.0", avg=8.9, target=8.5 },
-                new { name="Sinh học",   oral="8.0", q15="7.8,8.0", q1p="8.2", mid="7.9", fin="8.0", avg=8.0, target=8.0 },
-                new { name="Lịch sử",    oral="7.5", q15="7.5,7.0", q1p="7.5", mid="7.0", fin="7.5", avg=7.5, target=8.0 },
-                new { name="Địa lý",     oral="8.0", q15="8.0,8.5", q1p="8.0", mid="8.0", fin="8.0", avg=8.1, target=8.0 },
-                new { name="Tin học",    oral="9.0", q15="9.0,9.5", q1p="9.0", mid="9.0", fin="9.5", avg=9.1, target=9.0 },
-              };
-            }
-            @foreach (var s in subjects)
+            @foreach (var s in data.SubjectDetails)
             {
-              var pct = Math.Min(100, (int)((s.avg / s.target) * 100));
-              var color = s.avg >= s.target ? "var(--sh-emerald-600)" : s.avg >= s.target - 0.5 ? "var(--sh-amber-600)" : "var(--sh-rose-600)";
+              var oralHtml = string.Join(", ", s.Entries.Where(e => e.AssessmentType == "Other").Select(e => $"<span style='cursor:pointer; color:var(--sh-indigo-600);' class='text-decoration-underline' title='Sửa điểm' onclick=\"editGrade({e.Id}, {s.UserSubjectId}, '{e.Title?.Replace("'", "\\'") ?? ""}', '{e.AssessmentType}', {e.Score.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {e.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture)}, '{e.AssessedOn.ToString("yyyy-MM-dd")}')\">{e.Score.ToString("0.0")}</span>"));
+              var q15Html = string.Join(", ", s.Entries.Where(e => e.AssessmentType == "Quiz").Select(e => $"<span style='cursor:pointer; color:var(--sh-indigo-600);' class='text-decoration-underline' title='Sửa điểm' onclick=\"editGrade({e.Id}, {s.UserSubjectId}, '{e.Title?.Replace("'", "\\'") ?? ""}', '{e.AssessmentType}', {e.Score.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {e.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture)}, '{e.AssessedOn.ToString("yyyy-MM-dd")}')\">{e.Score.ToString("0.0")}</span>"));
+              var q1pHtml = string.Join(", ", s.Entries.Where(e => e.AssessmentType == "Assignment").Select(e => $"<span style='cursor:pointer; color:var(--sh-indigo-600);' class='text-decoration-underline' title='Sửa điểm' onclick=\"editGrade({e.Id}, {s.UserSubjectId}, '{e.Title?.Replace("'", "\\'") ?? ""}', '{e.AssessmentType}', {e.Score.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {e.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture)}, '{e.AssessedOn.ToString("yyyy-MM-dd")}')\">{e.Score.ToString("0.0")}</span>"));
+              var midHtml = string.Join(", ", s.Entries.Where(e => e.AssessmentType == "Midterm").Select(e => $"<span style='cursor:pointer; color:var(--sh-indigo-600);' class='text-decoration-underline' title='Sửa điểm' onclick=\"editGrade({e.Id}, {s.UserSubjectId}, '{e.Title?.Replace("'", "\\'") ?? ""}', '{e.AssessmentType}', {e.Score.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {e.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture)}, '{e.AssessedOn.ToString("yyyy-MM-dd")}')\">{e.Score.ToString("0.0")}</span>"));
+              var finHtml = string.Join(", ", s.Entries.Where(e => e.AssessmentType == "Final").Select(e => $"<span style='cursor:pointer; color:var(--sh-indigo-600);' class='text-decoration-underline' title='Sửa điểm' onclick=\"editGrade({e.Id}, {s.UserSubjectId}, '{e.Title?.Replace("'", "\\'") ?? ""}', '{e.AssessmentType}', {e.Score.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {e.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture)}, '{e.AssessedOn.ToString("yyyy-MM-dd")}')\">{e.Score.ToString("0.0")}</span>"));
+              
+              var goal = data.Goals.FirstOrDefault(g => g.UserSubjectId == s.UserSubjectId);
+              var currentAvg = s.CurrentAverage10 ?? 0m;
+              
+              int? pct = null;
+              string color = "var(--sh-slate-400)";
+              
+              if (goal != null && goal.TargetValue > 0)
+              {
+                  pct = Math.Min(100, (int)((currentAvg / goal.TargetValue) * 100));
+                  color = currentAvg >= goal.TargetValue ? "var(--sh-emerald-600)" : currentAvg >= goal.TargetValue - 0.5m ? "var(--sh-amber-600)" : "var(--sh-rose-600)";
+              }
+              
               <tr>
-                <td class="ps-4 fw-semibold" style="font-size:12px; color:var(--sh-slate-900);">@s.name</td>
-                <td style="font-size:12px;">@s.oral</td>
-                <td style="font-size:12px;">@s.q15</td>
-                <td style="font-size:12px;">@s.q1p</td>
-                <td style="font-size:12px;">@s.mid</td>
-                <td style="font-size:12px;">@s.fin</td>
-                <td class="fw-black" style="font-size:14px; color:@color;">@s.avg.ToString("0.0")</td>
-                <td class="pe-4">
+                <td class="ps-4 fw-semibold" style="font-size:12px; color:var(--sh-slate-900);">
                   <div class="d-flex align-items-center gap-2">
-                    <div class="sh-progress flex-grow-1" style="height:5px;">
-                      <div class="sh-progress-bar" style="width:@pct%; background:@color;"></div>
-                    </div>
-                    <span style="font-size:10px; font-weight:700; color:@color; white-space:nowrap;">@pct%</span>
+                    @s.SubjectName
+                    <button type="button" class="btn-icon-sh text-muted" style="padding: 2px" title="Sửa môn" onclick="editSubject(@s.UserSubjectId, '@s.SubjectName', '@s.TargetScore10', '@s.CreditWeight')"><i class="bi bi-pencil"></i></button>
+                    <form asp-action="ArchiveUserSubject" method="post" class="d-inline" onsubmit="return confirm('Bạn muốn xóa môn @s.SubjectName khỏi học kỳ này? Điểm của môn này vẫn sẽ được lưu trữ ẩn.')">
+                      <input type="hidden" name="id" value="@s.UserSubjectId" />
+                      <input type="hidden" name="currentTermId" value="@data.SelectedTermId" />
+                      <button type="submit" class="btn-icon-sh text-muted" style="padding: 2px" title="Xóa môn"><i class="bi bi-trash3"></i></button>
+                    </form>
                   </div>
                 </td>
+                <td style="font-size:12px;">@Html.Raw(oralHtml)</td>
+                <td style="font-size:12px;">@Html.Raw(q15Html)</td>
+                <td style="font-size:12px;">@Html.Raw(q1pHtml)</td>
+                <td style="font-size:12px;">@Html.Raw(midHtml)</td>
+                <td style="font-size:12px;">@Html.Raw(finHtml)</td>
+                <td class="fw-black" style="font-size:14px; color:@color;">@(s.CurrentAverage10?.ToString("0.0") ?? "-")</td>
+                <td class="pe-4">
+                  @if (pct.HasValue) {
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="sh-progress flex-grow-1" style="height:5px;">
+                        <div class="sh-progress-bar" style="width:@pct%; background:@color;"></div>
+                      </div>
+                      <span style="font-size:10px; font-weight:700; color:@color; white-space:nowrap;">@pct%</span>
+                    </div>
+                  } else {
+                    <span style="font-size:11px; color:var(--sh-slate-400); font-style:italic;">Chưa đặt mục tiêu</span>
+                  }
+                </td>
+                <td>
+                  @if (s.Entries.Any()) {
+                      <form asp-action="DeleteGrade" method="post" class="d-inline">
+                        <input type="hidden" name="id" value="@s.Entries.Last().Id" />
+                        <button type="submit" class="btn-icon-sh danger" style="padding: 2px 6px" title="Xóa điểm gần nhất" onclick="return confirm('Bạn muốn xóa điểm gần nhất của môn này?')"><i class="bi bi-trash3"></i></button>
+                      </form>
+                  }
+                </td>
               </tr>
+            }
+            @if(!data.SubjectDetails.Any()) {
+                <tr>
+                  <td colspan="9" class="text-center py-5">
+                    @if(data.SelectedTermId.HasValue) {
+                        <p class="text-muted mb-3">Bạn chưa có môn học nào trong học kỳ này.</p>
+                        <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#addUserSubjectModal">
+                          <i class="bi bi-plus-lg"></i> Thêm môn học
+                        </button>
+                    } else {
+                        <p class="text-muted mb-3">Bạn chưa có học kỳ nào. Hãy tạo một học kỳ để bắt đầu.</p>
+                        <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#addTermModal">
+                          <i class="bi bi-plus-lg"></i> Tạo học kỳ
+                        </button>
+                    }
+                  </td>
+                </tr>
             }
           </tbody>
           <tfoot>
@@ -132,11 +200,11 @@
               <td class="ps-4 fw-black" style="font-size:12px; color:var(--sh-slate-900);" colspan="6">
                 Điểm trung bình chung
               </td>
-              <td class="fw-black" style="font-size:16px; color:var(--sh-indigo-600);">8.4</td>
-              <td class="pe-4">
+              <td class="fw-black" style="font-size:16px; color:var(--sh-indigo-600);">@(data.Summary.CurrentAverage10?.ToString("0.0") ?? "-")</td>
+              <td class="pe-4" colspan="2">
                 <span class="px-2 py-0 rounded-full fw-bold"
                       style="font-size:10px; background:var(--sh-emerald-100); color:var(--sh-emerald-700);">
-                  Học sinh Giỏi
+                  Tổng kết
                 </span>
               </td>
             </tr>
@@ -156,41 +224,32 @@
     </div>
 
     <div class="row g-3">
-      @{
-        var goals = new[]
-        {
-          new { title="Đạt 9.0 môn Toán HK1", subject="Toán", current=8.4, target=9.0, deadline="30/12/2026", status="In progress", color="indigo" },
-          new { title="Cải thiện Vật lý lên 8.5", subject="Vật lý", current=8.1, target=8.5, deadline="30/12/2026", status="In progress", color="indigo" },
-          new { title="Lịch sử đạt 8.0", subject="Lịch sử", current=7.5, target=8.0, deadline="30/12/2026", status="In progress", color="amber" },
-          new { title="Tiếng Anh – Duy trì 9.0", subject="Tiếng Anh", current=9.0, target=9.0, deadline="30/12/2026", status="Completed", color="emerald" },
-          new { title="ĐTB chung đạt 8.8", subject="Toán", current=8.4, target=8.8, deadline="30/12/2026", status="In progress", color="indigo" },
-        };
-      }
-      @foreach (var g in goals)
+      @foreach (var g in data.Goals)
       {
-        var pct = (int)Math.Min(100, (g.current / g.target) * 100);
-        var isDone = g.status == "Completed";
+        var pct = g.TargetValue > 0 ? (int)Math.Min(100, (g.CurrentValue / g.TargetValue) * 100) : 0;
+        var isDone = g.IsCompleted;
         var barColor = isDone ? "var(--sh-emerald-500)" : "var(--sh-indigo-600)";
+        
         <div class="col-12 col-md-6">
           <div class="sh-card p-4 @(isDone ? "border-success" : "")">
             <div class="d-flex justify-content-between align-items-start gap-3">
               <div class="flex-grow-1 overflow-hidden">
                 <div class="d-flex align-items-center gap-2 mb-1">
-                  <h4 class="fw-bold mb-0 truncate" style="font-size:13px; color:var(--sh-slate-900);">@g.title</h4>
+                  <h4 class="fw-bold mb-0 truncate" style="font-size:13px; color:var(--sh-slate-900);">@g.Title</h4>
                 </div>
                 <div class="d-flex align-items-center gap-2 mb-3" style="font-size:11px; color:var(--sh-slate-500);">
-                  <span class="subject-badge subject-@(g.subject.ToLower().Replace(" ", "").Replace("ị","i").Replace("é","e"))">@g.subject</span>
-                  <span><i class="bi bi-calendar3 me-1"></i>Hạn: @g.deadline</span>
+                  <span class="subject-badge subject-@(g.SubjectName.ToLower().Replace(" ", "").Replace("ị","i").Replace("é","e"))">@g.SubjectName</span>
+                  <span><i class="bi bi-calendar3 me-1"></i>Hạn: @g.EndDate.ToString("dd/MM/yyyy")</span>
                 </div>
                 <!-- Score comparison -->
                 <div class="d-flex align-items-center gap-3 mb-2">
                   <div class="text-center">
-                    <div class="fw-black" style="font-size:20px; color:var(--sh-slate-900);">@g.current</div>
+                    <div class="fw-black" style="font-size:20px; color:var(--sh-slate-900);">@g.CurrentValue</div>
                     <div style="font-size:10px; color:var(--sh-slate-500);">Hiện tại</div>
                   </div>
                   <i class="bi bi-arrow-right" style="color:var(--sh-slate-400);"></i>
                   <div class="text-center">
-                    <div class="fw-black" style="font-size:20px; color:var(--sh-indigo-600);">@g.target</div>
+                    <div class="fw-black" style="font-size:20px; color:var(--sh-indigo-600);">@g.TargetValue</div>
                     <div style="font-size:10px; color:var(--sh-slate-500);">Mục tiêu</div>
                   </div>
                   <div class="flex-grow-1">
@@ -210,15 +269,23 @@
                   @(isDone ? "✅ Hoàn thành" : "⏳ Đang thực hiện")
                 </span>
                 <div class="d-flex gap-1">
-                  <button class="btn-icon-sh" title="Chỉnh sửa"><i class="bi bi-pencil"></i></button>
-                  <button class="btn-icon-sh danger"
-                          onclick="confirmDelete('@g.title')"
-                          title="Xóa mục tiêu"><i class="bi bi-trash3"></i></button>
+                  <button type="button" class="btn-icon-sh primary" title="Sửa mục tiêu" onclick="editGoal(@g.Id, '@Html.Raw(g.Title.Replace("'", "\\'"))', '@(g.UserSubjectId.HasValue ? g.UserSubjectId.Value.ToString() : "")', '@g.UnitCode', @g.TargetValue.ToString(System.Globalization.CultureInfo.InvariantCulture), '@g.EndDate.ToString("yyyy-MM-dd")')">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                  <form asp-action="CancelGoal" method="post">
+                    <input type="hidden" name="id" value="@g.Id" />
+                    <button type="submit" class="btn-icon-sh danger" title="Xóa mục tiêu" onclick="return confirm('Bạn muốn xóa mục tiêu này?')">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      }
+      @if(!data.Goals.Any()) {
+        <div class="col-12 text-center py-4 text-muted">Chưa có mục tiêu nào.</div>
       }
     </div>
   </div>
@@ -228,7 +295,7 @@
 <!-- ── Add Grade Modal ── -->
 <div class="modal fade" id="addGradeModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
-    <div class="modal-content">
+    <form asp-action="AddGrade" method="post" class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title fw-bold" style="font-size:14px;"><i class="bi bi-journal-plus me-2"></i>Nhập điểm mới</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -237,55 +304,217 @@
         <div class="row g-3">
           <div class="col-6">
             <label class="sh-label">Môn học</label>
-            <select class="sh-input">
-              <option>Toán</option><option>Vật lý</option><option>Hóa học</option>
-              <option>Ngữ văn</option><option>Tiếng Anh</option><option>Sinh học</option>
-              <option>Lịch sử</option><option>Địa lý</option><option>Tin học</option>
+            <select name="UserSubjectId" class="sh-input" required>
+              @foreach(var sd in data.SubjectDetails) {
+                  <option value="@sd.UserSubjectId">@sd.SubjectName</option>
+              }
             </select>
           </div>
           <div class="col-6">
             <label class="sh-label">Loại kiểm tra</label>
-            <select class="sh-input">
-              <option>Miệng / 15 phút</option>
-              <option>1 tiết</option>
-              <option>Giữa kỳ</option>
-              <option>Cuối kỳ</option>
-            </select>
-          </div>
-          <div class="col-6">
-            <label class="sh-label" for="grade-score">Điểm số (0 – 10)</label>
-            <input id="grade-score" type="number" min="0" max="10" step="0.25"
-                   class="sh-input grade-score-input" placeholder="8.5" />
-          </div>
-          <div class="col-6">
-            <label class="sh-label">Học kỳ</label>
-            <select class="sh-input">
-              <option>Học kỳ 1</option>
-              <option>Học kỳ 2</option>
+            <select name="AssessmentType" id="add-assessment-type" class="sh-input" onchange="updateGradeWeight(this.id, 'add-grade-weight')" required>
+              <option value="Other">Miệng</option>
+              <option value="Quiz">15 phút</option>
+              <option value="Assignment">1 tiết</option>
+              <option value="Midterm">Giữa kỳ</option>
+              <option value="Final">Cuối kỳ</option>
             </select>
           </div>
           <div class="col-12">
+            <label class="sh-label" for="grade-title">Tên bài kiểm tra (tùy chọn)</label>
+            <input name="Title" id="grade-title" type="text" class="sh-input" placeholder="Ví dụ: Bài tập số 1" value="Kiểm tra" required />
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="grade-score">Điểm số (0 – 10)</label>
+            <input name="Score" id="grade-score" type="number" min="0" max="10" step="0.25"
+                   class="sh-input grade-score-input" placeholder="8.5" required />
+            <input type="hidden" name="MaxScore" value="10" />
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="add-grade-weight">Hệ số</label>
+            <select name="Weight" id="add-grade-weight" class="sh-input" required>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+          <div class="col-6">
             <label class="sh-label">Ngày kiểm tra</label>
-            <input type="date" class="sh-input" value="2026-09-09" />
+            <input name="AssessedOn" type="date" class="sh-input" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
           </div>
         </div>
       </div>
       <div class="modal-footer gap-2">
         <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
-        <button type="button" class="btn-primary-sh"
-                data-bs-dismiss="modal"
-                onclick="showToast('Đã lưu điểm thành công!', 'success')">
+        <button type="submit" class="btn-primary-sh">
           <i class="bi bi-floppy me-1"></i>Lưu điểm
         </button>
       </div>
-    </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Edit Grade Modal ── -->
+<div class="modal fade" id="editGradeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form asp-action="UpdateGrade" method="post" class="modal-content">
+      <input type="hidden" name="Id" id="edit-grade-id" />
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" style="font-size:14px;"><i class="bi bi-pencil me-2"></i>Sửa điểm</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="sh-label">Môn học</label>
+            <select name="UserSubjectId" id="edit-grade-subject" class="sh-input" required>
+              @foreach(var sd in data.SubjectDetails) {
+                  <option value="@sd.UserSubjectId">@sd.SubjectName</option>
+              }
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="sh-label">Loại kiểm tra</label>
+            <select name="AssessmentType" id="edit-assessment-type" class="sh-input" onchange="updateGradeWeight(this.id, 'edit-grade-weight')" required>
+              <option value="Other">Miệng</option>
+              <option value="Quiz">15 phút</option>
+              <option value="Assignment">1 tiết</option>
+              <option value="Midterm">Giữa kỳ</option>
+              <option value="Final">Cuối kỳ</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="sh-label" for="edit-grade-title">Tên bài kiểm tra (tùy chọn)</label>
+            <input name="Title" id="edit-grade-title" type="text" class="sh-input" required />
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="edit-grade-score">Điểm số (0 – 10)</label>
+            <input name="Score" id="edit-grade-score" type="number" min="0" max="10" step="0.25" class="sh-input grade-score-input" required />
+            <input type="hidden" name="MaxScore" value="10" />
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="edit-grade-weight">Hệ số</label>
+            <select name="Weight" id="edit-grade-weight" class="sh-input" required>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="sh-label">Ngày kiểm tra</label>
+            <input name="AssessedOn" id="edit-grade-date" type="date" class="sh-input" required />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer gap-2">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh">
+          <i class="bi bi-floppy me-1"></i>Lưu thay đổi
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Add Term Modal ── -->
+<div class="modal fade" id="addTermModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form asp-action="AddTerm" method="post" class="modal-content" onsubmit="return validateAddTerm(this)">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" style="font-size:14px;"><i class="bi bi-calendar-plus me-2"></i>Thêm học kỳ mới</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="sh-label">Tên học kỳ</label>
+          <input name="TermName" type="text" class="sh-input" placeholder="Ví dụ: Học kỳ 1 - 2026" required />
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="sh-label">Ngày bắt đầu (dd/MM/yyyy)</label>
+            <input type="text" id="displayStartDate" class="sh-input" placeholder="dd/MM/yyyy" value="@DateTime.Now.ToString("dd/MM/yyyy")" pattern="\d{1,2}/\d{1,2}/\d{4}" required />
+            <input name="StartDate" id="hiddenStartDate" type="hidden" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+          </div>
+          <div class="col-6">
+            <label class="sh-label">Ngày kết thúc (dd/MM/yyyy)</label>
+            <input type="text" id="displayEndDate" class="sh-input" placeholder="dd/MM/yyyy" value="@DateTime.Now.AddMonths(5).ToString("dd/MM/yyyy")" pattern="\d{1,2}/\d{1,2}/\d{4}" required />
+            <input name="EndDate" id="hiddenEndDate" type="hidden" value="@DateTime.Now.AddMonths(5).ToString("yyyy-MM-dd")" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer gap-2">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh">Tạo học kỳ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Add User Subject Modal ── -->
+<div class="modal fade" id="addUserSubjectModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form asp-action="AddUserSubject" method="post" class="modal-content">
+      <input type="hidden" name="AcademicTermId" value="@data.SelectedTermId" />
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" style="font-size:14px;"><i class="bi bi-book me-2"></i>Thêm môn học</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="sh-label">Tên môn học</label>
+          <input type="text" name="SubjectName" class="sh-input" placeholder="Ví dụ: Toán nâng cao" required />
+        </div>
+        <div class="mb-3">
+          <label class="sh-label">Hệ số môn</label>
+          <input name="CreditWeight" type="number" min="1" max="10" step="1" class="sh-input" value="1" required />
+        </div>
+      </div>
+      <div class="modal-footer gap-2">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh">Thêm môn học</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Edit User Subject Modal ── -->
+<div class="modal fade" id="editUserSubjectModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form asp-action="UpdateUserSubject" method="post" class="modal-content">
+      <input type="hidden" name="UserSubjectId" id="editUserSubjectId" />
+      <input type="hidden" name="currentTermId" value="@data.SelectedTermId" />
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" style="font-size:14px;"><i class="bi bi-pencil me-2"></i>Sửa môn học</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="sh-label">Tên môn học</label>
+          <input type="text" name="SubjectName" id="editSubjectName" class="sh-input" required />
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="sh-label">Mục tiêu ĐTB (tùy chọn)</label>
+            <input name="TargetScore10" id="editTargetScore10" type="number" min="0" max="10" step="0.1" class="sh-input" />
+          </div>
+          <div class="col-6">
+            <label class="sh-label">Hệ số môn</label>
+            <input name="CreditWeight" id="editCreditWeight" type="number" min="1" max="10" step="1" class="sh-input" required />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer gap-2">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh">Lưu thay đổi</button>
+      </div>
+    </form>
   </div>
 </div>
 
 <!-- ── Add Goal Modal ── -->
 <div class="modal fade" id="addGoalModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
-    <div class="modal-content">
+    <form asp-action="AddGoal" method="post" class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title fw-bold" style="font-size:14px;"><i class="bi bi-trophy me-2"></i>Thêm mục tiêu học tập</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -293,44 +522,166 @@
       <div class="modal-body">
         <div class="mb-3">
           <label class="sh-label" for="goal-title">Tên mục tiêu</label>
-          <input id="goal-title" type="text" class="sh-input" placeholder="Ví dụ: Đạt 9.0 môn Toán HK1" />
+          <input name="Title" id="goal-title" type="text" class="sh-input" placeholder="Ví dụ: Đạt 9.0 môn Toán HK1" required />
         </div>
         <div class="row g-3 mb-3">
           <div class="col-6">
             <label class="sh-label">Môn học</label>
-            <select class="sh-input">
-              <option>Toán</option><option>Vật lý</option><option>Hóa học</option>
-              <option>Ngữ văn</option><option>Tiếng Anh</option><option>Sinh học</option>
+            <select name="UserSubjectId" class="sh-input">
+              @if(!data.Goals.Any(g => g.UserSubjectId == null)) {
+                  <option value="">(Chung) ĐTB Toàn khóa</option>
+              }
+              @foreach(var sd in data.SubjectDetails.Where(s => !data.Goals.Any(g => g.UserSubjectId == s.UserSubjectId))) {
+                  <option value="@sd.UserSubjectId">@sd.SubjectName</option>
+              }
             </select>
           </div>
-          <div class="col-3">
-            <label class="sh-label" for="goal-current">Điểm hiện tại</label>
-            <input id="goal-current" type="number" min="0" max="10" step="0.1" class="sh-input" placeholder="8.4" />
-          </div>
-          <div class="col-3">
+          <div class="col-6">
             <label class="sh-label" for="goal-target">Điểm mục tiêu</label>
-            <input id="goal-target" type="number" min="0" max="10" step="0.1" class="sh-input" placeholder="9.0" />
+            <input name="TargetValue" id="goal-target" type="number" min="0" max="10" step="0.1" class="sh-input" placeholder="9.0" required />
+            <input type="hidden" name="UnitCode" value="Score10" />
           </div>
         </div>
         <div>
           <label class="sh-label" for="goal-deadline">Hạn hoàn thành</label>
-          <input id="goal-deadline" type="date" class="sh-input" value="2026-12-30" />
+          <input name="EndDate" id="goal-deadline" type="date" class="sh-input" value="@DateTime.Now.AddMonths(3).ToString("yyyy-MM-dd")" required />
         </div>
       </div>
       <div class="modal-footer gap-2">
         <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
-        <button type="button" class="btn-primary-sh"
-                data-bs-dismiss="modal"
-                onclick="showToast('Đã thêm mục tiêu học tập!', 'success')">
+        <button type="submit" class="btn-primary-sh">
           <i class="bi bi-trophy me-1"></i>Lưu mục tiêu
         </button>
       </div>
-    </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="editGoalModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <form asp-action="UpdateGoal" method="post" class="modal-content">
+      <input type="hidden" name="Id" id="editGoalId" />
+      <input type="hidden" name="currentTermId" value="@data.SelectedTermId" />
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">Sửa mục tiêu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="sh-label" for="edit-goal-title">Tên mục tiêu</label>
+          <input name="Title" id="edit-goal-title" type="text" class="sh-input" required />
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="sh-label">Môn học</label>
+            <select name="UserSubjectId" id="edit-goal-subject" class="sh-input">
+              <option value="">(Chung) ĐTB Toàn khóa</option>
+              @foreach(var sd in data.SubjectDetails) {
+                  <option value="@sd.UserSubjectId">@sd.SubjectName</option>
+              }
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="edit-goal-target">Điểm mục tiêu</label>
+            <input name="TargetValue" id="edit-goal-target" type="number" min="0" max="10" step="0.1" class="sh-input" required />
+            <input type="hidden" name="UnitCode" id="edit-goal-unitcode" value="Score10" />
+          </div>
+        </div>
+        <div>
+          <label class="sh-label" for="edit-goal-deadline">Hạn hoàn thành</label>
+          <input name="EndDate" id="edit-goal-deadline" type="date" class="sh-input" required />
+        </div>
+      </div>
+      <div class="modal-footer gap-2">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh">
+          <i class="bi bi-save me-1"></i>Lưu thay đổi
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
 @section Scripts {
 <script>
+  function updateGradeWeight(sourceId, targetId) {
+    var type = document.getElementById(sourceId).value;
+    var weightSelect = document.getElementById(targetId);
+    if (type === 'Midterm') {
+      weightSelect.value = '2';
+    } else if (type === 'Final') {
+      weightSelect.value = '3';
+    } else {
+      weightSelect.value = '1';
+    }
+  }
+
+  function editGrade(id, subjectId, title, assessmentType, score, weight, date) {
+    document.getElementById('edit-grade-id').value = id;
+    document.getElementById('edit-grade-subject').value = subjectId;
+    document.getElementById('edit-assessment-type').value = assessmentType;
+    document.getElementById('edit-grade-title').value = title;
+    document.getElementById('edit-grade-score').value = score;
+    document.getElementById('edit-grade-weight').value = weight;
+    document.getElementById('edit-grade-date').value = date;
+    new bootstrap.Modal(document.getElementById('editGradeModal')).show();
+  }
+  function editGoal(id, title, subjectId, unitCode, targetVal, endDate) {
+    document.getElementById('editGoalId').value = id;
+    document.getElementById('edit-goal-title').value = title;
+    document.getElementById('edit-goal-subject').value = subjectId || '';
+    document.getElementById('edit-goal-unitcode').value = unitCode;
+    document.getElementById('edit-goal-target').value = targetVal;
+    document.getElementById('edit-goal-deadline').value = endDate;
+    new bootstrap.Modal(document.getElementById('editGoalModal')).show();
+  }
+
+  function parseDateVN(dateStr) {
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    return null;
+  }
+
+  function validateAddTerm(form) {
+    const displayStart = document.getElementById('displayStartDate').value;
+    const displayEnd = document.getElementById('displayEndDate').value;
+    
+    const startStr = parseDateVN(displayStart);
+    const endStr = parseDateVN(displayEnd);
+    
+    if (!startStr || !endStr) {
+      alert("Vui lòng nhập ngày theo định dạng dd/MM/yyyy.");
+      return false;
+    }
+    
+    document.getElementById('hiddenStartDate').value = startStr;
+    document.getElementById('hiddenEndDate').value = endStr;
+    
+    const startDate = new Date(startStr);
+    const endDate = new Date(endStr);
+    
+    if (startDate >= endDate) {
+      alert("Ngày bắt đầu phải trước ngày kết thúc.");
+      return false;
+    }
+    
+    const diffTime = Math.abs(endDate - startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    
+    if (diffDays < 90) {
+      alert("Học kỳ phải kéo dài tối thiểu 3 tháng.");
+      return false;
+    }
+    if (diffDays > 185) {
+      alert("Học kỳ không được vượt quá 6 tháng.");
+      return false;
+    }
+    
+    return true;
+  }
+
 function gradeTab(btn, tabId) {
   document.querySelectorAll('.nav-link').forEach(b => {
     b.style.cssText = 'font-size:12px;color:var(--sh-slate-500);border:0;background:transparent;padding:8px 16px;font-weight:600;';
@@ -339,6 +690,33 @@ function gradeTab(btn, tabId) {
   btn.style.cssText = 'font-size:12px;font-weight:700;color:var(--sh-indigo-600);border-bottom:2px solid var(--sh-indigo-600);border-top:0;border-left:0;border-right:0;background:transparent;padding:8px 16px;';
   document.getElementById('grades-tab').style.display = tabId === 'grades-tab' ? 'block' : 'none';
   document.getElementById('goals-tab').style.display = tabId === 'goals-tab' ? 'block' : 'none';
+}
+
+function editSubject(id, name, target, credit) {
+  document.getElementById('editUserSubjectId').value = id;
+  document.getElementById('editSubjectName').value = name;
+  document.getElementById('editTargetScore10').value = target || '';
+  document.getElementById('editCreditWeight').value = credit || '1';
+  new bootstrap.Modal(document.getElementById('editUserSubjectModal')).show();
+}
+
+@if(TempData["SuccessMessage"] != null) {
+  <text>
+  document.addEventListener("DOMContentLoaded", function() {
+    if (typeof showToast === 'function') {
+      showToast('@TempData["SuccessMessage"]', 'success');
+    }
+  });
+  </text>
+}
+@if(TempData["ErrorMessage"] != null) {
+  <text>
+  document.addEventListener("DOMContentLoaded", function() {
+    if (typeof showToast === 'function') {
+      showToast('@TempData["ErrorMessage"]', 'error');
+    }
+  });
+  </text>
 }
 </script>
 }
