@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using StudyHub.DAL.Entities;
@@ -848,9 +848,21 @@ public partial class StudyHubDbContext : DbContext
 
         modelBuilder.Entity<UserSubject>(entity =>
         {
-            entity.HasIndex(e => new { e.UserId, e.AcademicTermId, e.SubjectId }, "UQ_UserSubjects_Enrollment").IsUnique();
+            // Removed old UQ_UserSubjects_Enrollment
+            entity.HasIndex(e => new { e.UserId, e.AcademicTermId, e.SubjectId }, "UQ_UserSubjects_CatalogEnrollment")
+                  .IsUnique()
+                  .HasFilter("[SubjectId] IS NOT NULL AND [IsArchived] = 0");
+
+            entity.HasIndex(e => new { e.UserId, e.AcademicTermId, e.CustomSubjectName }, "UQ_UserSubjects_CustomEnrollment")
+                  .IsUnique()
+                  .HasFilter("[CustomSubjectName] IS NOT NULL AND [IsArchived] = 0");
 
             entity.HasIndex(e => new { e.UserSubjectId, e.UserId }, "UQ_UserSubjects_Owner").IsUnique();
+
+            entity.ToTable(t => t.HasCheckConstraint("CK_UserSubjects_SubjectOrCustom", 
+                "([SubjectId] IS NOT NULL AND [CustomSubjectName] IS NULL) OR ([SubjectId] IS NULL AND [CustomSubjectName] IS NOT NULL)"));
+
+            entity.Property(e => e.CustomSubjectName).HasMaxLength(150);
 
             entity.Property(e => e.ClassCode).HasMaxLength(50);
             entity.Property(e => e.ColorHex)
