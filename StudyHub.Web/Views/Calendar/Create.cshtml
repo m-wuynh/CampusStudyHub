@@ -5,6 +5,8 @@
     ViewData["PageSubtitle"] = "Lên lịch cho học tập, bài tập, và kiểm tra";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var todayStr = DateTime.Today.ToString("yyyy-MM-dd");
+    var nowTimeStr = DateTime.Now.ToString("HH:mm");
+    var nowPlusOneHourStr = DateTime.Now.AddHours(1).ToString("HH:mm");
 }
 
 <div style="max-width: 600px; margin: 0 auto;">
@@ -25,11 +27,11 @@
             </div>
             <div class="col-md-3 col-6">
                 <label class="sh-label" for="event-start">Bắt đầu</label>
-                <input id="event-start" type="time" class="sh-input" value="08:00" />
+                <input id="event-start" type="time" class="sh-input" value="@nowTimeStr" lang="en-US" />
             </div>
             <div class="col-md-3 col-6">
                 <label class="sh-label" for="event-end">Kết thúc</label>
-                <input id="event-end" type="time" class="sh-input" value="09:30" />
+                <input id="event-end" type="time" class="sh-input" value="@nowPlusOneHourStr" lang="en-US" />
             </div>
         </div>
         
@@ -118,17 +120,18 @@
             if (end.length === 5) end += ":00";
 
             // Extract reminders
-            const reminderMinutes = [];
+            const reminders = [];
             document.querySelectorAll('#notifications-container .d-flex').forEach(row => {
                 const inputs = row.querySelectorAll('input, select');
                 if (inputs.length >= 3) {
+                    const channel = inputs[0].value;
                     let val = parseInt(inputs[1].value);
                     const unit = inputs[2].value;
                     if (!isNaN(val) && val > 0) {
                         if (unit === 'hours') val *= 60;
                         else if (unit === 'days') val *= 1440;
                         else if (unit === 'weeks') val *= 10080;
-                        reminderMinutes.push(val);
+                        reminders.push({ Channel: channel, Minutes: val });
                     }
                 }
             });
@@ -141,7 +144,7 @@
                 EventType: category,
                 Location: loc,
                 Description: desc,
-                ReminderMinutes: reminderMinutes
+                Reminders: reminders
             };
 
             try {
@@ -156,6 +159,7 @@
                 } else {
                     const errorText = await res.text();
                     console.error('Lỗi Backend:', errorText);
+                    alert('LỖI CHI TIẾT TỪ MÁY CHỦ:\n' + errorText);
                     showToast('Lỗi khi thêm sự kiện', 'error');
                 }
             } catch (err) {

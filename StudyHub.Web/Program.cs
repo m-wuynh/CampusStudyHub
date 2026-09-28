@@ -77,6 +77,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<IStudyGroupService, StudyGroupService>();
 builder.Services.AddScoped<StudyHub.BLL.Services.Calendar.ICalendarService, StudyHub.BLL.Services.Calendar.CalendarService>();
+builder.Services.AddTransient<StudyHub.BLL.Services.Email.IEmailService, StudyHub.BLL.Services.Email.EmailService>();
+builder.Services.AddHostedService<StudyHub.Web.BackgroundServices.EmailNotificationBackgroundService>();
 
 var app = builder.Build();
 

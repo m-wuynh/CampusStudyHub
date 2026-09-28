@@ -51,6 +51,22 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         )).ToList();
     }
 
+    public async Task<List<int>> GetReminderMinutesAsync(long userId, long eventId)
+    {
+        var reminders = await repository.ListAsync<Reminder>(r => r.UserId == userId && r.ScheduleEventId == eventId);
+        var result = new List<int>();
+        var ev = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == eventId);
+        if (ev == null) return result;
+
+        foreach (var r in reminders)
+        {
+            var diff = ev.StartAtLocal - r.RemindAtUtc.ToLocalTime();
+            var minutes = (int)Math.Round(diff.TotalMinutes);
+            if (minutes > 0) result.Add(minutes);
+        }
+        return result;
+    }
+
     public async Task<ScheduleEventDto> CreateEventAsync(long userId, CreateEventDto request)
     {
         var startLocal = request.Date.ToDateTime(request.StartTime);
@@ -78,17 +94,17 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         await repository.AddAsync(entity);
         await repository.SaveChangesAsync();
 
-        if (request.ReminderMinutes != null && request.ReminderMinutes.Any())
+        if (request.Reminders != null && request.Reminders.Any())
         {
-            foreach (var min in request.ReminderMinutes)
+            foreach (var rem in request.Reminders)
             {
-                var remindAt = startLocal.AddMinutes(-min).ToUniversalTime();
+                var remindAt = startLocal.AddMinutes(-rem.Minutes).ToUniversalTime();
                 var reminder = new Reminder
                 {
                     UserId = userId,
                     ScheduleEventId = entity.ScheduleEventId,
                     OccurrenceDate = request.Date,
-                    Channel = "InApp",
+                    Channel = rem.Channel == "email" ? "Email" : "InApp",
                     RemindAtUtc = remindAt,
                     Status = "Pending",
                     SentAtUtc = null
@@ -153,17 +169,17 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             repository.RemoveRange(existingReminders);
         }
         
-        if (request.ReminderMinutes != null && request.ReminderMinutes.Any())
+        if (request.Reminders != null && request.Reminders.Any())
         {
-            foreach (var min in request.ReminderMinutes)
+            foreach (var rem in request.Reminders)
             {
-                var remindAt = startDateTime.AddMinutes(-min).ToUniversalTime();
+                var remindAt = startDateTime.AddMinutes(-rem.Minutes).ToUniversalTime();
                 var reminder = new Reminder
                 {
                     UserId = userId,
                     ScheduleEventId = entity.ScheduleEventId,
                     OccurrenceDate = request.Date,
-                    Channel = "InApp",
+                    Channel = rem.Channel == "email" ? "Email" : "InApp",
                     RemindAtUtc = remindAt,
                     Status = "Pending"
                 };
