@@ -1,0 +1,371 @@
+@model FlashcardStudyViewModel
+
+@{
+    ViewData["Title"] = $"Học - {Model.DeckTitle}";
+}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between
+        align-items-center mb-4">
+
+        <div>
+            <a asp-controller="Flashcards"
+               asp-action="Details"
+               asp-route-deckId="@Model.DeckId"
+               class="text-decoration-none">
+                <i class="bi bi-arrow-left"></i>
+                Quay lại Deck
+            </a>
+
+            <h2 class="fw-bold mt-3 mb-1">
+                @Model.DeckTitle
+            </h2>
+
+            <p class="text-muted mb-0">
+                Học Flashcard
+            </p>
+        </div>
+
+        <div class="text-muted">
+            <span id="currentCardNumber">0</span>
+            /
+            <span id="totalCardCount">@Model.Cards.Count</span>
+        </div>
+
+    </div>
+
+
+    @if (Model.Cards.Count == 0)
+    {
+        <div class="border rounded-4
+            p-5 text-center bg-white">
+
+            <i class="bi bi-card-text"
+               style="font-size:40px;"></i>
+
+            <h5 class="mt-3">
+                Deck này chưa có Flashcard
+            </h5>
+
+            <p class="text-muted">
+                Hãy thêm card trước khi bắt đầu học.
+            </p>
+
+            <a asp-controller="Flashcards"
+               asp-action="Details"
+               asp-route-deckId="@Model.DeckId"
+               class="btn btn-primary">
+                Quay lại Deck
+            </a>
+
+        </div>
+    }
+    else
+    {
+        <div id="studyContainer"
+             class="study-container">
+
+            <div class="flashcard-scene">
+
+                <div id="flashcard"
+                     class="flashcard">
+
+                    <div class="flashcard-face flashcard-front">
+
+                        <div class="text-muted small mb-3">
+                            MẶT TRƯỚC
+                        </div>
+
+                        <h3 id="frontText"
+                            class="fw-bold mb-0">
+                        </h3>
+
+                    </div>
+
+
+                    <div class="flashcard-face flashcard-back">
+
+                        <div class="text-muted small mb-3">
+                            MẶT SAU
+                        </div>
+
+                        <h3 id="backText"
+                            class="fw-bold mb-0">
+                        </h3>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div id="studyControls"
+                 class="d-flex justify-content-center
+                align-items-center gap-3 mt-4">
+
+                <button type="button"
+                        id="previousCardButton"
+                        class="btn btn-outline-secondary px-4">
+                    <i class="bi bi-arrow-left"></i>
+                    Thẻ trước
+                </button>
+
+
+                <button type="button"
+                        id="flipCardButton"
+                        class="btn btn-primary px-4">
+                    <i class="bi bi-arrow-repeat"></i>
+
+                    <span id="flipButtonText">
+                        Hiện đáp án
+                    </span>
+                </button>
+
+
+                <button type="button"
+                        id="nextCardButton"
+                        class="btn btn-outline-secondary px-4">
+                    Thẻ sau
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+
+            </div>
+
+        </div>
+    }
+
+</div>
+
+<div id="studyCompleted"
+     class="d-none text-center
+    border rounded-4 bg-white
+    shadow-sm p-5 mt-4">
+
+    <i class="bi bi-check-circle"
+       style="font-size:48px;"></i>
+
+    <h3 class="fw-bold mt-3">
+        Bạn đã xem hết bộ thẻ
+    </h3>
+
+    <p class="text-muted">
+        Bạn có thể học lại hoặc quay về bộ thẻ.
+    </p>
+
+    <div class="d-flex justify-content-center
+        flex-wrap gap-2 mt-4">
+
+        <button type="button"
+                id="studyAgainButton"
+                class="btn btn-primary">
+            <i class="bi bi-arrow-repeat"></i>
+            Học lại
+        </button>
+
+        <a asp-controller="Flashcards"
+           asp-action="Details"
+           asp-route-deckId="@Model.DeckId"
+           class="btn btn-outline-secondary">
+            <i class="bi bi-card-list"></i>
+            Quay về Deck
+        </a>
+
+        <a asp-controller="Flashcards"
+           asp-action="Index"
+           class="btn btn-outline-secondary">
+            <i class="bi bi-collection"></i>
+            My Flashcards
+        </a>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        const cards = @Html.Raw(
+                    System.Text.Json.JsonSerializer.Serialize(Model.Cards)
+                    );
+
+        let currentIndex = 0;
+        let isFlipped = false;
+
+
+        const flashcard =
+            document.getElementById('flashcard');
+
+        const frontText =
+            document.getElementById('frontText');
+
+        const backText =
+            document.getElementById('backText');
+
+        const previousCardButton =
+            document.getElementById('previousCardButton');
+
+        const nextCardButton =
+            document.getElementById('nextCardButton');
+
+        const flipCardButton =
+            document.getElementById('flipCardButton');
+
+        const flipButtonText =
+            document.getElementById('flipButtonText');
+
+        const currentCardNumber =
+            document.getElementById('currentCardNumber');
+
+
+        function getCardProperty(card, pascalName, camelName) {
+            return card[pascalName] ?? card[camelName];
+        }
+
+
+        function renderCard() {
+
+            if (!cards || cards.length === 0) {
+                return;
+            }
+
+            const card = cards[currentIndex];
+
+            frontText.textContent =
+                getCardProperty(
+                    card,
+                    'FrontText',
+                    'frontText'
+                ) ?? '';
+
+            backText.textContent =
+                getCardProperty(
+                    card,
+                    'BackText',
+                    'backText'
+                ) ?? '';
+
+            currentCardNumber.textContent =
+                currentIndex + 1;
+
+
+            // Mỗi lần đổi card sẽ quay về Front.
+            isFlipped = false;
+
+            flashcard.classList.remove('is-flipped');
+
+            flipButtonText.textContent =
+                'Hiện đáp án';
+
+
+            // Không vượt quá biên deck.
+            previousCardButton.disabled =
+                currentIndex === 0;
+
+            nextCardButton.disabled =
+                currentIndex === cards.length - 1;
+        }
+
+
+        function flipCard() {
+
+            isFlipped = !isFlipped;
+
+            flashcard.classList.toggle(
+                'is-flipped',
+                isFlipped
+            );
+
+            flipButtonText.textContent =
+                isFlipped
+                    ? 'Xem câu hỏi'
+                    : 'Hiện đáp án';
+        }
+
+
+        previousCardButton?.addEventListener(
+            'click',
+            function() {
+
+                if (currentIndex <= 0) {
+                    return;
+                }
+
+                currentIndex--;
+
+                renderCard();
+            });
+
+
+        nextCardButton?.addEventListener(
+            'click',
+            function() {
+
+                if (currentIndex >= cards.length - 1) {
+                    return;
+                }
+
+                currentIndex++;
+
+                renderCard();
+            });
+
+
+        flipCardButton?.addEventListener(
+            'click',
+            flipCard
+        );
+
+
+        // Cho phép click trực tiếp lên card để lật.
+        flashcard?.addEventListener(
+            'click',
+            flipCard
+        );
+
+
+        renderCard();
+    </script>
+}
+
+
+<!--Flip anim-->
+<style>
+    .flashcard-scene {
+        width: 100%;
+        min-height: 360px;
+        perspective: 1200px;
+    }
+
+    .flashcard {
+        position: relative;
+        width: 100%;
+        min-height: 360px;
+        transform-style: preserve-3d;
+        transition: transform 0.55s ease;
+        cursor: pointer;
+    }
+
+        .flashcard.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+    .flashcard-face {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px;
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.10);
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
+    .flashcard-back {
+        transform: rotateY(180deg);
+    }
+</style>
