@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace StudyHub.DAL.Entities;
@@ -11,7 +11,7 @@ public partial class VwSubjectGradeSummary
 
     public long AcademicTermId { get; set; }
 
-    public int SubjectId { get; set; }
+    public int? SubjectId { get; set; }
 
     public string SubjectName { get; set; } = null!;
 

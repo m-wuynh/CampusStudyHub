@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace StudyHub.DAL.Entities;
@@ -11,7 +11,9 @@ public partial class UserSubject
 
     public long AcademicTermId { get; set; }
 
-    public int SubjectId { get; set; }
+    public int? SubjectId { get; set; }
+    
+    public string? CustomSubjectName { get; set; }
 
     public string? TeacherName { get; set; }
 
@@ -43,7 +45,7 @@ public partial class UserSubject
 
     public virtual ICollection<StudySession> StudySessions { get; set; } = new List<StudySession>();
 
-    public virtual Subject Subject { get; set; } = null!;
+    public virtual Subject? Subject { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

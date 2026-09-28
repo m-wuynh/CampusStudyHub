@@ -13,6 +13,7 @@ public sealed record ScheduleEventDto(
     string? Description);
 
 public sealed record DeadlineDto(long Id, string Title, DateTime DueAtUtc, byte Priority, string Status);
+public sealed record ReminderInputDto(int Minutes, string Channel);
 
 public sealed record CreateEventDto(
     string Title,
@@ -21,7 +22,7 @@ public sealed record CreateEventDto(
     TimeOnly StartTime,
     TimeOnly EndTime,
     string? Location,
-    string? Description, int[]? ReminderMinutes);
+    string? Description, List<ReminderInputDto>? Reminders);
 public sealed class UpdateEventDto
 {
     public long Id { get; set; }
@@ -32,5 +33,5 @@ public sealed class UpdateEventDto
     public TimeOnly EndTime { get; set; }
     public string? Location { get; set; }
     public string? Description { get; set; }
-    public int[]? ReminderMinutes { get; set; }
+    public List<ReminderInputDto>? Reminders { get; set; }
 }

@@ -3,12 +3,16 @@ using StudyHub.BLL.DTOs;
 using StudyHub.BLL.Services.Calendar;
 using StudyHub.Web.ViewModels.Calendar;
 
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+
 namespace StudyHub.Web.Controllers.Calendar;
 
+[Authorize]
 [Route("Calendar")]
 public sealed class CalendarController(ICalendarService calendarService) : Controller
 {
-    private const long CurrentUserId = 1;
+    private long CurrentUserId => long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "1");
 
     [HttpGet("")]
     public async Task<IActionResult> Index(DateOnly? date)
@@ -63,7 +67,12 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
     [HttpPost("CreateEvent")]
     public async Task<IActionResult> CreateEvent([FromBody] CreateEventDto request)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+            Console.WriteLine("ModelState is invalid: " + string.Join(", ", errors));
+            return BadRequest(ModelState);
+        }
         
         try 
         {
@@ -81,6 +90,7 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
     {
         var ev = await calendarService.GetEventAsync(CurrentUserId, id);
         if (ev == null) return NotFound();
+        var reminderMinutes = await calendarService.GetReminderMinutesAsync(CurrentUserId, id);
         var model = new CalendarUpdateViewModel(
             ev.Id,
             ev.Title,
@@ -89,7 +99,8 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
             TimeOnly.FromDateTime(ev.StartAtLocal),
             TimeOnly.FromDateTime(ev.EndAtLocal),
             ev.Location,
-            ev.Description);
+            ev.Description,
+            reminderMinutes);
         return View(model);
     }
 
@@ -108,6 +119,13 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
         {
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    [HttpGet("GetEventReminders/{id}")]
+    public async Task<IActionResult> GetEventReminders(long id)
+    {
+        var minutes = await calendarService.GetReminderMinutesAsync(CurrentUserId, id);
+        return Json(minutes);
     }
 
     [HttpGet("GetUpcomingNotifications")]
