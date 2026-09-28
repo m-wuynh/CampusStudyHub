@@ -138,7 +138,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
             return NotFound();
         }
 
-        TempData["FlashcardScuccess"] = "Xóa bộ flashcard thành công";
+        TempData["FlashcardSuccess"] = "Xóa bộ flashcard thành công";
 
         return RedirectToAction(nameof(Index));
     }
