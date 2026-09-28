@@ -47,22 +47,22 @@ public partial class AddDiscordStudyGroupFlow : Migration
                 SELECT 1 FROM sys.check_constraints
                 WHERE name = 'CK_StudyGroups_JoinMode'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
-                ALTER TABLE dbo.StudyGroups ADD CONSTRAINT CK_StudyGroups_JoinMode
-                    CHECK (JoinMode IN ('Open', 'Approval', 'InviteOnly'));
+                EXEC(N'ALTER TABLE dbo.StudyGroups ADD CONSTRAINT CK_StudyGroups_JoinMode
+                    CHECK (JoinMode IN (''Open'', ''Approval'', ''InviteOnly''))');
 
             IF NOT EXISTS (
                 SELECT 1 FROM sys.check_constraints
                 WHERE name = 'CK_StudyGroups_MeetingFormat'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
-                ALTER TABLE dbo.StudyGroups ADD CONSTRAINT CK_StudyGroups_MeetingFormat
-                    CHECK (MeetingFormat IN ('Online', 'Offline', 'Hybrid'));
+                EXEC(N'ALTER TABLE dbo.StudyGroups ADD CONSTRAINT CK_StudyGroups_MeetingFormat
+                    CHECK (MeetingFormat IN (''Online'', ''Offline'', ''Hybrid''))');
 
             IF @JoinModeAdded = 1
-                UPDATE dbo.StudyGroups
-                SET JoinMode = CASE
-                    WHEN Visibility = 'Private' THEN 'InviteOnly'
-                    ELSE 'Approval'
-                END;
+                EXEC(N'UPDATE dbo.StudyGroups
+                    SET JoinMode = CASE
+                        WHEN Visibility = ''Private'' THEN ''InviteOnly''
+                        ELSE ''Approval''
+                    END');
 
             IF COL_LENGTH('dbo.GroupPosts', 'PostType') IS NULL
                 ALTER TABLE dbo.GroupPosts ADD PostType varchar(15) NOT NULL
@@ -72,8 +72,8 @@ public partial class AddDiscordStudyGroupFlow : Migration
                 SELECT 1 FROM sys.check_constraints
                 WHERE name = 'CK_GroupPosts_Type'
                   AND parent_object_id = OBJECT_ID('dbo.GroupPosts'))
-                ALTER TABLE dbo.GroupPosts ADD CONSTRAINT CK_GroupPosts_Type
-                    CHECK (PostType IN ('Message', 'Announcement'));
+                EXEC(N'ALTER TABLE dbo.GroupPosts ADD CONSTRAINT CK_GroupPosts_Type
+                    CHECK (PostType IN (''Message'', ''Announcement''))');
 
             IF OBJECT_ID('dbo.GroupInvites', 'U') IS NULL
             BEGIN
