@@ -174,6 +174,8 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             deck.UserSubjectId = request.UserSubjectId;
             deck.UpdatedAtUtc = DateTime.UtcNow;
 
+            repository.Update(deck);
+
             await repository.SaveChangesAsync(cancellationToken);
 
             return true;
@@ -222,7 +224,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
                     !userSubject.IsArchived,
                 cancellationToken);
 
-            if (!belongsToCurrentuser) { }
+            if (!belongsToCurrentuser)
             {
                 throw new ArgumentException(
                     "Môn học được chọn không thuộc người dùng hiện tại",
