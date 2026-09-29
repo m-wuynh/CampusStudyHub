@@ -9,6 +9,34 @@ namespace StudyHub.DAL.Repositories.StudyGroups;
 
 public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyGroupRepository
 {
+    public async Task<IReadOnlyList<GroupSubjectOptionData>> GetSubjectOptionsAsync(
+        long currentUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var catalogNames = await context.Subjects.AsNoTracking()
+            .Where(subject => subject.IsActive)
+            .Select(subject => subject.SubjectName)
+            .ToListAsync(cancellationToken);
+        var personalNames = await context.UserSubjects.AsNoTracking()
+            .Where(item => item.UserId == currentUserId && !item.IsArchived && item.CustomSubjectName != null)
+            .Select(item => item.CustomSubjectName!)
+            .ToListAsync(cancellationToken);
+        var previousGroupNames = await context.StudyGroupSubjects.AsNoTracking()
+            .Where(item => item.AddedByUserId == currentUserId && item.CustomSubjectName != null)
+            .Select(item => item.CustomSubjectName!)
+            .ToListAsync(cancellationToken);
+
+        var catalogSet = catalogNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return catalogNames
+            .Concat(personalNames)
+            .Concat(previousGroupNames)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name)
+            .Select(name => new GroupSubjectOptionData(name, !catalogSet.Contains(name)))
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<StudyGroupData>> GetVisibleAsync(
         long currentUserId,
         string? searchText = null,
@@ -16,11 +44,13 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
     {
         var query = context.StudyGroups
             .AsNoTracking()
+            .AsSplitQuery()
             .Where(group => !group.IsArchived &&
                 (group.Visibility == "Public" || group.GroupMembers.Any(member =>
                     member.UserId == currentUserId &&
                     (member.Status == "Active" || member.Status == "Pending"))))
-            .Include(group => group.Subject)
+            .Include(group => group.StudyGroupSubjects)
+                .ThenInclude(item => item.Subject)
             .Include(group => group.GroupMembers)
                 .ThenInclude(member => member.User)
             .AsQueryable();
@@ -32,7 +62,9 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
                 group.GroupName.Contains(keyword) ||
                 (group.Description != null && group.Description.Contains(keyword)) ||
                 (group.Goal != null && group.Goal.Contains(keyword)) ||
-                (group.Subject != null && group.Subject.SubjectName.Contains(keyword)));
+                group.StudyGroupSubjects.Any(item =>
+                    (item.Subject != null && item.Subject.SubjectName.Contains(keyword)) ||
+                    (item.CustomSubjectName != null && item.CustomSubjectName.Contains(keyword))));
         }
 
         var groups = await query.OrderBy(group => group.GroupName).ToListAsync(cancellationToken);
@@ -48,7 +80,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .AsNoTracking()
             .AsSplitQuery()
             .Where(item => !item.IsArchived && item.StudyGroupId == groupId)
-            .Include(item => item.Subject)
+            .Include(item => item.StudyGroupSubjects)
+                .ThenInclude(subject => subject.Subject)
             .Include(item => item.GroupMembers)
                 .ThenInclude(member => member.User)
             .SingleOrDefaultAsync(cancellationToken);
@@ -121,30 +154,19 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         CancellationToken cancellationToken = default)
     {
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-        var subject = await context.Subjects
-            .FirstOrDefaultAsync(item => item.SubjectName == group.Subject, cancellationToken);
-        if (subject is null)
-        {
-            subject = new Subject
-            {
-                SubjectCode = $"USR-{Guid.NewGuid():N}"[..12].ToUpperInvariant(),
-                SubjectName = group.Subject.Trim(),
-                IsActive = true
-            };
-            context.Subjects.Add(subject);
-        }
+        var catalogSubjects = await context.Subjects
+            .Where(item => item.IsActive)
+            .ToListAsync(cancellationToken);
 
         var now = DateTime.UtcNow;
         var entity = new StudyGroup
         {
             OwnerUserId = group.OwnerUserId,
-            Subject = subject,
             GroupName = group.Name,
             Description = NullIfWhiteSpace(group.Description),
             Goal = NullIfWhiteSpace(group.Goal),
             MeetingFormat = group.MeetingFormat,
             MeetingSchedule = NullIfWhiteSpace(group.MeetingSchedule),
-            ContactUrl = NullIfWhiteSpace(group.ContactUrl),
             Rules = NullIfWhiteSpace(group.Rules),
             Visibility = group.Visibility,
             JoinMode = group.JoinMode,
@@ -155,6 +177,20 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         };
         context.StudyGroups.Add(entity);
         await context.SaveChangesAsync(cancellationToken);
+
+        foreach (var subjectName in group.Subjects)
+        {
+            var catalogSubject = catalogSubjects.FirstOrDefault(item =>
+                item.SubjectName.Equals(subjectName, StringComparison.OrdinalIgnoreCase));
+            context.StudyGroupSubjects.Add(new StudyGroupSubject
+            {
+                StudyGroupId = entity.StudyGroupId,
+                SubjectId = catalogSubject?.SubjectId,
+                CustomSubjectName = catalogSubject is null ? subjectName : null,
+                AddedByUserId = group.OwnerUserId,
+                CreatedAtUtc = now
+            });
+        }
 
         context.GroupMembers.Add(new GroupMember
         {
@@ -170,6 +206,78 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
 
         return await GetAsync(entity.StudyGroupId, group.OwnerUserId, cancellationToken)
             ?? throw new StudyGroupRepositoryException("create_failed", "Không thể đọc lại nhóm vừa tạo.");
+    }
+
+    public async Task<StudyGroupData> UpdateAsync(
+        long groupId,
+        long ownerUserId,
+        UpdateStudyGroupData group,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var entity = await context.StudyGroups
+                .Include(item => item.StudyGroupSubjects)
+                .SingleOrDefaultAsync(item => item.StudyGroupId == groupId && !item.IsArchived, cancellationToken)
+                ?? throw new StudyGroupRepositoryException("not_found", "Nhóm học tập không tồn tại.");
+
+            if (entity.OwnerUserId != ownerUserId)
+                throw new StudyGroupRepositoryException("forbidden", "Chỉ trưởng nhóm mới có thể chỉnh sửa nhóm học tập.");
+
+            var activeMemberCount = await context.GroupMembers.CountAsync(
+                member => member.StudyGroupId == groupId && member.Status == "Active",
+                cancellationToken);
+            if (group.MaxMembers is not null && group.MaxMembers < activeMemberCount)
+                throw new StudyGroupRepositoryException(
+                    "member_limit_too_low",
+                    $"Số thành viên tối đa phải từ {activeMemberCount} trở lên vì nhóm đang có {activeMemberCount} thành viên.");
+
+            var catalogSubjects = await context.Subjects
+                .Where(item => item.IsActive)
+                .ToListAsync(cancellationToken);
+
+            entity.GroupName = group.Name;
+            entity.Description = NullIfWhiteSpace(group.Description);
+            entity.Goal = NullIfWhiteSpace(group.Goal);
+            entity.MeetingFormat = group.MeetingFormat;
+            entity.MeetingSchedule = NullIfWhiteSpace(group.MeetingSchedule);
+            entity.Rules = NullIfWhiteSpace(group.Rules);
+            entity.Visibility = group.Visibility;
+            entity.JoinMode = group.JoinMode;
+            entity.MaxMembers = group.MaxMembers;
+            entity.UpdatedAtUtc = DateTime.UtcNow;
+
+            context.StudyGroupSubjects.RemoveRange(entity.StudyGroupSubjects);
+            await context.SaveChangesAsync(cancellationToken);
+
+            var now = DateTime.UtcNow;
+            foreach (var subjectName in group.Subjects)
+            {
+                var catalogSubject = catalogSubjects.FirstOrDefault(item =>
+                    item.SubjectName.Equals(subjectName, StringComparison.OrdinalIgnoreCase));
+                context.StudyGroupSubjects.Add(new StudyGroupSubject
+                {
+                    StudyGroupId = entity.StudyGroupId,
+                    SubjectId = catalogSubject?.SubjectId,
+                    CustomSubjectName = catalogSubject is null ? subjectName : null,
+                    AddedByUserId = ownerUserId,
+                    CreatedAtUtc = now
+                });
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new StudyGroupRepositoryException(
+                "update_conflict",
+                "Nhóm vừa được thay đổi ở nơi khác. Hãy tải lại trang và thử lại.");
+        }
+
+        return await GetAsync(groupId, ownerUserId, cancellationToken)
+            ?? throw new StudyGroupRepositoryException("update_failed", "Không thể đọc lại nhóm vừa cập nhật.");
     }
 
     public async Task<GroupMembershipData> RequestJoinAsync(
@@ -377,7 +485,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         CancellationToken cancellationToken = default)
     {
         var group = await context.StudyGroups
-            .Include(item => item.Subject)
+            .Include(item => item.StudyGroupSubjects)
+                .ThenInclude(subject => subject.Subject)
             .Include(item => item.GroupMembers)
             .SingleOrDefaultAsync(item => item.StudyGroupId == groupId && !item.IsArchived, cancellationToken)
             ?? throw new StudyGroupRepositoryException("not_found", "Không tìm thấy nhóm học tập.");
@@ -407,7 +516,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
     {
         var invite = await context.GroupInvites.AsNoTracking()
             .Include(item => item.StudyGroup)
-                .ThenInclude(group => group.Subject)
+                .ThenInclude(group => group.StudyGroupSubjects)
+                    .ThenInclude(subject => subject.Subject)
             .SingleOrDefaultAsync(item => item.InviteCode == inviteCode, cancellationToken);
         if (invite is null || !InviteIsValid(invite) || invite.StudyGroup.IsArchived) return null;
         return ToInvite(invite, invite.StudyGroup);
@@ -478,13 +588,10 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         {
             Id = group.StudyGroupId.ToString(),
             Name = group.GroupName,
-            Subject = group.Subject?.SubjectName ?? "Học tập",
-            SubjectCssClass = GetSubjectCssClass(group.Subject?.SubjectName),
             Description = group.Description ?? string.Empty,
             Goal = group.Goal ?? string.Empty,
             MeetingFormat = group.MeetingFormat,
             MeetingSchedule = group.MeetingSchedule ?? string.Empty,
-            ContactUrl = group.ContactUrl ?? string.Empty,
             Rules = group.Rules ?? string.Empty,
             IsPublic = group.Visibility == "Public",
             JoinMode = group.JoinMode,
@@ -494,6 +601,15 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             CurrentMembershipStatus = membership?.Status,
             CurrentMemberRole = membership?.MemberRole
         };
+
+        result.Subjects.AddRange(group.StudyGroupSubjects
+            .Select(item => new
+            {
+                Name = item.Subject?.SubjectName ?? item.CustomSubjectName ?? "Môn học",
+                IsCustom = item.SubjectId is null
+            })
+            .OrderBy(item => item.Name)
+            .Select(item => new GroupSubjectData(item.Name, GetSubjectCssClass(item.Name), item.IsCustom)));
 
         result.Members.AddRange(group.GroupMembers
             .Where(member => member.Status is "Active" or "Pending")
@@ -528,14 +644,15 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         invite.InviteCode,
         group.StudyGroupId.ToString(),
         group.GroupName,
-        group.Subject?.SubjectName ?? "Học tập",
+        GetSubjectNames(group),
         AsUtc(invite.ExpiresAtUtc),
         invite.MaxUses,
         invite.UseCount);
 
     private static void EnsureCapacity(StudyGroup group)
     {
-        if (group.GroupMembers.Count(member => member.Status == "Active") >= group.MaxMembers)
+        if (group.MaxMembers is { } maxMembers &&
+            group.GroupMembers.Count(member => member.Status == "Active") >= maxMembers)
             throw new StudyGroupRepositoryException("group_full", "Nhóm đã đủ số thành viên tối đa.");
     }
 
@@ -547,6 +664,16 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
 
     private static DateTimeOffset AsUtc(DateTime value) =>
         new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
+
+    private static string GetSubjectNames(StudyGroup group)
+    {
+        var names = group.StudyGroupSubjects
+            .Select(item => item.Subject?.SubjectName ?? item.CustomSubjectName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .OrderBy(name => name)
+            .ToList();
+        return names.Count == 0 ? "Học tập" : string.Join(", ", names);
+    }
 
     private static string GetSubjectCssClass(string? subject) => subject?.Trim().ToLowerInvariant() switch
     {

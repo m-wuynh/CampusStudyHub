@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudyHub.DAL.Persistence;
 
@@ -11,9 +12,11 @@ using StudyHub.DAL.Persistence;
 namespace StudyHub.DAL.Migrations
 {
     [DbContext(typeof(StudyHubDbContext))]
-    partial class StudyHubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260928102638_AddMultiSubjectStudyGroups")]
+    partial class AddMultiSubjectStudyGroups
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1207,6 +1210,10 @@ namespace StudyHub.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StudyGroupId"));
 
+                    b.Property<string>("ContactUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(3)
@@ -1237,8 +1244,10 @@ namespace StudyHub.DAL.Migrations
                         .HasColumnType("varchar(15)")
                         .HasDefaultValue("Approval");
 
-                    b.Property<short?>("MaxMembers")
-                        .HasColumnType("smallint");
+                    b.Property<short>("MaxMembers")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)20);
 
                     b.Property<string>("MeetingFormat")
                         .IsRequired()

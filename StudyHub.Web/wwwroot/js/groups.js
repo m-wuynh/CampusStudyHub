@@ -12,6 +12,10 @@
   let activeTabId = 'my-groups';
   let searchTimer;
   let loadSequence = 0;
+  const subjectPicker = window.createSubjectMultiSelect({
+    root: document.getElementById('group-subject-select'),
+    maxSelections: 10
+  });
 
   const escapeHtml = value => String(value ?? '')
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -41,7 +45,9 @@
     const column = document.createElement('div');
     column.className = 'col-12 col-md-6 col-xl-4';
     const isPending = group.membershipStatus === 'Pending';
-    const capacity = `${group.memberCount}/${group.maxMembers}`;
+    const capacity = group.maxMembers == null
+      ? `${group.memberCount} thành viên · Không giới hạn`
+      : `${group.memberCount}/${group.maxMembers} thành viên`;
     let actions;
     if (group.isMember) {
       actions = `<button type="button" class="open-group-btn btn-primary-sh flex-grow-1 justify-content-center" data-group-id="${escapeHtml(group.id)}"><i class="bi bi-box-arrow-in-right"></i>Vào nhóm</button>
@@ -55,10 +61,21 @@
         <button type="button" class="membership-btn btn-primary-sh flex-grow-1 justify-content-center" data-group-id="${escapeHtml(group.id)}" data-action="join" ${inviteOnly ? 'disabled' : ''}>${inviteOnly ? 'Cần mã mời' : (group.joinMode === 'Open' ? 'Tham gia ngay' : 'Gửi yêu cầu')}</button>`;
     }
 
+    const subjects = group.subjects?.length
+      ? group.subjects
+      : [{ name: group.subject || 'Học tập', cssClass: group.subjectCssClass || 'subject-toan' }];
+    const subjectBadges = subjects
+      .slice(0, 3)
+      .map(subject => `<span class="subject-badge ${escapeHtml(subject.cssClass)}">${escapeHtml(subject.name)}</span>`)
+      .join('');
+    const remainingSubjects = subjects.length > 3
+      ? `<span class="group-access-badge">+${subjects.length - 3} môn</span>`
+      : '';
+
     column.innerHTML = `
       <article class="sh-card group-discord-card p-4 h-100 d-flex flex-column" data-group-id="${escapeHtml(group.id)}">
         <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-          <span class="subject-badge ${escapeHtml(group.subjectCssClass)}">${escapeHtml(group.subject)}</span>
+          <div class="d-flex flex-wrap gap-1">${subjectBadges}${remainingSubjects}</div>
           <span class="group-access-badge"><i class="bi ${group.isPublic ? 'bi-globe2' : 'bi-lock-fill'}"></i>${escapeHtml(accessLabel(group))}</span>
         </div>
         <h3 class="fw-bold mb-1" style="font-size:15px;">${escapeHtml(group.name)}</h3>
@@ -66,7 +83,7 @@
         ${group.goal ? `<div class="group-card-meta"><i class="bi bi-bullseye"></i><span>${escapeHtml(group.goal)}</span></div>` : ''}
         <div class="group-card-meta"><i class="bi bi-camera-video"></i><span>${escapeHtml(group.meetingFormat)}${group.meetingSchedule ? ` · ${escapeHtml(group.meetingSchedule)}` : ''}</span></div>
         <div class="d-flex align-items-center justify-content-between mt-3 mb-3">
-          <span style="font-size:11px;color:var(--sh-slate-500);"><i class="bi bi-people me-1"></i>${capacity} thành viên</span>
+          <span style="font-size:11px;color:var(--sh-slate-500);"><i class="bi bi-people me-1"></i>${capacity}</span>
           ${isPending ? '<span class="badge text-bg-warning">Đang chờ duyệt</span>' : group.pendingMemberCount > 0 ? `<span class="badge text-bg-warning">${group.pendingMemberCount} yêu cầu mới</span>` : ''}
         </div>
         <div class="d-flex gap-2 mt-auto">${actions}</div>
@@ -123,6 +140,14 @@
   searchInput.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadGroups, 350); });
   clearSearchButton.addEventListener('click', () => { searchInput.value = ''; loadGroups(); });
 
+  async function loadSubjectOptions() {
+    try {
+      subjectPicker.setOptions(await requestJson(`${apiUrl}/subjects`));
+    } catch (error) {
+      window.showToast(error.message, 'error');
+    }
+  }
+
   view.addEventListener('click', async event => {
     const openButton = event.target.closest('.open-group-btn');
     if (openButton) return location.assign(`/Groups/${encodeURIComponent(openButton.dataset.groupId)}`);
@@ -143,18 +168,21 @@
   document.getElementById('create-group-btn').addEventListener('click', async event => {
     const button = event.currentTarget;
     const access = document.getElementById('group-access').value;
+    const subjects = subjectPicker.getSelectedNames();
+    if (!subjects.length) return window.showToast('Hãy chọn hoặc thêm ít nhất một môn học.', 'error');
     const payload = {
       name: document.getElementById('group-name').value.trim(),
-      subject: document.getElementById('group-subject').value,
+      subjects,
       description: document.getElementById('group-desc').value.trim(),
       goal: document.getElementById('group-goal').value.trim(),
       meetingFormat: document.getElementById('group-format').value,
       meetingSchedule: document.getElementById('group-schedule').value.trim(),
-      contactUrl: document.getElementById('group-contact').value.trim(),
       rules: document.getElementById('group-rules').value.trim(),
       isPublic: access !== 'InviteOnly',
       joinMode: access,
-      maxMembers: Number(document.getElementById('group-max-members').value)
+      maxMembers: document.getElementById('group-max-members').value.trim()
+        ? Number(document.getElementById('group-max-members').value)
+        : null
     };
     button.disabled = true;
     try {
@@ -175,5 +203,6 @@
 
   searchInput.value = view.dataset.initialSearch || '';
   showTab(activeTabId);
+  loadSubjectOptions();
   loadGroups();
 })();
