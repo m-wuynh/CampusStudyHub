@@ -78,7 +78,7 @@ Tham khảo: [Google OpenID Connect — định danh `sub` và xác minh ID toke
 - Trước khi chia sẻ vào nhóm, kiểm tra người đăng là thành viên Active. Khóa ngoại chỉ kiểm tra nhóm tồn tại, không thay thế chính sách này.
 - Owner được xác định duy nhất từ `StudyGroups.OwnerUserId`, không từ `MemberRole`. `Moderator` là quyền điều phối, không đồng nghĩa chủ nhóm.
 - `JoinMode` tách khỏi `Visibility`: `Open` vào ngay, `Approval` tạo membership Pending, `InviteOnly` yêu cầu mã trong `GroupInvites`.
-- Tạo nhóm qua `usp_CreateStudyGroup` hoặc transaction tương đương. Duyệt thành viên phải khóa dòng nhóm trong transaction và kiểm tra `MaxMembers`; DB chưa tự enforce sức chứa. Không cho owner rời nhóm nếu chưa chuyển quyền hoặc lưu trữ nhóm.
+- Tạo nhóm qua `usp_CreateStudyGroup` hoặc transaction tương đương. `MaxMembers = NULL` nghĩa là nhóm không giới hạn thành viên; khi có giá trị thì phải từ 2 đến 500. Duyệt thành viên phải khóa dòng nhóm trong transaction và kiểm tra giới hạn này. Không cho owner rời nhóm nếu chưa chuyển quyền hoặc lưu trữ nhóm.
 - `GroupPosts` có FK membership, nhưng backend vẫn cần kiểm tra membership đang Active. Thành viên rời nhóm không làm mất lịch sử bài đăng.
 - `Documents` chỉ lưu metadata. File thật nằm ở nơi lưu trữ riêng; `StorageKey` là khóa nội bộ, không phải URL tải công khai. Kiểm tra quyền mỗi lần tải và tạo URL ngắn hạn nếu cần.
 - Bookmark và lịch sử flashcard không tự cấp quyền truy cập khi chủ sở hữu đổi nội dung sang Private. Truy vấn mẫu đã kiểm tra quyền chia sẻ hiện tại.

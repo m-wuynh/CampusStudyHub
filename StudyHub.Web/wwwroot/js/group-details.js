@@ -52,80 +52,32 @@
 
   if (isOwner) {
     const editModal = document.getElementById('editGroupModal');
-    const subjectContainer = document.getElementById('edit-group-subject-options');
     const formatSelect = document.getElementById('edit-group-format');
     const accessSelect = document.getElementById('edit-group-access');
-    let editSubjectOptions = [...subjectContainer.querySelectorAll('.group-subject-option')].map(label => ({
-      name: label.querySelector('input').value,
-      isCustom: Boolean(label.querySelector('small'))
-    }));
+    const subjectPicker = window.createSubjectMultiSelect({
+      root: document.getElementById('edit-group-subject-select'),
+      maxSelections: 10
+    });
     let subjectOptionsLoaded = false;
 
     formatSelect.value = formatSelect.dataset.currentValue;
     accessSelect.value = accessSelect.dataset.currentValue;
 
-    const sameSubject = (left, right) => left.localeCompare(right, 'vi', { sensitivity: 'base' }) === 0;
-    const selectedSubjectNames = () => [...subjectContainer.querySelectorAll('input:checked')]
-      .map(input => input.value);
-
-    function renderEditSubjectOptions(selectedNames = selectedSubjectNames()) {
-      subjectContainer.innerHTML = editSubjectOptions.map((subject, index) => `
-        <label class="group-subject-option" for="edit-group-subject-${index}">
-          <input id="edit-group-subject-${index}" type="checkbox" value="${escapeHtml(subject.name)}"
-            ${selectedNames.some(name => sameSubject(name, subject.name)) ? 'checked' : ''} />
-          <span>${escapeHtml(subject.name)}</span>
-          ${subject.isCustom ? '<small>Cá nhân</small>' : ''}
-        </label>`).join('');
-    }
-
     async function loadEditSubjectOptions() {
       if (subjectOptionsLoaded) return;
-      const selected = selectedSubjectNames();
       try {
-        const options = await requestJson('/api/groups/subjects');
-        options.forEach(option => {
-          const existing = editSubjectOptions.find(item => sameSubject(item.name, option.name));
-          if (existing) existing.isCustom = existing.isCustom && option.isCustom;
-          else editSubjectOptions.push(option);
-        });
-        editSubjectOptions.sort((left, right) => left.name.localeCompare(right.name, 'vi'));
+        subjectPicker.setOptions(await requestJson('/api/groups/subjects'));
         subjectOptionsLoaded = true;
-        renderEditSubjectOptions(selected);
       } catch (error) {
         window.showToast(error.message, 'error');
       }
     }
 
-    function addEditSubject() {
-      const input = document.getElementById('edit-group-subject-new');
-      const name = input.value.trim();
-      if (!name) return window.showToast('Hãy nhập tên môn học.', 'error');
-      if (name.length > 150) return window.showToast('Tên môn học tối đa 150 ký tự.', 'error');
-
-      const selected = selectedSubjectNames();
-      let subject = editSubjectOptions.find(item => sameSubject(item.name, name));
-      if (!subject) {
-        subject = { name, isCustom: true };
-        editSubjectOptions.push(subject);
-        editSubjectOptions.sort((left, right) => left.name.localeCompare(right.name, 'vi'));
-      }
-      if (!selected.some(item => sameSubject(item, subject.name))) selected.push(subject.name);
-      if (selected.length > 10) return window.showToast('Mỗi nhóm được chọn tối đa 10 môn học.', 'error');
-      renderEditSubjectOptions(selected);
-      input.value = '';
-    }
-
     editModal.addEventListener('show.bs.modal', loadEditSubjectOptions);
-    document.getElementById('add-edit-group-subject-btn').addEventListener('click', addEditSubject);
-    document.getElementById('edit-group-subject-new').addEventListener('keydown', event => {
-      if (event.key !== 'Enter') return;
-      event.preventDefault();
-      addEditSubject();
-    });
 
     document.getElementById('save-group-changes-btn').addEventListener('click', async event => {
       const button = event.currentTarget;
-      const subjects = selectedSubjectNames();
+      const subjects = subjectPicker.getSelectedNames();
       const name = document.getElementById('edit-group-name').value.trim();
       if (!name) return window.showToast('Tên nhóm là bắt buộc.', 'error');
       if (!subjects.length) return window.showToast('Hãy chọn hoặc thêm ít nhất một môn học.', 'error');
@@ -139,11 +91,12 @@
         goal: document.getElementById('edit-group-goal').value.trim(),
         meetingFormat: formatSelect.value,
         meetingSchedule: document.getElementById('edit-group-schedule').value.trim(),
-        contactUrl: document.getElementById('edit-group-contact').value.trim(),
         rules: document.getElementById('edit-group-rules').value.trim(),
         isPublic: access !== 'InviteOnly',
         joinMode: access,
-        maxMembers: Number(document.getElementById('edit-group-max-members').value)
+        maxMembers: document.getElementById('edit-group-max-members').value.trim()
+          ? Number(document.getElementById('edit-group-max-members').value)
+          : null
       };
 
       button.disabled = true;

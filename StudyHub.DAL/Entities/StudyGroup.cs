@@ -19,15 +19,13 @@ public partial class StudyGroup
 
     public string? MeetingSchedule { get; set; }
 
-    public string? ContactUrl { get; set; }
-
     public string? Rules { get; set; }
 
     public string Visibility { get; set; } = null!;
 
     public string JoinMode { get; set; } = null!;
 
-    public short MaxMembers { get; set; }
+    public short? MaxMembers { get; set; }
 
     public bool IsArchived { get; set; }
 

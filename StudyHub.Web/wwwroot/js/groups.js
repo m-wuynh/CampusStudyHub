@@ -12,7 +12,10 @@
   let activeTabId = 'my-groups';
   let searchTimer;
   let loadSequence = 0;
-  let subjectOptions = [];
+  const subjectPicker = window.createSubjectMultiSelect({
+    root: document.getElementById('group-subject-select'),
+    maxSelections: 10
+  });
 
   const escapeHtml = value => String(value ?? '')
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -42,7 +45,9 @@
     const column = document.createElement('div');
     column.className = 'col-12 col-md-6 col-xl-4';
     const isPending = group.membershipStatus === 'Pending';
-    const capacity = `${group.memberCount}/${group.maxMembers}`;
+    const capacity = group.maxMembers == null
+      ? `${group.memberCount} thành viên · Không giới hạn`
+      : `${group.memberCount}/${group.maxMembers} thành viên`;
     let actions;
     if (group.isMember) {
       actions = `<button type="button" class="open-group-btn btn-primary-sh flex-grow-1 justify-content-center" data-group-id="${escapeHtml(group.id)}"><i class="bi bi-box-arrow-in-right"></i>Vào nhóm</button>
@@ -78,7 +83,7 @@
         ${group.goal ? `<div class="group-card-meta"><i class="bi bi-bullseye"></i><span>${escapeHtml(group.goal)}</span></div>` : ''}
         <div class="group-card-meta"><i class="bi bi-camera-video"></i><span>${escapeHtml(group.meetingFormat)}${group.meetingSchedule ? ` · ${escapeHtml(group.meetingSchedule)}` : ''}</span></div>
         <div class="d-flex align-items-center justify-content-between mt-3 mb-3">
-          <span style="font-size:11px;color:var(--sh-slate-500);"><i class="bi bi-people me-1"></i>${capacity} thành viên</span>
+          <span style="font-size:11px;color:var(--sh-slate-500);"><i class="bi bi-people me-1"></i>${capacity}</span>
           ${isPending ? '<span class="badge text-bg-warning">Đang chờ duyệt</span>' : group.pendingMemberCount > 0 ? `<span class="badge text-bg-warning">${group.pendingMemberCount} yêu cầu mới</span>` : ''}
         </div>
         <div class="d-flex gap-2 mt-auto">${actions}</div>
@@ -135,52 +140,13 @@
   searchInput.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadGroups, 350); });
   clearSearchButton.addEventListener('click', () => { searchInput.value = ''; loadGroups(); });
 
-  function renderSubjectOptions() {
-    const container = document.getElementById('group-subject-options');
-    if (!subjectOptions.length) {
-      container.innerHTML = '<span class="text-muted" style="font-size:11px;">Chưa có môn gợi ý. Hãy nhập môn mới ở phía trên.</span>';
-      return;
-    }
-    container.innerHTML = subjectOptions.map((subject, index) => `
-      <label class="group-subject-option" for="group-subject-${index}">
-        <input id="group-subject-${index}" type="checkbox" value="${escapeHtml(subject.name)}" />
-        <span>${escapeHtml(subject.name)}</span>
-        ${subject.isCustom ? '<small>Cá nhân</small>' : ''}
-      </label>`).join('');
-  }
-
   async function loadSubjectOptions() {
     try {
-      subjectOptions = await requestJson(`${apiUrl}/subjects`);
-      renderSubjectOptions();
+      subjectPicker.setOptions(await requestJson(`${apiUrl}/subjects`));
     } catch (error) {
-      document.getElementById('group-subject-options').innerHTML =
-        `<span class="text-danger" style="font-size:11px;">${escapeHtml(error.message)}</span>`;
+      window.showToast(error.message, 'error');
     }
   }
-
-  function addCustomSubject() {
-    const input = document.getElementById('group-subject-new');
-    const name = input.value.trim();
-    if (!name) return window.showToast('Hãy nhập tên môn học.', 'error');
-    if (name.length > 150) return window.showToast('Tên môn học tối đa 150 ký tự.', 'error');
-    let index = subjectOptions.findIndex(item => item.name.localeCompare(name, 'vi', { sensitivity: 'base' }) === 0);
-    if (index < 0) {
-      subjectOptions.push({ name, isCustom: true });
-      subjectOptions.sort((left, right) => left.name.localeCompare(right.name, 'vi'));
-      renderSubjectOptions();
-      index = subjectOptions.findIndex(item => item.name === name);
-    }
-    document.getElementById(`group-subject-${index}`).checked = true;
-    input.value = '';
-  }
-
-  document.getElementById('add-group-subject-btn').addEventListener('click', addCustomSubject);
-  document.getElementById('group-subject-new').addEventListener('keydown', event => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    addCustomSubject();
-  });
 
   view.addEventListener('click', async event => {
     const openButton = event.target.closest('.open-group-btn');
@@ -202,8 +168,7 @@
   document.getElementById('create-group-btn').addEventListener('click', async event => {
     const button = event.currentTarget;
     const access = document.getElementById('group-access').value;
-    const subjects = [...document.querySelectorAll('#group-subject-options input:checked')]
-      .map(input => input.value);
+    const subjects = subjectPicker.getSelectedNames();
     if (!subjects.length) return window.showToast('Hãy chọn hoặc thêm ít nhất một môn học.', 'error');
     const payload = {
       name: document.getElementById('group-name').value.trim(),
@@ -212,11 +177,12 @@
       goal: document.getElementById('group-goal').value.trim(),
       meetingFormat: document.getElementById('group-format').value,
       meetingSchedule: document.getElementById('group-schedule').value.trim(),
-      contactUrl: document.getElementById('group-contact').value.trim(),
       rules: document.getElementById('group-rules').value.trim(),
       isPublic: access !== 'InviteOnly',
       joinMode: access,
-      maxMembers: Number(document.getElementById('group-max-members').value)
+      maxMembers: document.getElementById('group-max-members').value.trim()
+        ? Number(document.getElementById('group-max-members').value)
+        : null
     };
     button.disabled = true;
     try {

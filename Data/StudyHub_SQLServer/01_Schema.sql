@@ -135,11 +135,10 @@ BEGIN TRY
         Goal nvarchar(500) NULL,
         MeetingFormat varchar(10) NOT NULL CONSTRAINT DF_StudyGroups_MeetingFormat DEFAULT ('Online'),
         MeetingSchedule nvarchar(250) NULL,
-        ContactUrl nvarchar(2048) NULL,
         Rules nvarchar(2000) NULL,
         Visibility varchar(10) NOT NULL CONSTRAINT DF_StudyGroups_Visibility DEFAULT ('Private'),
         JoinMode varchar(15) NOT NULL CONSTRAINT DF_StudyGroups_JoinMode DEFAULT ('Approval'),
-        MaxMembers smallint NOT NULL CONSTRAINT DF_StudyGroups_Max DEFAULT (20),
+        MaxMembers smallint NULL,
         IsArchived bit NOT NULL CONSTRAINT DF_StudyGroups_Archived DEFAULT (0),
         CreatedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_StudyGroups_Created DEFAULT (SYSUTCDATETIME()),
         UpdatedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_StudyGroups_Updated DEFAULT (SYSUTCDATETIME()),
@@ -148,7 +147,7 @@ BEGIN TRY
         CONSTRAINT CK_StudyGroups_Visibility CHECK (Visibility IN ('Public','Private')),
         CONSTRAINT CK_StudyGroups_JoinMode CHECK (JoinMode IN ('Open','Approval','InviteOnly')),
         CONSTRAINT CK_StudyGroups_MeetingFormat CHECK (MeetingFormat IN ('Online','Offline','Hybrid')),
-        CONSTRAINT CK_StudyGroups_Max CHECK (MaxMembers BETWEEN 2 AND 500),
+        CONSTRAINT CK_StudyGroups_Max CHECK (MaxMembers IS NULL OR MaxMembers BETWEEN 2 AND 500),
         CONSTRAINT CK_StudyGroups_Name CHECK (LEN(LTRIM(RTRIM(GroupName))) > 0)
     );
 
@@ -661,7 +660,7 @@ BEGIN TRY
 
     EXEC(N'CREATE PROCEDURE dbo.usp_CreateStudyGroup
         @OwnerUserId bigint, @GroupName nvarchar(150), @SubjectId int = NULL,
-        @Visibility varchar(10) = ''Private'', @MaxMembers smallint = 20,
+        @Visibility varchar(10) = ''Private'', @MaxMembers smallint = NULL,
         @StudyGroupId bigint = NULL OUTPUT
     AS
     BEGIN

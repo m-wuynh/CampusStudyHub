@@ -11,11 +11,10 @@ public sealed class StudyGroupData
     public string Goal { get; set; } = string.Empty;
     public string MeetingFormat { get; set; } = "Online";
     public string MeetingSchedule { get; set; } = string.Empty;
-    public string ContactUrl { get; set; } = string.Empty;
     public string Rules { get; set; } = string.Empty;
     public bool IsPublic { get; set; }
     public string JoinMode { get; set; } = "Approval";
-    public short MaxMembers { get; set; } = 20;
+    public short? MaxMembers { get; set; }
     public required string OwnerUserId { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
     public string? CurrentMembershipStatus { get; set; }
@@ -74,11 +73,10 @@ public sealed class CreateStudyGroupData
     public string? Goal { get; init; }
     public required string MeetingFormat { get; init; }
     public string? MeetingSchedule { get; init; }
-    public string? ContactUrl { get; init; }
     public string? Rules { get; init; }
     public required string Visibility { get; init; }
     public required string JoinMode { get; init; }
-    public short MaxMembers { get; init; }
+    public short? MaxMembers { get; init; }
 }
 
 public sealed class UpdateStudyGroupData
@@ -89,11 +87,10 @@ public sealed class UpdateStudyGroupData
     public string? Goal { get; init; }
     public required string MeetingFormat { get; init; }
     public string? MeetingSchedule { get; init; }
-    public string? ContactUrl { get; init; }
     public string? Rules { get; init; }
     public required string Visibility { get; init; }
     public required string JoinMode { get; init; }
-    public short MaxMembers { get; init; }
+    public short? MaxMembers { get; init; }
 }
 
 public sealed class StudyGroupRepositoryException(string code, string message) : Exception(message)

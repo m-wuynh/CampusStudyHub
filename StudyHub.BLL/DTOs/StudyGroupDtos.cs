@@ -11,7 +11,7 @@ public sealed record GroupSummaryResponse(
     string MeetingFormat,
     string MeetingSchedule,
     int MemberCount,
-    int MaxMembers,
+    int? MaxMembers,
     int PendingMemberCount,
     string? MembershipStatus,
     string? MemberRole,
@@ -30,10 +30,9 @@ public sealed record GroupDetailsResponse(
     string Goal,
     string MeetingFormat,
     string MeetingSchedule,
-    string ContactUrl,
     string Rules,
     int MemberCount,
-    int MaxMembers,
+    int? MaxMembers,
     string? MembershipStatus,
     string? MemberRole,
     bool IsMember,
@@ -97,11 +96,10 @@ public sealed record CreateGroupRequest(
     string? Goal,
     string? MeetingFormat,
     string? MeetingSchedule,
-    string? ContactUrl,
     string? Rules,
     bool IsPublic = true,
     string? JoinMode = "Approval",
-    short MaxMembers = 20);
+    short? MaxMembers = null);
 
 public sealed record UpdateGroupRequest(
     string? Name,
@@ -111,8 +109,7 @@ public sealed record UpdateGroupRequest(
     string? Goal,
     string? MeetingFormat,
     string? MeetingSchedule,
-    string? ContactUrl,
     string? Rules,
     bool IsPublic = true,
     string? JoinMode = "Approval",
-    short MaxMembers = 20);
+    short? MaxMembers = null);

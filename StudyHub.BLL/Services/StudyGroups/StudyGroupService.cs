@@ -71,14 +71,13 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         var joinMode = request.IsPublic
             ? NormalizeChoice(request.JoinMode, "Approval", ["Open", "Approval"], "Cách tham gia không hợp lệ.")
             : "InviteOnly";
-        if (request.MaxMembers is < 2 or > 500)
+        if (request.MaxMembers is not null and (< 2 or > 500))
             throw new StudyGroupException("invalid_member_limit", "Số thành viên tối đa phải từ 2 đến 500.");
         var maxMembers = request.MaxMembers;
         ValidateLength(request.Description, 2000, "Mô tả không được dài quá 2000 ký tự.");
         ValidateLength(request.Goal, 500, "Mục tiêu không được dài quá 500 ký tự.");
         ValidateLength(request.MeetingSchedule, 250, "Lịch học không được dài quá 250 ký tự.");
         ValidateLength(request.Rules, 2000, "Nội quy không được dài quá 2000 ký tự.");
-        ValidateContactUrl(request.ContactUrl);
 
         var created = await ExecuteAsync(() => repository.StudyGroups.CreateAsync(new CreateStudyGroupData
         {
@@ -89,7 +88,6 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
             Goal = request.Goal?.Trim(),
             MeetingFormat = meetingFormat,
             MeetingSchedule = request.MeetingSchedule?.Trim(),
-            ContactUrl = request.ContactUrl?.Trim(),
             Rules = request.Rules?.Trim(),
             Visibility = request.IsPublic ? "Public" : "Private",
             JoinMode = joinMode,
@@ -109,14 +107,13 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         var joinMode = request.IsPublic
             ? NormalizeChoice(request.JoinMode, "Approval", ["Open", "Approval"], "Cách tham gia không hợp lệ.")
             : "InviteOnly";
-        if (request.MaxMembers is < 2 or > 500)
+        if (request.MaxMembers is not null and (< 2 or > 500))
             throw new StudyGroupException("invalid_member_limit", "Số thành viên tối đa phải từ 2 đến 500.");
         var maxMembers = request.MaxMembers;
         ValidateLength(request.Description, 2000, "Mô tả không được dài quá 2000 ký tự.");
         ValidateLength(request.Goal, 500, "Mục tiêu không được dài quá 500 ký tự.");
         ValidateLength(request.MeetingSchedule, 250, "Lịch học không được dài quá 250 ký tự.");
         ValidateLength(request.Rules, 2000, "Nội quy không được dài quá 2000 ký tự.");
-        ValidateContactUrl(request.ContactUrl);
 
         var updated = await ExecuteAsync(() => repository.StudyGroups.UpdateAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."),
@@ -129,7 +126,6 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
                 Goal = request.Goal?.Trim(),
                 MeetingFormat = meetingFormat,
                 MeetingSchedule = request.MeetingSchedule?.Trim(),
-                ContactUrl = request.ContactUrl?.Trim(),
                 Rules = request.Rules?.Trim(),
                 Visibility = request.IsPublic ? "Public" : "Private",
                 JoinMode = joinMode,
@@ -242,7 +238,6 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
             group.Goal,
             group.MeetingFormat,
             group.MeetingSchedule,
-            group.ContactUrl,
             group.Rules,
             ActiveMemberCount(group),
             group.MaxMembers,
@@ -342,15 +337,6 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         var normalized = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
         var match = accepted.FirstOrDefault(item => item.Equals(normalized, StringComparison.OrdinalIgnoreCase));
         return match ?? throw new StudyGroupException("invalid_choice", message);
-    }
-
-    private static void ValidateContactUrl(string? contactUrl)
-    {
-        if (string.IsNullOrWhiteSpace(contactUrl)) return;
-        if (contactUrl.Trim().Length > 2048 ||
-            !Uri.TryCreate(contactUrl.Trim(), UriKind.Absolute, out var uri) ||
-            uri.Scheme is not ("http" or "https" or "mailto"))
-            throw new StudyGroupException("invalid_contact", "Liên kết liên hệ không hợp lệ.");
     }
 
     private static string NormalizeInviteCode(string inviteCode)

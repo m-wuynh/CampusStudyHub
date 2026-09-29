@@ -167,7 +167,6 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             Goal = NullIfWhiteSpace(group.Goal),
             MeetingFormat = group.MeetingFormat,
             MeetingSchedule = NullIfWhiteSpace(group.MeetingSchedule),
-            ContactUrl = NullIfWhiteSpace(group.ContactUrl),
             Rules = NullIfWhiteSpace(group.Rules),
             Visibility = group.Visibility,
             JoinMode = group.JoinMode,
@@ -229,7 +228,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             var activeMemberCount = await context.GroupMembers.CountAsync(
                 member => member.StudyGroupId == groupId && member.Status == "Active",
                 cancellationToken);
-            if (group.MaxMembers < activeMemberCount)
+            if (group.MaxMembers is not null && group.MaxMembers < activeMemberCount)
                 throw new StudyGroupRepositoryException(
                     "member_limit_too_low",
                     $"Số thành viên tối đa phải từ {activeMemberCount} trở lên vì nhóm đang có {activeMemberCount} thành viên.");
@@ -243,7 +242,6 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             entity.Goal = NullIfWhiteSpace(group.Goal);
             entity.MeetingFormat = group.MeetingFormat;
             entity.MeetingSchedule = NullIfWhiteSpace(group.MeetingSchedule);
-            entity.ContactUrl = NullIfWhiteSpace(group.ContactUrl);
             entity.Rules = NullIfWhiteSpace(group.Rules);
             entity.Visibility = group.Visibility;
             entity.JoinMode = group.JoinMode;
@@ -594,7 +592,6 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             Goal = group.Goal ?? string.Empty,
             MeetingFormat = group.MeetingFormat,
             MeetingSchedule = group.MeetingSchedule ?? string.Empty,
-            ContactUrl = group.ContactUrl ?? string.Empty,
             Rules = group.Rules ?? string.Empty,
             IsPublic = group.Visibility == "Public",
             JoinMode = group.JoinMode,
@@ -654,7 +651,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
 
     private static void EnsureCapacity(StudyGroup group)
     {
-        if (group.GroupMembers.Count(member => member.Status == "Active") >= group.MaxMembers)
+        if (group.MaxMembers is { } maxMembers &&
+            group.GroupMembers.Count(member => member.Status == "Active") >= maxMembers)
             throw new StudyGroupRepositoryException("group_full", "Nhóm đã đủ số thành viên tối đa.");
     }
 

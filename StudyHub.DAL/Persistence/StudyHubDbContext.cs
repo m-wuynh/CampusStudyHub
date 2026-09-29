@@ -701,14 +701,13 @@ public partial class StudyHubDbContext : DbContext
                 .IsUnicode(false)
                 .HasDefaultValue("Online");
             entity.Property(e => e.MeetingSchedule).HasMaxLength(250);
-            entity.Property(e => e.ContactUrl).HasMaxLength(2048);
             entity.Property(e => e.Rules).HasMaxLength(2000);
             entity.Property(e => e.GroupName).HasMaxLength(150);
             entity.Property(e => e.JoinMode)
                 .HasMaxLength(15)
                 .IsUnicode(false)
                 .HasDefaultValue("Approval");
-            entity.Property(e => e.MaxMembers).HasDefaultValue((short)20);
+            entity.Property(e => e.MaxMembers);
             entity.Property(e => e.RowVersion)
                 .IsRowVersion()
                 .IsConcurrencyToken();

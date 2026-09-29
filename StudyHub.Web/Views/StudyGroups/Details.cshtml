@@ -58,7 +58,10 @@
           }
         </div>
         <div class="group-hero-stats">
-          <div><strong>@Model.Group.MemberCount/@Model.Group.MaxMembers</strong><span>Thành viên</span></div>
+          <div>
+            <strong>@(Model.Group.MaxMembers is null ? Model.Group.MemberCount : $"{Model.Group.MemberCount}/{Model.Group.MaxMembers}")</strong>
+            <span>@(Model.Group.MaxMembers is null ? "Thành viên · Không giới hạn" : "Thành viên")</span>
+          </div>
           <div><strong>@Model.Group.MeetingFormat</strong><span>@(string.IsNullOrWhiteSpace(Model.Group.MeetingSchedule) ? "Chưa đặt lịch" : Model.Group.MeetingSchedule)</span></div>
         </div>
       </div>
@@ -72,10 +75,6 @@
         <section class="sh-card p-4 mb-4">
           <h2 class="group-section-title"><i class="bi bi-signpost-split"></i>Trước khi tham gia</h2>
           <p style="font-size:12px;color:var(--sh-slate-600);line-height:1.7;white-space:pre-line;">@(string.IsNullOrWhiteSpace(Model.Group.Rules) ? "Nhóm chưa công bố nội quy riêng. Hãy trao đổi tôn trọng và tập trung vào mục tiêu học tập." : Model.Group.Rules)</p>
-          @if (!string.IsNullOrWhiteSpace(Model.Group.ContactUrl))
-          {
-            <a href="@Model.Group.ContactUrl" target="_blank" rel="noopener noreferrer" class="btn-secondary-sh"><i class="bi bi-link-45deg"></i>Liên kết liên hệ</a>
-          }
         </section>
       </div>
       <div class="col-lg-4">
@@ -126,10 +125,6 @@
             <h3 class="fw-bold" style="font-size:13px;">Nội quy</h3>
             <p style="font-size:12px;color:var(--sh-slate-600);line-height:1.7;white-space:pre-line;">@(string.IsNullOrWhiteSpace(Model.Group.Rules) ? "Tôn trọng thành viên và tập trung vào nội dung học tập." : Model.Group.Rules)</p>
           </div>
-          @if (!string.IsNullOrWhiteSpace(Model.Group.ContactUrl))
-          {
-            <a href="@Model.Group.ContactUrl" target="_blank" rel="noopener noreferrer" class="btn-primary-sh"><i class="bi bi-camera-video"></i>Mở liên kết học nhóm</a>
-          }
         </section>
 
         <section class="group-panel" data-panel-content="announcements" hidden>
@@ -264,24 +259,32 @@
               <input id="edit-group-name" class="sh-input" maxlength="150" value="@Model.Group.Name" />
             </div>
             <div class="col-12">
-              <label class="sh-label" for="edit-group-subject-new">Môn học <span class="text-danger">*</span></label>
-              <div class="d-flex gap-2 mb-2">
-                <input id="edit-group-subject-new" class="sh-input" maxlength="150" placeholder="Nhập một môn học mới" />
-                <button id="add-edit-group-subject-btn" type="button" class="btn-secondary-sh flex-shrink-0">
-                  <i class="bi bi-plus-lg"></i>Thêm môn
+              <label class="sh-label" for="edit-group-subject-toggle">Môn học <span class="text-danger">*</span></label>
+              <div id="edit-group-subject-select" class="subject-multiselect">
+                <button id="edit-group-subject-toggle" type="button" class="subject-multiselect-toggle"
+                        data-subject-toggle aria-expanded="false" aria-controls="edit-group-subject-panel">
+                  <span data-subject-summary>Chọn môn học</span>
+                  <i class="bi bi-chevron-down"></i>
                 </button>
+                <div id="edit-group-subject-panel" class="subject-multiselect-panel" data-subject-panel hidden>
+                  <div class="subject-multiselect-search">
+                    <i class="bi bi-search"></i>
+                    <input type="text" maxlength="150" data-subject-search
+                           placeholder="Tìm hoặc nhập môn học mới..." autocomplete="off" />
+                  </div>
+                  <div class="group-subject-picker" data-subject-options aria-live="polite">
+                    @foreach (var subject in Model.Group.Subjects)
+                    {
+                      <label class="group-subject-option" data-subject-initial data-subject-custom="@subject.IsCustom.ToString().ToLowerInvariant()">
+                        <input type="checkbox" value="@subject.Name" checked />
+                        <span>@subject.Name</span>
+                      </label>
+                    }
+                  </div>
+                  <p class="subject-multiselect-hint" data-subject-hint>Nhập tên môn rồi nhấn Enter để thêm môn mới.</p>
+                </div>
               </div>
-              <div id="edit-group-subject-options" class="group-subject-picker" aria-live="polite">
-                @foreach (var subject in Model.Group.Subjects)
-                {
-                  <label class="group-subject-option">
-                    <input type="checkbox" value="@subject.Name" checked />
-                    <span>@subject.Name</span>
-                    @if (subject.IsCustom) { <small>Cá nhân</small> }
-                  </label>
-                }
-              </div>
-              <p class="mb-0 mt-2" style="font-size:10px;color:var(--sh-slate-500);">Có thể chọn nhiều môn hoặc thêm môn mới, tối đa 10 môn.</p>
+              <p class="mb-0 mt-2" style="font-size:10px;color:var(--sh-slate-500);">Tích các môn có sẵn hoặc tìm và nhấn Enter để thêm môn mới. Tối đa 10 môn.</p>
             </div>
             <div class="col-12">
               <label class="sh-label" for="edit-group-desc">Mô tả</label>
@@ -304,20 +307,18 @@
               <input id="edit-group-schedule" class="sh-input" maxlength="250" value="@Model.Group.MeetingSchedule" />
             </div>
             <div class="col-md-3">
-              <label class="sh-label" for="edit-group-max-members">Tối đa</label>
-              <input id="edit-group-max-members" class="sh-input" type="number" min="@(Math.Max(2, Model.Group.MemberCount))" max="500" value="@Model.Group.MaxMembers" />
+              <label class="sh-label" for="edit-group-max-members">Giới hạn người</label>
+              <input id="edit-group-max-members" class="sh-input" type="number" min="@(Math.Max(2, Model.Group.MemberCount))" max="500"
+                     value="@(Model.Group.MaxMembers?.ToString() ?? string.Empty)" placeholder="Không giới hạn" />
+              <small class="d-block mt-1" style="font-size:9px;color:var(--sh-slate-500);">Xóa giá trị để chuyển nhóm sang không giới hạn.</small>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label class="sh-label" for="edit-group-access">Cách tham gia</label>
               <select id="edit-group-access" class="sh-input" data-current-value="@Model.Group.JoinMode">
                 <option value="Approval">Công khai · Cần duyệt</option>
                 <option value="Open">Công khai · Vào ngay</option>
                 <option value="InviteOnly">Riêng tư · Chỉ qua lời mời</option>
               </select>
-            </div>
-            <div class="col-md-6">
-              <label class="sh-label" for="edit-group-contact">Liên kết liên hệ/họp</label>
-              <input id="edit-group-contact" class="sh-input" maxlength="2048" value="@Model.Group.ContactUrl" placeholder="https://meet.google.com/..." />
             </div>
             <div class="col-12">
               <label class="sh-label" for="edit-group-rules">Nội quy nhóm</label>
@@ -336,5 +337,6 @@
 
 @section Scripts {
   <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@9.0.6/dist/browser/signalr.min.js"></script>
+  <script src="~/js/subject-multiselect.js" asp-append-version="true"></script>
   <script src="~/js/group-details.js" asp-append-version="true"></script>
 }
