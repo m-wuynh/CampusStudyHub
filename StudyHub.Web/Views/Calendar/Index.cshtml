@@ -16,7 +16,7 @@
   </div>
 
   <!-- Calendar Container -->
-  <div class="sh-card p-0 overflow-hidden" style="background: #fff; border: 1px solid var(--sh-slate-200); border-radius: 12px; height: calc(100vh - 140px); min-height: 900px; position: relative;">
+  <div class="sh-card p-0 overflow-hidden" style="background: #fff; border: 1px solid var(--sh-slate-200); border-radius: 12px; height: calc(100vh - 140px); min-height: 1030px; position: relative;">
     <div id="calendar" style="height: 100%;"></div>
 
     <!-- Event Popover (Hidden by default) -->
@@ -64,6 +64,18 @@
             <div id="popover-reminders-list" class="d-flex flex-column" style="color:#3c4043;"></div>
           </div>
 
+        </div>
+      </div>
+      
+      <!-- Completion Checkbox -->
+      <div class="px-3 pb-3">
+        <div class="pt-2 border-top">
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox" id="popover-is-completed" style="cursor: pointer;">
+            <label class="form-check-label" for="popover-is-completed" style="cursor: pointer; color: #3c4043; user-select: none;">
+              Đánh dấu hoàn thành
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -238,6 +250,15 @@
             font-weight: 400;
             opacity: 0.9;
         }
+
+        /* Completed Event Styling */
+        .event-completed {
+            background-color: rgba(30, 142, 62, 0.15) !important; /* light green */
+            color: #1e8e3e !important;
+            text-decoration: line-through;
+            opacity: 0.8;
+            border-left: 3px solid #1e8e3e !important;
+        }
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -280,10 +301,16 @@
                 events: '/Calendar/GetEvents',
                 eventClassNames: function(arg) {
                     var type = arg.event.extendedProps.type;
-                    if (type === 'Exam') return ['event-type-exam'];
-                    if (type === 'Class') return ['event-type-class'];
-                    if (type === 'Other') return ['event-type-other'];
-                    return ['event-type-study'];
+                    var classes = [];
+                    if (type === 'Exam') classes.push('event-type-exam');
+                    else if (type === 'Class') classes.push('event-type-class');
+                    else if (type === 'Other') classes.push('event-type-other');
+                    else classes.push('event-type-study');
+
+                    if (arg.event.extendedProps.isCompleted) {
+                        classes.push('event-completed');
+                    }
+                    return classes;
                 },
                 eventClick: function(info) {
                     var popover = document.getElementById('event-popover');
@@ -386,6 +413,37 @@
                                 });
                         }
                     };
+
+                    // Handle Completion Checkbox
+                    var isCompleted = info.event.extendedProps.isCompleted;
+                    var chkComplete = document.getElementById('popover-is-completed');
+                    chkComplete.checked = isCompleted;
+
+                    var titleEl = document.getElementById('popover-title');
+                    titleEl.style.textDecoration = isCompleted ? 'line-through' : 'none';
+                    titleEl.style.color = isCompleted ? '#70757a' : '#3c4043';
+
+                    // Replace node to clear previous event listeners
+                    var newChk = chkComplete.cloneNode(true);
+                    chkComplete.parentNode.replaceChild(newChk, chkComplete);
+
+                    newChk.addEventListener('change', function() {
+                        var completed = this.checked;
+                        fetch('/Calendar/ToggleEventCompletion/' + info.event.id, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(completed)
+                        }).then(res => {
+                            if (res.ok) {
+                                info.event.setExtendedProp('isCompleted', completed);
+                                titleEl.style.textDecoration = completed ? 'line-through' : 'none';
+                                titleEl.style.color = completed ? '#70757a' : '#3c4043';
+                            } else {
+                                alert('Có lỗi xảy ra khi cập nhật!');
+                                this.checked = !completed;
+                            }
+                        });
+                    });
                 }
             });
             calendar.render();

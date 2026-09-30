@@ -24,7 +24,8 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             e.RepeatMode,
             e.RepeatUntilDate,
             e.Location,
-            e.Description
+            e.Description,
+            e.IsCompleted
         )).ToList();
     }
 
@@ -47,7 +48,8 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             e.RepeatMode,
             e.RepeatUntilDate,
             e.Location,
-            e.Description
+            e.Description,
+            e.IsCompleted
         )).ToList();
     }
 
@@ -124,7 +126,8 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             entity.RepeatMode,
             entity.RepeatUntilDate,
             entity.Location,
-            entity.Description
+            entity.Description,
+            entity.IsCompleted
         );
     }
 
@@ -142,7 +145,8 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             entity.RepeatMode,
             entity.RepeatUntilDate,
             entity.Location,
-            entity.Description);
+            entity.Description,
+            entity.IsCompleted);
     }
 
     public async Task UpdateEventAsync(long userId, UpdateEventDto request)
@@ -193,7 +197,16 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
     {
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == id && e.UserId == userId && !e.IsDeleted);
         if (entity == null) throw new Exception("Event not found");
-        entity.IsDeleted = true;
+        
+        repository.Remove(entity);
+        await repository.SaveChangesAsync();
+    }
+
+    public async Task ToggleEventCompletionAsync(long userId, long eventId, bool isCompleted)
+    {
+        var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == eventId && e.UserId == userId && !e.IsDeleted);
+        if (entity == null) throw new Exception("Event not found");
+        entity.IsCompleted = isCompleted;
         entity.UpdatedAtUtc = DateTime.UtcNow;
         repository.Update(entity);
         await repository.SaveChangesAsync();
