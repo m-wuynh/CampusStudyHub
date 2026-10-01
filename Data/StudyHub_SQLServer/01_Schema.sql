@@ -177,6 +177,8 @@ BEGIN TRY
         Status varchar(15) NOT NULL CONSTRAINT DF_GroupMembers_Status DEFAULT ('Pending'),
         RequestedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_GroupMembers_Requested DEFAULT (SYSUTCDATETIME()),
         JoinedAtUtc datetime2(3) NULL,
+        BannedByUserId bigint NULL,
+        UnbanRequestedAtUtc datetime2(3) NULL,
         CONSTRAINT PK_GroupMembers PRIMARY KEY (StudyGroupId, UserId),
         CONSTRAINT FK_GroupMembers_Group FOREIGN KEY (StudyGroupId) REFERENCES dbo.StudyGroups(StudyGroupId),
         CONSTRAINT FK_GroupMembers_User FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId),

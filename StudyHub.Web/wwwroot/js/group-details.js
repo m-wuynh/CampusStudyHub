@@ -40,6 +40,18 @@
     event.currentTarget.disabled = true;
     changeMembership('POST');
   });
+  document.getElementById('request-unban-btn')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const result = await requestJson(`/api/groups/${encodeURIComponent(groupId)}/unban-request`, { method: 'POST' });
+      window.showToast(result.message, 'success');
+      location.reload();
+    } catch (error) {
+      button.disabled = false;
+      window.showToast(error.message, 'error');
+    }
+  });
   document.getElementById('withdraw-request-btn')?.addEventListener('click', event => {
     event.currentTarget.disabled = true;
     changeMembership('DELETE');

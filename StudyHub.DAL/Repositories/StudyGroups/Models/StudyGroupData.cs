@@ -19,6 +19,7 @@ public sealed class StudyGroupData
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
     public string? CurrentMembershipStatus { get; set; }
     public string? CurrentMemberRole { get; set; }
+    public bool HasPendingUnbanRequest { get; set; }
     public List<GroupMemberData> Members { get; init; } = [];
     public List<GroupPostData> Posts { get; init; } = [];
     public List<GroupResourceData> Resources { get; init; } = [];
@@ -33,6 +34,8 @@ public sealed class GroupMemberData
     public required string Status { get; set; }
     public DateTimeOffset RequestedAt { get; init; }
     public DateTimeOffset? JoinedAt { get; set; }
+    public bool HasPendingUnbanRequest { get; set; }
+    public string? BannedByUserId { get; set; }
 }
 
 public sealed class GroupPostData

@@ -36,6 +36,11 @@ public sealed class StudyGroupsApiController(IStudyGroupService studyGroups) : C
         ExecuteAsync(async () => Ok(await studyGroups.LeaveOrWithdrawAsync(groupId, cancellationToken)));
 
     [ValidateAntiForgeryToken]
+    [HttpPost("{groupId:long}/unban-request")]
+    public Task<IActionResult> RequestUnban(string groupId, CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await studyGroups.RequestUnbanAsync(groupId, cancellationToken)));
+
+    [ValidateAntiForgeryToken]
     [HttpPost("{groupId:long}/messages")]
     public Task<IActionResult> AddMessage(
         string groupId,

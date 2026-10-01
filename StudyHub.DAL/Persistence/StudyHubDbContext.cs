@@ -489,6 +489,7 @@ public partial class StudyHubDbContext : DbContext
             entity.HasIndex(e => new { e.UserId, e.Status, e.StudyGroupId }, "IX_GroupMembers_User");
 
             entity.Property(e => e.JoinedAtUtc).HasPrecision(3);
+            entity.Property(e => e.UnbanRequestedAtUtc).HasPrecision(3);
             entity.Property(e => e.MemberRole)
                 .HasMaxLength(15)
                 .IsUnicode(false)

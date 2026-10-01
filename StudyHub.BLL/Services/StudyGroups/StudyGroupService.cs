@@ -48,6 +48,10 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         ToMembership(await ExecuteAsync(() => repository.StudyGroups.LeaveOrWithdrawAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken)));
 
+    public async Task<GroupMembershipResponse> RequestUnbanAsync(string groupId, CancellationToken cancellationToken = default) =>
+        ToMembership(await ExecuteAsync(() => repository.StudyGroups.RequestUnbanAsync(
+            ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken)));
+
     public Task<GroupPostResponse> AddMessageAsync(
         string groupId,
         string content,
@@ -142,7 +146,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         CancellationToken cancellationToken = default)
     {
         var normalizedAction = NormalizeChoice(action, string.Empty,
-            ["approve", "reject", "kick", "ban", "promote", "demote"], "Thao tác thành viên không hợp lệ.");
+            ["approve", "reject", "kick", "ban", "unban", "promote", "demote"], "Thao tác thành viên không hợp lệ.");
         return ExecuteAsync(() => repository.StudyGroups.ManageMemberAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."),
             currentUser.UserId,
@@ -256,10 +260,13 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
                 member.Status,
                 member.RequestedAt,
                 member.JoinedAt,
-                member.UserId == currentUser.UserId.ToString())).ToList(),
+                member.UserId == currentUser.UserId.ToString(),
+                member.HasPendingUnbanRequest,
+                member.BannedByUserId)).ToList(),
             group.Posts.Where(post => post.PostType == "Announcement").OrderByDescending(post => post.IsPinned).ThenByDescending(post => post.SentAt).Select(ToPost).ToList(),
             group.Posts.Where(post => post.PostType == "Message").OrderBy(post => post.SentAt).Select(ToPost).ToList(),
-            group.Resources.Select(item => new GroupResourceResponse(item.Id, item.Title, item.ResourceType, item.Url)).ToList());
+            group.Resources.Select(item => new GroupResourceResponse(item.Id, item.Title, item.ResourceType, item.Url)).ToList(),
+            group.HasPendingUnbanRequest);
     }
 
     private GroupPostResponse ToPost(GroupPostData post) => new(

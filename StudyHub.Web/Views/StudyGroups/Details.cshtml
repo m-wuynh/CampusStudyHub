@@ -86,6 +86,20 @@
             <p style="font-size:11px;color:var(--sh-slate-500);">Bạn sẽ truy cập được nội dung nhóm sau khi Owner hoặc Moderator chấp nhận.</p>
             <button id="withdraw-request-btn" type="button" class="btn-secondary-sh w-100 justify-content-center">Rút yêu cầu</button>
           }
+          else if (Model.Group.MembershipStatus == "Banned")
+          {
+            <i class="bi bi-slash-circle d-block mb-2" style="font-size:32px;color:var(--sh-rose-600);"></i>
+            <h2 class="fw-bold" style="font-size:15px;">Bạn đã bị cấm khỏi nhóm</h2>
+            <p style="font-size:11px;color:var(--sh-slate-500);">Bạn cần được người đã cấm gỡ cấm trước khi có thể xin vào hoặc tham gia nhóm.</p>
+            @if (Model.Group.HasPendingUnbanRequest)
+            {
+              <p class="mb-0" style="font-size:11px;">Yêu cầu gỡ cấm đang chờ xử lý.</p>
+            }
+            else
+            {
+              <button id="request-unban-btn" type="button" class="btn-primary-sh w-100 justify-content-center">Xin gỡ cấm</button>
+            }
+          }
           else if (Model.Group.JoinMode == "InviteOnly")
           {
             <i class="bi bi-lock-fill d-block mb-2" style="font-size:32px;color:var(--sh-indigo-600);"></i>
@@ -215,10 +229,15 @@
               <article class="group-member-row" data-member-id="@member.UserId">
                 @if (!string.IsNullOrWhiteSpace(member.AvatarUrl)) { <img src="@member.AvatarUrl" alt="" referrerpolicy="no-referrer" /> }
                 else { <span class="group-avatar">@Initial(member.DisplayName)</span> }
-                <div class="flex-grow-1"><strong>@member.DisplayName</strong><span>@(member.Status == "Pending" ? "Đang chờ duyệt" : member.Role)</span></div>
+                <div class="flex-grow-1"><strong>@member.DisplayName</strong><span>@(member.Status == "Pending" ? "Đang chờ duyệt" : member.Status == "Banned" ? "Đang xin gỡ cấm" : member.Role)</span></div>
                 @if (Model.Group.CanManage && member.Status == "Pending")
                 {
                   <div class="d-flex gap-1"><button type="button" class="member-action btn-primary-sh" data-action="approve">Duyệt</button><button type="button" class="member-action btn-secondary-sh" data-action="reject">Từ chối</button></div>
+                }
+                else if (Model.Group.CanManage && member.Status == "Banned" && member.HasPendingUnbanRequest &&
+                    (member.BannedByUserId == Model.Group.Members.FirstOrDefault(m => m.IsCurrentUser)?.UserId || member.BannedByUserId == null && Model.Group.IsOwner))
+                {
+                  <button type="button" class="member-action btn-primary-sh" data-action="unban">Gỡ cấm</button>
                 }
                 else if (Model.Group.CanManage && !member.IsCurrentUser && member.Role != "Owner" && (Model.Group.IsOwner || member.Role != "Moderator"))
                 {

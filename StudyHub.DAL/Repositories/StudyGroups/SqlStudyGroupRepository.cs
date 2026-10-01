@@ -48,7 +48,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .Where(group => !group.IsArchived &&
                 (group.Visibility == "Public" || group.GroupMembers.Any(member =>
                     member.UserId == currentUserId &&
-                    (member.Status == "Active" || member.Status == "Pending"))))
+                    (member.Status == "Active" || member.Status == "Pending" || member.Status == "Banned"))))
             .Include(group => group.StudyGroupSubjects)
                 .ThenInclude(item => item.Subject)
             .Include(group => group.GroupMembers)
@@ -89,7 +89,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         if (group is null) return null;
 
         var currentMembership = group.GroupMembers.SingleOrDefault(member => member.UserId == currentUserId);
-        var canPreview = group.Visibility == "Public" || currentMembership?.Status is "Active" or "Pending";
+        var canPreview = group.Visibility == "Public" || currentMembership?.Status is "Active" or "Pending" or "Banned";
         if (!canPreview) return null;
 
         var isActiveMember = currentMembership?.Status == "Active";
@@ -363,6 +363,25 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             wasPending ? "Đã rút yêu cầu tham gia." : "Bạn đã rời nhóm.");
     }
 
+    public async Task<GroupMembershipData> RequestUnbanAsync(long groupId, long userId, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var membership = await context.GroupMembers
+            .Include(item => item.StudyGroup)
+            .SingleOrDefaultAsync(item => item.StudyGroupId == groupId && item.UserId == userId, cancellationToken);
+        if (membership is null || membership.StudyGroup.IsArchived)
+            throw new StudyGroupRepositoryException("not_found", "Không tìm thấy nhóm học tập.");
+        if (membership.Status != "Banned")
+            throw new StudyGroupRepositoryException("invalid_action", "Bạn không bị cấm khỏi nhóm này.");
+        if (membership.UnbanRequestedAtUtc is not null)
+            return new GroupMembershipData(groupId.ToString(), "Banned", "Yêu cầu gỡ cấm đang chờ xử lý.");
+
+        membership.UnbanRequestedAtUtc = DateTime.UtcNow;
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new GroupMembershipData(groupId.ToString(), "Banned", "Đã gửi yêu cầu gỡ cấm tới người đã cấm bạn.");
+    }
+
     public async Task<GroupPostData> AddPostAsync(
         long groupId,
         long userId,
@@ -462,6 +481,15 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             case "ban":
                 target.Status = "Banned";
                 target.JoinedAtUtc = null;
+                target.BannedByUserId = actorUserId;
+                target.UnbanRequestedAtUtc = null;
+                break;
+            case "unban" when target.Status == "Banned" && target.UnbanRequestedAtUtc is not null &&
+                (target.BannedByUserId == actorUserId || target.BannedByUserId is null && actorIsOwner):
+                target.Status = "Left";
+                target.MemberRole = "Member";
+                target.BannedByUserId = null;
+                target.UnbanRequestedAtUtc = null;
                 break;
             case "promote" when actorIsOwner && target.Status == "Active":
                 target.MemberRole = "Moderator";
@@ -599,7 +627,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             OwnerUserId = group.OwnerUserId.ToString(),
             CreatedAt = AsUtc(group.CreatedAtUtc),
             CurrentMembershipStatus = membership?.Status,
-            CurrentMemberRole = membership?.MemberRole
+            CurrentMemberRole = membership?.MemberRole,
+            HasPendingUnbanRequest = membership?.UnbanRequestedAtUtc is not null
         };
 
         result.Subjects.AddRange(group.StudyGroupSubjects
@@ -612,7 +641,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .Select(item => new GroupSubjectData(item.Name, GetSubjectCssClass(item.Name), item.IsCustom)));
 
         result.Members.AddRange(group.GroupMembers
-            .Where(member => member.Status is "Active" or "Pending")
+            .Where(member => member.Status is "Active" or "Pending" ||
+                member.Status == "Banned" && member.UnbanRequestedAtUtc != null)
             .OrderBy(member => member.Status == "Pending")
             .ThenBy(member => member.User.DisplayName)
             .Select(member => new GroupMemberData
@@ -622,6 +652,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
                 AvatarUrl = member.User.AvatarUrl,
                 Role = group.OwnerUserId == member.UserId ? "Owner" : member.MemberRole,
                 Status = member.Status,
+                HasPendingUnbanRequest = member.UnbanRequestedAtUtc is not null,
+                BannedByUserId = member.BannedByUserId?.ToString(),
                 RequestedAt = AsUtc(member.RequestedAtUtc),
                 JoinedAt = member.JoinedAtUtc.HasValue ? AsUtc(member.JoinedAtUtc.Value) : null
             }));
