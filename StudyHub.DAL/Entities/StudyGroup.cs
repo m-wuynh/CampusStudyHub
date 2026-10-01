@@ -9,8 +9,6 @@ public partial class StudyGroup
 
     public long OwnerUserId { get; set; }
 
-    public int? SubjectId { get; set; }
-
     public string GroupName { get; set; } = null!;
 
     public string? Description { get; set; }
@@ -21,15 +19,13 @@ public partial class StudyGroup
 
     public string? MeetingSchedule { get; set; }
 
-    public string? ContactUrl { get; set; }
-
     public string? Rules { get; set; }
 
     public string Visibility { get; set; } = null!;
 
     public string JoinMode { get; set; } = null!;
 
-    public short MaxMembers { get; set; }
+    public short? MaxMembers { get; set; }
 
     public bool IsArchived { get; set; }
 
@@ -47,9 +43,10 @@ public partial class StudyGroup
 
     public virtual ICollection<GroupInvite> GroupInvites { get; set; } = new List<GroupInvite>();
 
+    public virtual ICollection<StudyGroupSubject> StudyGroupSubjects { get; set; } = new List<StudyGroupSubject>();
+
     public virtual ICollection<Note> Notes { get; set; } = new List<Note>();
 
     public virtual User OwnerUser { get; set; } = null!;
 
-    public virtual Subject? Subject { get; set; }
 }

@@ -4,6 +4,10 @@ namespace StudyHub.DAL.Repositories.StudyGroups;
 
 public interface IStudyGroupRepository
 {
+    Task<IReadOnlyList<GroupSubjectOptionData>> GetSubjectOptionsAsync(
+        long currentUserId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<StudyGroupData>> GetVisibleAsync(
         long currentUserId,
         string? searchText = null,
@@ -18,6 +22,12 @@ public interface IStudyGroupRepository
         CreateStudyGroupData group,
         CancellationToken cancellationToken = default);
 
+    Task<StudyGroupData> UpdateAsync(
+        long groupId,
+        long ownerUserId,
+        UpdateStudyGroupData group,
+        CancellationToken cancellationToken = default);
+
     Task<GroupMembershipData> RequestJoinAsync(
         long groupId,
         long userId,
@@ -27,6 +37,8 @@ public interface IStudyGroupRepository
         long groupId,
         long userId,
         CancellationToken cancellationToken = default);
+
+    Task<GroupMembershipData> RequestUnbanAsync(long groupId, long userId, CancellationToken cancellationToken = default);
 
     Task<GroupPostData> AddPostAsync(
         long groupId,

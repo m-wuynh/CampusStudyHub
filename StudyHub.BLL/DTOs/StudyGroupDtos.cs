@@ -5,12 +5,13 @@ public sealed record GroupSummaryResponse(
     string Name,
     string Subject,
     string SubjectCssClass,
+    IReadOnlyList<GroupSubjectResponse> Subjects,
     string Description,
     string Goal,
     string MeetingFormat,
     string MeetingSchedule,
     int MemberCount,
-    int MaxMembers,
+    int? MaxMembers,
     int PendingMemberCount,
     string? MembershipStatus,
     string? MemberRole,
@@ -24,14 +25,14 @@ public sealed record GroupDetailsResponse(
     string Name,
     string Subject,
     string SubjectCssClass,
+    IReadOnlyList<GroupSubjectResponse> Subjects,
     string Description,
     string Goal,
     string MeetingFormat,
     string MeetingSchedule,
-    string ContactUrl,
     string Rules,
     int MemberCount,
-    int MaxMembers,
+    int? MaxMembers,
     string? MembershipStatus,
     string? MemberRole,
     bool IsMember,
@@ -42,7 +43,8 @@ public sealed record GroupDetailsResponse(
     IReadOnlyList<GroupMemberResponse> Members,
     IReadOnlyList<GroupPostResponse> Announcements,
     IReadOnlyList<GroupPostResponse> Messages,
-    IReadOnlyList<GroupResourceResponse> Resources);
+    IReadOnlyList<GroupResourceResponse> Resources,
+    bool HasPendingUnbanRequest);
 
 public sealed record GroupMemberResponse(
     string UserId,
@@ -52,7 +54,9 @@ public sealed record GroupMemberResponse(
     string Status,
     DateTimeOffset RequestedAt,
     DateTimeOffset? JoinedAt,
-    bool IsCurrentUser);
+    bool IsCurrentUser,
+    bool HasPendingUnbanRequest,
+    string? BannedByUserId);
 
 public sealed record GroupPostResponse(
     string Id,
@@ -66,6 +70,10 @@ public sealed record GroupPostResponse(
     bool Mine);
 
 public sealed record GroupResourceResponse(string Id, string Title, string ResourceType, string? Url);
+
+public sealed record GroupSubjectResponse(string Name, string CssClass, bool IsCustom);
+
+public sealed record GroupSubjectOptionResponse(string Name, bool IsCustom);
 
 public sealed record GroupMembershipResponse(string GroupId, string Status, string Message);
 
@@ -86,12 +94,25 @@ public sealed record CreateGroupInviteRequest(int ExpiresInDays = 7, int MaxUses
 public sealed record CreateGroupRequest(
     string? Name,
     string? Subject,
+    IReadOnlyList<string>? Subjects,
     string? Description,
     string? Goal,
     string? MeetingFormat,
     string? MeetingSchedule,
-    string? ContactUrl,
     string? Rules,
     bool IsPublic = true,
     string? JoinMode = "Approval",
-    short MaxMembers = 20);
+    short? MaxMembers = null);
+
+public sealed record UpdateGroupRequest(
+    string? Name,
+    string? Subject,
+    IReadOnlyList<string>? Subjects,
+    string? Description,
+    string? Goal,
+    string? MeetingFormat,
+    string? MeetingSchedule,
+    string? Rules,
+    bool IsPublic = true,
+    string? JoinMode = "Approval",
+    short? MaxMembers = null);

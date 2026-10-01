@@ -7,6 +7,12 @@ namespace StudyHub.BLL.Services.StudyGroups;
 
 public sealed class StudyGroupService(IRepository repository, ICurrentUser currentUser) : IStudyGroupService
 {
+    public async Task<IReadOnlyList<GroupSubjectOptionResponse>> GetSubjectOptionsAsync(
+        CancellationToken cancellationToken = default) =>
+        (await repository.StudyGroups.GetSubjectOptionsAsync(currentUser.UserId, cancellationToken))
+            .Select(item => new GroupSubjectOptionResponse(item.Name, item.IsCustom))
+            .ToList();
+
     public async Task<IReadOnlyList<GroupSummaryResponse>> GetGroupsAsync(
         string? searchText = null,
         CancellationToken cancellationToken = default)
@@ -42,6 +48,10 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         ToMembership(await ExecuteAsync(() => repository.StudyGroups.LeaveOrWithdrawAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken)));
 
+    public async Task<GroupMembershipResponse> RequestUnbanAsync(string groupId, CancellationToken cancellationToken = default) =>
+        ToMembership(await ExecuteAsync(() => repository.StudyGroups.RequestUnbanAsync(
+            ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken)));
+
     public Task<GroupPostResponse> AddMessageAsync(
         string groupId,
         string content,
@@ -60,34 +70,73 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         CancellationToken cancellationToken = default)
     {
         var name = Required(request.Name, "Tên nhóm là bắt buộc.", 150);
-        var subject = Required(request.Subject, "Môn học là bắt buộc.", 150);
+        var subjects = NormalizeSubjects(request.Subjects, request.Subject);
         var meetingFormat = NormalizeChoice(request.MeetingFormat, "Online", ["Online", "Offline", "Hybrid"], "Hình thức học không hợp lệ.");
         var joinMode = request.IsPublic
             ? NormalizeChoice(request.JoinMode, "Approval", ["Open", "Approval"], "Cách tham gia không hợp lệ.")
             : "InviteOnly";
-        var maxMembers = request.MaxMembers is >= 2 and <= 500 ? request.MaxMembers : (short)20;
+        if (request.MaxMembers is not null and (< 2 or > 500))
+            throw new StudyGroupException("invalid_member_limit", "Số thành viên tối đa phải từ 2 đến 500.");
+        var maxMembers = request.MaxMembers;
         ValidateLength(request.Description, 2000, "Mô tả không được dài quá 2000 ký tự.");
         ValidateLength(request.Goal, 500, "Mục tiêu không được dài quá 500 ký tự.");
         ValidateLength(request.MeetingSchedule, 250, "Lịch học không được dài quá 250 ký tự.");
         ValidateLength(request.Rules, 2000, "Nội quy không được dài quá 2000 ký tự.");
-        ValidateContactUrl(request.ContactUrl);
 
         var created = await ExecuteAsync(() => repository.StudyGroups.CreateAsync(new CreateStudyGroupData
         {
             OwnerUserId = currentUser.UserId,
             Name = name,
-            Subject = subject,
+            Subjects = subjects,
             Description = request.Description?.Trim(),
             Goal = request.Goal?.Trim(),
             MeetingFormat = meetingFormat,
             MeetingSchedule = request.MeetingSchedule?.Trim(),
-            ContactUrl = request.ContactUrl?.Trim(),
             Rules = request.Rules?.Trim(),
             Visibility = request.IsPublic ? "Public" : "Private",
             JoinMode = joinMode,
             MaxMembers = maxMembers
         }, cancellationToken));
         return ToDetails(created);
+    }
+
+    public async Task<GroupDetailsResponse> UpdateGroupAsync(
+        string groupId,
+        UpdateGroupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var name = Required(request.Name, "Tên nhóm là bắt buộc.", 150);
+        var subjects = NormalizeSubjects(request.Subjects, request.Subject);
+        var meetingFormat = NormalizeChoice(request.MeetingFormat, "Online", ["Online", "Offline", "Hybrid"], "Hình thức học không hợp lệ.");
+        var joinMode = request.IsPublic
+            ? NormalizeChoice(request.JoinMode, "Approval", ["Open", "Approval"], "Cách tham gia không hợp lệ.")
+            : "InviteOnly";
+        if (request.MaxMembers is not null and (< 2 or > 500))
+            throw new StudyGroupException("invalid_member_limit", "Số thành viên tối đa phải từ 2 đến 500.");
+        var maxMembers = request.MaxMembers;
+        ValidateLength(request.Description, 2000, "Mô tả không được dài quá 2000 ký tự.");
+        ValidateLength(request.Goal, 500, "Mục tiêu không được dài quá 500 ký tự.");
+        ValidateLength(request.MeetingSchedule, 250, "Lịch học không được dài quá 250 ký tự.");
+        ValidateLength(request.Rules, 2000, "Nội quy không được dài quá 2000 ký tự.");
+
+        var updated = await ExecuteAsync(() => repository.StudyGroups.UpdateAsync(
+            ParseId(groupId, "Mã nhóm không hợp lệ."),
+            currentUser.UserId,
+            new UpdateStudyGroupData
+            {
+                Name = name,
+                Subjects = subjects,
+                Description = request.Description?.Trim(),
+                Goal = request.Goal?.Trim(),
+                MeetingFormat = meetingFormat,
+                MeetingSchedule = request.MeetingSchedule?.Trim(),
+                Rules = request.Rules?.Trim(),
+                Visibility = request.IsPublic ? "Public" : "Private",
+                JoinMode = joinMode,
+                MaxMembers = maxMembers
+            },
+            cancellationToken));
+        return ToDetails(updated);
     }
 
     public Task ManageMemberAsync(
@@ -97,7 +146,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         CancellationToken cancellationToken = default)
     {
         var normalizedAction = NormalizeChoice(action, string.Empty,
-            ["approve", "reject", "kick", "ban", "promote", "demote"], "Thao tác thành viên không hợp lệ.");
+            ["approve", "reject", "kick", "ban", "unban", "promote", "demote"], "Thao tác thành viên không hợp lệ.");
         return ExecuteAsync(() => repository.StudyGroups.ManageMemberAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."),
             currentUser.UserId,
@@ -163,6 +212,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         group.Name,
         group.Subject,
         group.SubjectCssClass,
+        group.Subjects.Select(item => new GroupSubjectResponse(item.Name, item.CssClass, item.IsCustom)).ToList(),
         group.Description,
         group.Goal,
         group.MeetingFormat,
@@ -187,11 +237,11 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
             group.Name,
             group.Subject,
             group.SubjectCssClass,
+            group.Subjects.Select(item => new GroupSubjectResponse(item.Name, item.CssClass, item.IsCustom)).ToList(),
             group.Description,
             group.Goal,
             group.MeetingFormat,
             group.MeetingSchedule,
-            group.ContactUrl,
             group.Rules,
             ActiveMemberCount(group),
             group.MaxMembers,
@@ -210,10 +260,13 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
                 member.Status,
                 member.RequestedAt,
                 member.JoinedAt,
-                member.UserId == currentUser.UserId.ToString())).ToList(),
+                member.UserId == currentUser.UserId.ToString(),
+                member.HasPendingUnbanRequest,
+                member.BannedByUserId)).ToList(),
             group.Posts.Where(post => post.PostType == "Announcement").OrderByDescending(post => post.IsPinned).ThenByDescending(post => post.SentAt).Select(ToPost).ToList(),
             group.Posts.Where(post => post.PostType == "Message").OrderBy(post => post.SentAt).Select(ToPost).ToList(),
-            group.Resources.Select(item => new GroupResourceResponse(item.Id, item.Title, item.ResourceType, item.Url)).ToList());
+            group.Resources.Select(item => new GroupResourceResponse(item.Id, item.Title, item.ResourceType, item.Url)).ToList(),
+            group.HasPendingUnbanRequest);
     }
 
     private GroupPostResponse ToPost(GroupPostData post) => new(
@@ -260,6 +313,27 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         return normalized;
     }
 
+    private static IReadOnlyList<string> NormalizeSubjects(
+        IReadOnlyList<string>? subjects,
+        string? legacySubject)
+    {
+        var values = (subjects ?? [])
+            .Append(legacySubject)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (values.Count == 0)
+            throw new StudyGroupException("required", "Hãy chọn hoặc thêm ít nhất một môn học.");
+        if (values.Count > 10)
+            throw new StudyGroupException("too_many_subjects", "Mỗi nhóm được chọn tối đa 10 môn học.");
+        if (values.Any(value => value.Length > 150))
+            throw new StudyGroupException("too_long", "Tên môn học không được dài quá 150 ký tự.");
+
+        return values;
+    }
+
     private static void ValidateLength(string? value, int maxLength, string message)
     {
         if ((value?.Trim().Length ?? 0) > maxLength) throw new StudyGroupException("too_long", message);
@@ -270,15 +344,6 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         var normalized = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
         var match = accepted.FirstOrDefault(item => item.Equals(normalized, StringComparison.OrdinalIgnoreCase));
         return match ?? throw new StudyGroupException("invalid_choice", message);
-    }
-
-    private static void ValidateContactUrl(string? contactUrl)
-    {
-        if (string.IsNullOrWhiteSpace(contactUrl)) return;
-        if (contactUrl.Trim().Length > 2048 ||
-            !Uri.TryCreate(contactUrl.Trim(), UriKind.Absolute, out var uri) ||
-            uri.Scheme is not ("http" or "https" or "mailto"))
-            throw new StudyGroupException("invalid_contact", "Liên kết liên hệ không hợp lệ.");
     }
 
     private static string NormalizeInviteCode(string inviteCode)
@@ -305,7 +370,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         new(exception.Code, exception.Message, exception.Code switch
         {
             "not_found" or "member_not_found" or "invite_not_found" => 404,
-            "group_full" => 409,
+            "group_full" or "member_limit_too_low" or "update_conflict" => 409,
             "banned" or "forbidden" or "invite_required" or "owner_protected" => 403,
             "invite_expired" => 410,
             _ => 400

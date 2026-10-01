@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudyHub.DAL.Persistence;
 
@@ -11,9 +12,11 @@ using StudyHub.DAL.Persistence;
 namespace StudyHub.DAL.Migrations
 {
     [DbContext(typeof(StudyHubDbContext))]
-    partial class StudyHubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260929060911_RemoveGroupMeetingLinkAndMakeCapacityOptional")]
+    partial class RemoveGroupMeetingLinkAndMakeCapacityOptional
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -843,9 +846,6 @@ namespace StudyHub.DAL.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("BannedByUserId")
-                        .HasColumnType("bigint");
-
                     b.Property<DateTime?>("JoinedAtUtc")
                         .HasPrecision(3)
                         .HasColumnType("datetime2(3)");
@@ -871,10 +871,6 @@ namespace StudyHub.DAL.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(15)")
                         .HasDefaultValue("Pending");
-
-                    b.Property<DateTime?>("UnbanRequestedAtUtc")
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)");
 
                     b.HasKey("StudyGroupId", "UserId");
 
