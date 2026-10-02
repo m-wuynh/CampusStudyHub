@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudyHub.DAL.Persistence;
 
@@ -11,9 +12,11 @@ using StudyHub.DAL.Persistence;
 namespace StudyHub.DAL.Migrations
 {
     [DbContext(typeof(StudyHubDbContext))]
-    partial class StudyHubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260929080333_AddIsCompletedToScheduleEvent")]
+    partial class AddIsCompletedToScheduleEvent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1210,6 +1213,10 @@ namespace StudyHub.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StudyGroupId"));
 
+                    b.Property<string>("ContactUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(3)
@@ -1240,8 +1247,10 @@ namespace StudyHub.DAL.Migrations
                         .HasColumnType("varchar(15)")
                         .HasDefaultValue("Approval");
 
-                    b.Property<short?>("MaxMembers")
-                        .HasColumnType("smallint");
+                    b.Property<short>("MaxMembers")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)20);
 
                     b.Property<string>("MeetingFormat")
                         .IsRequired()
@@ -1268,6 +1277,9 @@ namespace StudyHub.DAL.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<int?>("SubjectId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(3)
@@ -1286,54 +1298,9 @@ namespace StudyHub.DAL.Migrations
 
                     b.HasIndex("OwnerUserId");
 
-                    b.ToTable("StudyGroups");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.StudyGroupSubject", b =>
-                {
-                    b.Property<long>("StudyGroupSubjectId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StudyGroupSubjectId"));
-
-                    b.Property<long>("AddedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<string>("CustomSubjectName")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<long>("StudyGroupId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int?>("SubjectId")
-                        .HasColumnType("int");
-
-                    b.HasKey("StudyGroupSubjectId");
-
-                    b.HasIndex("AddedByUserId");
-
                     b.HasIndex("SubjectId");
 
-                    b.HasIndex(new[] { "StudyGroupId", "SubjectId" }, "UX_StudyGroupSubjects_Catalog")
-                        .IsUnique()
-                        .HasFilter("[SubjectId] IS NOT NULL");
-
-                    b.HasIndex(new[] { "StudyGroupId", "CustomSubjectName" }, "UX_StudyGroupSubjects_Custom")
-                        .IsUnique()
-                        .HasFilter("[CustomSubjectName] IS NOT NULL");
-
-                    b.ToTable("StudyGroupSubjects", t =>
-                        {
-                            t.HasCheckConstraint("CK_StudyGroupSubjects_Choice", "([SubjectId] IS NOT NULL AND [CustomSubjectName] IS NULL) OR ([SubjectId] IS NULL AND [CustomSubjectName] IS NOT NULL)");
-                        });
+                    b.ToTable("StudyGroups");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.StudySession", b =>
@@ -2145,32 +2112,12 @@ namespace StudyHub.DAL.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_StudyGroups_Owner");
 
-                    b.Navigation("OwnerUser");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.StudyGroupSubject", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.User", "AddedByUser")
-                        .WithMany("AddedStudyGroupSubjects")
-                        .HasForeignKey("AddedByUserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_StudyGroupSubjects_AddedBy");
-
-                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", "StudyGroup")
-                        .WithMany("StudyGroupSubjects")
-                        .HasForeignKey("StudyGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_StudyGroupSubjects_Group");
-
                     b.HasOne("StudyHub.DAL.Entities.Subject", "Subject")
-                        .WithMany("StudyGroupSubjects")
+                        .WithMany("StudyGroups")
                         .HasForeignKey("SubjectId")
-                        .HasConstraintName("FK_StudyGroupSubjects_Subject");
+                        .HasConstraintName("FK_StudyGroups_Subject");
 
-                    b.Navigation("AddedByUser");
-
-                    b.Navigation("StudyGroup");
+                    b.Navigation("OwnerUser");
 
                     b.Navigation("Subject");
                 });
@@ -2309,13 +2256,11 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("GroupMembers");
 
                     b.Navigation("Notes");
-
-                    b.Navigation("StudyGroupSubjects");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.Subject", b =>
                 {
-                    b.Navigation("StudyGroupSubjects");
+                    b.Navigation("StudyGroups");
 
                     b.Navigation("UserSubjects");
                 });
@@ -2325,8 +2270,6 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("AcademicTerms");
 
                     b.Navigation("ActivityEvents");
-
-                    b.Navigation("AddedStudyGroupSubjects");
 
                     b.Navigation("AuditLogs");
 
