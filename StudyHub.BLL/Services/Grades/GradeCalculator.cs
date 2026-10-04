@@ -1,21 +1,50 @@
 using StudyHub.BLL.DTOs;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace StudyHub.BLL.Services.Grades;
 
 public static class GradeCalculator
 {
-    public static decimal? CalculateAverage10(IEnumerable<GradeEntryDto> entries)
+    /// <summary>
+    /// Computes weighted average on scale 0–10.
+    /// Formula: SUM(Score × Weight) / SUM(Weight)
+    /// Only counts entries belonging to active (non-archived) columns.
+    /// Returns null if there are no valid entries (do NOT treat as 0).
+    /// </summary>
+    public static decimal? CalculateAverage10FromEntries(
+        IEnumerable<GradeEntryDto> entries,
+        IEnumerable<GradeColumnDto> allColumns)
     {
+        // Build lookup of active column weights
+        var activeColumnWeights = allColumns
+            .ToDictionary(c => c.GradeColumnId, c => c.Weight);
+
         var validEntries = entries
-            .Where(entry => entry.MaxScore > 0 && entry.Weight > 0)
+            .Where(e => activeColumnWeights.ContainsKey(e.GradeColumnId))
+            .Select(e => (Score: e.Score, Weight: activeColumnWeights[e.GradeColumnId]))
             .ToList();
 
-        var totalWeight = validEntries.Sum(entry => entry.Weight);
+        if (!validEntries.Any()) return null;
+
+        var totalWeight = validEntries.Sum(e => e.Weight);
         if (totalWeight == 0) return null;
 
-        var weightedScore = validEntries.Sum(entry =>
-            entry.Score / entry.MaxScore * 10m * entry.Weight);
+        var weightedSum = validEntries.Sum(e => e.Score * e.Weight);
+        return Math.Round(weightedSum / totalWeight, 2, MidpointRounding.AwayFromZero);
+    }
 
-        return Math.Round(weightedScore / totalWeight, 2, MidpointRounding.AwayFromZero);
+    /// <summary>
+    /// Compute Goal Ladder progress percentage.
+    /// Cap at 100% — being above target does not count as over 100%.
+    /// Returns null if currentValue is null (no grade data yet).
+    /// </summary>
+    public static int? ComputeProgressPercent(decimal? currentValue, decimal targetValue)
+    {
+        if (currentValue is null) return null;
+        if (targetValue <= 0) return null;
+
+        var pct = currentValue.Value / targetValue * 100m;
+        return (int)Math.Min(100m, Math.Floor(pct));
     }
 }
