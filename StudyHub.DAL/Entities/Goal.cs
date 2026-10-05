@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace StudyHub.DAL.Entities;
@@ -9,19 +9,15 @@ public partial class Goal
 
     public long UserId { get; set; }
 
-    public long? UserSubjectId { get; set; }
+    /// <summary>Always required – Goal must be linked to a UserSubject (Goal Ladder per subject).</summary>
+    public long UserSubjectId { get; set; }
 
     public string Title { get; set; } = null!;
 
-    public string UnitCode { get; set; } = null!;
-
+    /// <summary>Target grade on a scale of 0–10. Business rule: 0 &lt; TargetValue &lt;= 10.</summary>
     public decimal TargetValue { get; set; }
 
-    public decimal CurrentValue { get; set; }
-
-    public DateOnly StartDate { get; set; }
-
-    public DateOnly EndDate { get; set; }
+    public DateOnly? EndDate { get; set; }
 
     public bool IsCancelled { get; set; }
 
@@ -33,5 +29,5 @@ public partial class Goal
 
     public virtual User User { get; set; } = null!;
 
-    public virtual UserSubject? UserSubject { get; set; }
+    public virtual UserSubject UserSubject { get; set; } = null!;
 }
