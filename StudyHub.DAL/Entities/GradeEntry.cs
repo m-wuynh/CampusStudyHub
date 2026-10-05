@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace StudyHub.DAL.Entities;
@@ -9,15 +9,10 @@ public partial class GradeEntry
 
     public long UserSubjectId { get; set; }
 
-    public string Title { get; set; } = null!;
+    public long GradeColumnId { get; set; }
 
-    public string AssessmentType { get; set; } = null!;
-
+    /// <summary>Score on a scale of 0–10. Business rule: 0 &lt;= Score &lt;= 10.</summary>
     public decimal Score { get; set; }
-
-    public decimal MaxScore { get; set; }
-
-    public decimal Weight { get; set; }
 
     public DateOnly AssessedOn { get; set; }
 
@@ -28,6 +23,8 @@ public partial class GradeEntry
     public DateTime UpdatedAtUtc { get; set; }
 
     public byte[] RowVersion { get; set; } = null!;
+
+    public virtual GradeColumn GradeColumn { get; set; } = null!;
 
     public virtual UserSubject UserSubject { get; set; } = null!;
 }

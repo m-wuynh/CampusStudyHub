@@ -83,6 +83,7 @@ builder.Services.AddScoped<IFlashcardDeckService, FlashcardDeckService>();
 builder.Services.AddScoped<IFlashcardService, FlashcardService>();
 builder.Services.AddScoped<StudyHub.BLL.Services.Grades.IGradeService, StudyHub.BLL.Services.Grades.GradeService>();
 builder.Services.AddScoped<StudyHub.BLL.Services.Grades.IGoalService, StudyHub.BLL.Services.Grades.GoalService>();
+builder.Services.AddScoped<StudyHub.BLL.Services.Grades.IGradeBookService, StudyHub.BLL.Services.Grades.GradeBookService>();
 builder.Services.AddScoped<StudyHub.BLL.Services.Calendar.ICalendarService, StudyHub.BLL.Services.Calendar.CalendarService>();
 builder.Services.AddTransient<StudyHub.BLL.Services.Email.IEmailService, StudyHub.BLL.Services.Email.EmailService>();
 builder.Services.AddHostedService<StudyHub.Web.BackgroundServices.EmailNotificationBackgroundService>();
