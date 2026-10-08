@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudyHub.DAL.Persistence;
 
@@ -11,9 +12,11 @@ using StudyHub.DAL.Persistence;
 namespace StudyHub.DAL.Migrations
 {
     [DbContext(typeof(StudyHubDbContext))]
-    partial class StudyHubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260928095008_AddGradeBookAndColumnRefactoring")]
+    partial class AddGradeBookAndColumnRefactoring
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -671,7 +674,10 @@ namespace StudyHub.DAL.Migrations
                         .HasColumnType("datetime2(3)")
                         .HasDefaultValueSql("(sysutcdatetime())");
 
-                    b.Property<DateOnly?>("EndDate")
+                    b.Property<decimal>("CurrentValue")
+                        .HasColumnType("decimal(12, 2)");
+
+                    b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
                     b.Property<bool>("IsCancelled")
@@ -683,14 +689,23 @@ namespace StudyHub.DAL.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
                     b.Property<decimal>("TargetValue")
-                        .HasColumnType("decimal(5, 2)");
+                        .HasColumnType("decimal(12, 2)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("UnitCode")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(15)");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(3)
@@ -700,112 +715,16 @@ namespace StudyHub.DAL.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("UserSubjectId")
+                    b.Property<long?>("UserSubjectId")
                         .HasColumnType("bigint");
 
                     b.HasKey("GoalId");
 
                     b.HasIndex("UserSubjectId", "UserId");
 
-                    b.HasIndex(new[] { "UserId", "IsCancelled" }, "IX_Goals_User");
-
-                    b.HasIndex(new[] { "UserSubjectId", "TargetValue" }, "UQ_Goals_SubjectTargetValue")
-                        .IsUnique()
-                        .HasFilter("[IsCancelled] = 0");
+                    b.HasIndex(new[] { "UserId", "IsCancelled", "EndDate" }, "IX_Goals_User");
 
                     b.ToTable("Goals");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.GradeBook", b =>
-                {
-                    b.Property<long>("GradeBookId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("GradeBookId"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<int>("FromYear")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int>("ToYear")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("GradeBookId");
-
-                    b.HasIndex(new[] { "UserId", "FromYear", "ToYear" }, "UQ_GradeBooks_UserYear")
-                        .IsUnique();
-
-                    b.ToTable("GradeBooks");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.GradeColumn", b =>
-                {
-                    b.Property<long>("GradeColumnId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("GradeColumnId"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("int");
-
-                    b.Property<long>("GradeBookId")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsArchived")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<decimal>("Weight")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(6, 2)")
-                        .HasDefaultValue(1m);
-
-                    b.HasKey("GradeColumnId");
-
-                    b.HasIndex(new[] { "GradeBookId", "IsArchived", "DisplayOrder" }, "IX_GradeColumns_Order");
-
-                    b.HasIndex(new[] { "GradeBookId", "Name" }, "UQ_GradeColumns_Name")
-                        .IsUnique()
-                        .HasFilter("[IsArchived] = 0");
-
-                    b.ToTable("GradeColumns");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.GradeEntry", b =>
@@ -819,17 +738,27 @@ namespace StudyHub.DAL.Migrations
                     b.Property<DateOnly>("AssessedOn")
                         .HasColumnType("date");
 
+                    b.Property<string>("AssessmentType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("Other");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(3)
                         .HasColumnType("datetime2(3)")
                         .HasDefaultValueSql("(sysutcdatetime())");
 
-                    b.Property<long>("GradeColumnId")
-                        .HasColumnType("bigint");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<decimal>("MaxScore")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(8, 2)")
+                        .HasDefaultValue(10m);
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -838,7 +767,12 @@ namespace StudyHub.DAL.Migrations
                         .HasColumnType("rowversion");
 
                     b.Property<decimal>("Score")
-                        .HasColumnType("decimal(5, 2)");
+                        .HasColumnType("decimal(8, 2)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
@@ -849,16 +783,16 @@ namespace StudyHub.DAL.Migrations
                     b.Property<long>("UserSubjectId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("GradeEntryId");
+                    b.Property<decimal>("Weight")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(6, 2)")
+                        .HasDefaultValue(1m);
 
-                    b.HasIndex(new[] { "GradeColumnId", "UserSubjectId", "IsDeleted" }, "IX_GradeEntries_Column");
+                    b.HasKey("GradeEntryId");
 
                     b.HasIndex(new[] { "UserSubjectId", "IsDeleted" }, "IX_GradeEntries_Subject");
 
-                    b.ToTable("GradeEntries", t =>
-                        {
-                            t.HasCheckConstraint("CK_GradeEntries_Score", "[Score] >= 0 AND [Score] <= 10");
-                        });
+                    b.ToTable("GradeEntries");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.GroupInvite", b =>
@@ -912,9 +846,6 @@ namespace StudyHub.DAL.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("BannedByUserId")
-                        .HasColumnType("bigint");
-
                     b.Property<DateTime?>("JoinedAtUtc")
                         .HasPrecision(3)
                         .HasColumnType("datetime2(3)");
@@ -940,10 +871,6 @@ namespace StudyHub.DAL.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(15)")
                         .HasDefaultValue("Pending");
-
-                    b.Property<DateTime?>("UnbanRequestedAtUtc")
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)");
 
                     b.HasKey("StudyGroupId", "UserId");
 
@@ -1183,9 +1110,6 @@ namespace StudyHub.DAL.Migrations
                         .HasColumnType("varchar(15)")
                         .HasDefaultValue("Class");
 
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -1286,6 +1210,10 @@ namespace StudyHub.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StudyGroupId"));
 
+                    b.Property<string>("ContactUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(3)
@@ -1316,8 +1244,10 @@ namespace StudyHub.DAL.Migrations
                         .HasColumnType("varchar(15)")
                         .HasDefaultValue("Approval");
 
-                    b.Property<short?>("MaxMembers")
-                        .HasColumnType("smallint");
+                    b.Property<short>("MaxMembers")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)20);
 
                     b.Property<string>("MeetingFormat")
                         .IsRequired()
@@ -1344,6 +1274,9 @@ namespace StudyHub.DAL.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<int?>("SubjectId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(3)
@@ -1362,54 +1295,9 @@ namespace StudyHub.DAL.Migrations
 
                     b.HasIndex("OwnerUserId");
 
-                    b.ToTable("StudyGroups");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.StudyGroupSubject", b =>
-                {
-                    b.Property<long>("StudyGroupSubjectId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StudyGroupSubjectId"));
-
-                    b.Property<long>("AddedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<string>("CustomSubjectName")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<long>("StudyGroupId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int?>("SubjectId")
-                        .HasColumnType("int");
-
-                    b.HasKey("StudyGroupSubjectId");
-
-                    b.HasIndex("AddedByUserId");
-
                     b.HasIndex("SubjectId");
 
-                    b.HasIndex(new[] { "StudyGroupId", "SubjectId" }, "UX_StudyGroupSubjects_Catalog")
-                        .IsUnique()
-                        .HasFilter("[SubjectId] IS NOT NULL");
-
-                    b.HasIndex(new[] { "StudyGroupId", "CustomSubjectName" }, "UX_StudyGroupSubjects_Custom")
-                        .IsUnique()
-                        .HasFilter("[CustomSubjectName] IS NOT NULL");
-
-                    b.ToTable("StudyGroupSubjects", t =>
-                        {
-                            t.HasCheckConstraint("CK_StudyGroupSubjects_Choice", "([SubjectId] IS NOT NULL AND [CustomSubjectName] IS NULL) OR ([SubjectId] IS NULL AND [CustomSubjectName] IS NOT NULL)");
-                        });
+                    b.ToTable("StudyGroups");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.StudySession", b =>
@@ -1674,7 +1562,7 @@ namespace StudyHub.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("UserSubjectId"));
 
-                    b.Property<long?>("AcademicTermId")
+                    b.Property<long>("AcademicTermId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("ClassCode")
@@ -1699,14 +1587,14 @@ namespace StudyHub.DAL.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.Property<long?>("GradeBookId")
-                        .HasColumnType("bigint");
-
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 
                     b.Property<int?>("SubjectId")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("TargetScore10")
+                        .HasColumnType("decimal(4, 2)");
 
                     b.Property<string>("TeacherName")
                         .HasMaxLength(100)
@@ -1716,8 +1604,6 @@ namespace StudyHub.DAL.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("UserSubjectId");
-
-                    b.HasIndex("GradeBookId");
 
                     b.HasIndex("SubjectId");
 
@@ -1799,6 +1685,9 @@ namespace StudyHub.DAL.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<decimal?>("TargetScore10")
+                        .HasColumnType("decimal(4, 2)");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
@@ -2062,8 +1951,6 @@ namespace StudyHub.DAL.Migrations
                         .WithMany("Goals")
                         .HasForeignKey("UserSubjectId", "UserId")
                         .HasPrincipalKey("UserSubjectId", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
                         .HasConstraintName("FK_Goals_SubjectOwner");
 
                     b.Navigation("User");
@@ -2071,43 +1958,13 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("UserSubject");
                 });
 
-            modelBuilder.Entity("StudyHub.DAL.Entities.GradeBook", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_GradeBooks_User");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.GradeColumn", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.GradeBook", "GradeBook")
-                        .WithMany("GradeColumns")
-                        .HasForeignKey("GradeBookId")
-                        .IsRequired()
-                        .HasConstraintName("FK_GradeColumns_GradeBook");
-
-                    b.Navigation("GradeBook");
-                });
-
             modelBuilder.Entity("StudyHub.DAL.Entities.GradeEntry", b =>
                 {
-                    b.HasOne("StudyHub.DAL.Entities.GradeColumn", "GradeColumn")
-                        .WithMany("GradeEntries")
-                        .HasForeignKey("GradeColumnId")
-                        .IsRequired()
-                        .HasConstraintName("FK_GradeEntries_Column");
-
                     b.HasOne("StudyHub.DAL.Entities.UserSubject", "UserSubject")
                         .WithMany("GradeEntries")
                         .HasForeignKey("UserSubjectId")
                         .IsRequired()
                         .HasConstraintName("FK_GradeEntries_Subject");
-
-                    b.Navigation("GradeColumn");
 
                     b.Navigation("UserSubject");
                 });
@@ -2252,32 +2109,12 @@ namespace StudyHub.DAL.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_StudyGroups_Owner");
 
-                    b.Navigation("OwnerUser");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.StudyGroupSubject", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.User", "AddedByUser")
-                        .WithMany("AddedStudyGroupSubjects")
-                        .HasForeignKey("AddedByUserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_StudyGroupSubjects_AddedBy");
-
-                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", "StudyGroup")
-                        .WithMany("StudyGroupSubjects")
-                        .HasForeignKey("StudyGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_StudyGroupSubjects_Group");
-
                     b.HasOne("StudyHub.DAL.Entities.Subject", "Subject")
-                        .WithMany("StudyGroupSubjects")
+                        .WithMany("StudyGroups")
                         .HasForeignKey("SubjectId")
-                        .HasConstraintName("FK_StudyGroupSubjects_Subject");
+                        .HasConstraintName("FK_StudyGroups_Subject");
 
-                    b.Navigation("AddedByUser");
-
-                    b.Navigation("StudyGroup");
+                    b.Navigation("OwnerUser");
 
                     b.Navigation("Subject");
                 });
@@ -2324,11 +2161,6 @@ namespace StudyHub.DAL.Migrations
 
             modelBuilder.Entity("StudyHub.DAL.Entities.UserSubject", b =>
                 {
-                    b.HasOne("StudyHub.DAL.Entities.GradeBook", "GradeBook")
-                        .WithMany("UserSubjects")
-                        .HasForeignKey("GradeBookId")
-                        .HasConstraintName("FK_UserSubjects_GradeBook");
-
                     b.HasOne("StudyHub.DAL.Entities.Subject", "Subject")
                         .WithMany("UserSubjects")
                         .HasForeignKey("SubjectId")
@@ -2344,11 +2176,10 @@ namespace StudyHub.DAL.Migrations
                         .WithMany("UserSubjects")
                         .HasForeignKey("AcademicTermId", "UserId")
                         .HasPrincipalKey("AcademicTermId", "UserId")
+                        .IsRequired()
                         .HasConstraintName("FK_UserSubjects_TermOwner");
 
                     b.Navigation("AcademicTerm");
-
-                    b.Navigation("GradeBook");
 
                     b.Navigation("Subject");
 
@@ -2389,18 +2220,6 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("FlashcardReviews");
                 });
 
-            modelBuilder.Entity("StudyHub.DAL.Entities.GradeBook", b =>
-                {
-                    b.Navigation("GradeColumns");
-
-                    b.Navigation("UserSubjects");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.GradeColumn", b =>
-                {
-                    b.Navigation("GradeEntries");
-                });
-
             modelBuilder.Entity("StudyHub.DAL.Entities.GroupMember", b =>
                 {
                     b.Navigation("GroupPosts");
@@ -2434,13 +2253,11 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("GroupMembers");
 
                     b.Navigation("Notes");
-
-                    b.Navigation("StudyGroupSubjects");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.Subject", b =>
                 {
-                    b.Navigation("StudyGroupSubjects");
+                    b.Navigation("StudyGroups");
 
                     b.Navigation("UserSubjects");
                 });
@@ -2450,8 +2267,6 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("AcademicTerms");
 
                     b.Navigation("ActivityEvents");
-
-                    b.Navigation("AddedStudyGroupSubjects");
 
                     b.Navigation("AuditLogs");
 

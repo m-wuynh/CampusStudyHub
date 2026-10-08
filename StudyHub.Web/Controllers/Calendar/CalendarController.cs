@@ -50,7 +50,8 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
                     extendedProps = new { 
                         type = ev.EventType,
                         location = ev.Location,
-                        description = ev.Description
+                        description = ev.Description,
+                        isCompleted = ev.IsCompleted
                     }
                 });
             }
@@ -126,6 +127,20 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
     {
         var minutes = await calendarService.GetReminderMinutesAsync(CurrentUserId, id);
         return Json(minutes);
+    }
+
+    [HttpPost("ToggleEventCompletion/{id}")]
+    public async Task<IActionResult> ToggleEventCompletion(long id, [FromBody] bool isCompleted)
+    {
+        try
+        {
+            await calendarService.ToggleEventCompletionAsync(CurrentUserId, id, isCompleted);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpGet("GetUpcomingNotifications")]

@@ -12,7 +12,7 @@ namespace StudyHub.BLL.Services.Grades;
 
 public interface IGoalService
 {
-    Task<List<GoalDto>> GetGoalsAsync(long userId, long? termId, CancellationToken cancellationToken = default);
+    Task<List<GoalLadderDto>> GetGoalLaddersAsync(long userId, long termId, CancellationToken cancellationToken = default);
     Task CreateGoalAsync(long userId, CreateGoalDto dto, CancellationToken cancellationToken = default);
     Task UpdateGoalAsync(long userId, UpdateGoalDto dto, CancellationToken cancellationToken = default);
     Task CancelGoalAsync(long userId, long goalId, CancellationToken cancellationToken = default);
@@ -20,76 +20,101 @@ public interface IGoalService
 
 public sealed class GoalService(IRepository repository) : IGoalService
 {
-    public async Task<List<GoalDto>> GetGoalsAsync(long userId, long? termId, CancellationToken cancellationToken = default)
+    public async Task<List<GoalLadderDto>> GetGoalLaddersAsync(long userId, long termId, CancellationToken cancellationToken = default)
     {
-        var query = repository.Query<Goal>()
-            .Include(g => g.UserSubject)
-            .ThenInclude(us => us!.Subject)
-            .Where(g => g.UserId == userId && !g.IsCancelled);
-
-        if (termId.HasValue)
-        {
-            query = query.Where(g => g.UserSubjectId == null || g.UserSubject!.AcademicTermId == termId.Value);
-        }
-
-        var subjectSummaries = termId.HasValue 
-            ? await repository.Query<VwSubjectGradeSummary>().Where(v => v.UserId == userId && v.AcademicTermId == termId.Value).ToListAsync(cancellationToken)
-            : new List<VwSubjectGradeSummary>();
-
-        var termSummary = termId.HasValue
-            ? await repository.Query<VwTermGradeSummary>().FirstOrDefaultAsync(v => v.UserId == userId && v.AcademicTermId == termId.Value, cancellationToken)
-            : null;
-
-        var goals = await query
-            .OrderBy(g => g.EndDate)
+        // Load all UserSubjects in the term
+        var userSubjects = await repository.Query<UserSubject>()
+            .Include(us => us.Subject)
+            .Where(us => us.UserId == userId && us.AcademicTermId == termId && !us.IsArchived)
             .ToListAsync(cancellationToken);
 
-        return goals.Select(g => {
-            decimal currentValue = 0;
-            if (g.UserSubjectId.HasValue) {
-                currentValue = subjectSummaries.FirstOrDefault(s => s.UserSubjectId == g.UserSubjectId)?.CurrentAverage10 ?? 0m;
-            } else {
-                currentValue = termSummary?.CurrentAverage10 ?? 0m;
-            }
-            return new GoalDto(
-                g.GoalId,
-                g.Title,
-                g.UnitCode,
-                g.TargetValue,
-                currentValue,
-                g.EndDate,
-                g.UserSubjectId,
-                g.UserSubject?.CustomSubjectName ?? g.UserSubject?.Subject?.SubjectName ?? "Chung",
-                currentValue > 0 && currentValue >= g.TargetValue
-            );
-        }).ToList();
+        if (!userSubjects.Any()) return new List<GoalLadderDto>();
+
+        var subjectIds = userSubjects.Select(us => us.UserSubjectId).ToList();
+
+        // Load all goals for these subjects
+        var goals = await repository.Query<Goal>()
+            .Where(g => g.UserId == userId && subjectIds.Contains(g.UserSubjectId))
+            .OrderBy(g => g.TargetValue)
+            .ToListAsync(cancellationToken);
+
+        // Load grade averages from DB view
+        var summaries = await repository.Query<VwSubjectGradeSummary>()
+            .Where(v => v.UserId == userId && v.AcademicTermId == termId)
+            .ToListAsync(cancellationToken);
+
+        var ladders = new List<GoalLadderDto>();
+
+        foreach (var us in userSubjects)
+        {
+            var subjectGoals = goals.Where(g => g.UserSubjectId == us.UserSubjectId).OrderBy(g => g.TargetValue).ToList();
+            if (!subjectGoals.Any()) continue;
+
+            var avg = summaries.FirstOrDefault(s => s.UserSubjectId == us.UserSubjectId)?.CurrentAverage10;
+            var subjectName = us.CustomSubjectName ?? us.Subject?.SubjectName ?? "Môn học";
+
+            var activeGoals = subjectGoals.Where(g => !g.IsCancelled).OrderBy(g => g.TargetValue).ToList();
+            var inProgressGoal = activeGoals.FirstOrDefault(g => avg == null || g.TargetValue > avg.Value);
+
+            var goalDtos = subjectGoals.Select(g =>
+            {
+                GoalStatus status;
+                if (g.IsCancelled) status = GoalStatus.Cancelled;
+                else if (avg == null) status = GoalStatus.NoData;
+                else if (avg >= g.TargetValue) status = GoalStatus.Achieved;
+                else if (inProgressGoal != null && g.GoalId == inProgressGoal.GoalId) status = GoalStatus.InProgress;
+                else status = GoalStatus.Future;
+
+                return new GoalDto(g.GoalId, g.Title, g.TargetValue, avg, g.EndDate, g.UserSubjectId, status);
+            }).ToList();
+
+            ladders.Add(new GoalLadderDto(us.UserSubjectId, subjectName, avg, goalDtos));
+        }
+
+        return ladders;
     }
 
     public async Task CreateGoalAsync(long userId, CreateGoalDto dto, CancellationToken cancellationToken = default)
     {
-        if (dto.UserSubjectId.HasValue)
-        {
-            var hasAccess = await repository.AnyAsync<UserSubject>(us => us.UserSubjectId == dto.UserSubjectId && us.UserId == userId, cancellationToken);
-            if (!hasAccess) throw new UnauthorizedAccessException("Không có quyền truy cập môn học này.");
+        // ── Validate UserSubject ───────────────────────────────────
+        var userSubject = await repository.Query<UserSubject>()
+            .FirstOrDefaultAsync(us => us.UserSubjectId == dto.UserSubjectId && us.UserId == userId, cancellationToken);
 
-            var existing = await repository.AnyAsync<Goal>(g => g.UserId == userId && g.UserSubjectId == dto.UserSubjectId && !g.IsCancelled, cancellationToken);
-            if (existing) throw new ArgumentException("Môn học này đã có mục tiêu đang hoạt động.");
-        }
-        else
+        if (userSubject is null) throw new UnauthorizedAccessException("Không có quyền truy cập môn học này.");
+        if (userSubject.IsArchived) throw new ArgumentException("Không thể đặt mục tiêu cho môn đã lưu trữ.");
+
+        // ── Validate TargetValue ───────────────────────────────────
+        if (dto.TargetValue <= 0 || dto.TargetValue > 10)
+            throw new ArgumentException("Điểm mục tiêu phải nằm trong khoảng (0, 10].");
+
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            throw new ArgumentException("Tên mục tiêu không được để trống.");
+
+        // ── Goal Ladder uniqueness: no duplicate TargetValue for same subject ──
+        var duplicate = await repository.AnyAsync<Goal>(
+            g => g.UserId == userId && g.UserSubjectId == dto.UserSubjectId && g.TargetValue == dto.TargetValue && !g.IsCancelled,
+            cancellationToken);
+        if (duplicate) throw new ArgumentException($"Môn học này đã có mục tiêu {dto.TargetValue} đang hoạt động.");
+
+        // ── Goal Ladder ascending recommendation ───────────────────
+        // New goal should be > all existing active goals (soft validation – warn but allow)
+        var maxExistingTarget = await repository.Query<Goal>()
+            .Where(g => g.UserId == userId && g.UserSubjectId == dto.UserSubjectId && !g.IsCancelled)
+            .MaxAsync(g => (decimal?)g.TargetValue, cancellationToken);
+
+        if (maxExistingTarget.HasValue && dto.TargetValue < maxExistingTarget.Value)
         {
-            var existing = await repository.AnyAsync<Goal>(g => g.UserId == userId && g.UserSubjectId == null && !g.IsCancelled, cancellationToken);
-            if (existing) throw new ArgumentException("Mục tiêu ĐTB Toàn khóa đã tồn tại và đang hoạt động.");
+            throw new ArgumentException(
+                $"Mục tiêu mới ({dto.TargetValue}) phải lớn hơn mục tiêu đang hoạt động cao nhất ({maxExistingTarget.Value}). " +
+                "Để hạ mục tiêu, hãy hủy mục tiêu cũ trước rồi tạo mục tiêu mới.");
         }
 
         var goal = new Goal
         {
             UserId = userId,
-            Title = dto.Title,
             UserSubjectId = dto.UserSubjectId,
-            UnitCode = dto.UnitCode,
+            Title = dto.Title.Trim(),
             TargetValue = dto.TargetValue,
-            CurrentValue = 0,
-            StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
             EndDate = dto.EndDate,
             IsCancelled = false
         };
@@ -103,27 +128,16 @@ public sealed class GoalService(IRepository repository) : IGoalService
         var goal = await repository.Query<Goal>(false)
             .FirstOrDefaultAsync(g => g.GoalId == dto.Id, cancellationToken);
 
-        if (goal == null) throw new ArgumentException("Mục tiêu không tồn tại.");
+        if (goal is null) throw new ArgumentException("Mục tiêu không tồn tại.");
         if (goal.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
+        if (goal.IsCancelled) throw new ArgumentException("Không thể chỉnh sửa mục tiêu đã hủy.");
 
-        if (dto.UserSubjectId.HasValue && dto.UserSubjectId != goal.UserSubjectId)
-        {
-            var hasAccess = await repository.AnyAsync<UserSubject>(us => us.UserSubjectId == dto.UserSubjectId && us.UserId == userId, cancellationToken);
-            if (!hasAccess) throw new UnauthorizedAccessException("Không có quyền truy cập môn học này.");
+        // IMPORTANT: TargetValue is IMMUTABLE – it's a historical milestone.
+        // Only Title and EndDate can be updated.
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            throw new ArgumentException("Tên mục tiêu không được để trống.");
 
-            var existing = await repository.AnyAsync<Goal>(g => g.UserId == userId && g.UserSubjectId == dto.UserSubjectId && !g.IsCancelled, cancellationToken);
-            if (existing) throw new ArgumentException("Môn học này đã có mục tiêu đang hoạt động.");
-        }
-        else if (!dto.UserSubjectId.HasValue && goal.UserSubjectId.HasValue)
-        {
-            var existing = await repository.AnyAsync<Goal>(g => g.UserId == userId && g.UserSubjectId == null && !g.IsCancelled, cancellationToken);
-            if (existing) throw new ArgumentException("Mục tiêu ĐTB Toàn khóa đã tồn tại và đang hoạt động.");
-        }
-
-        goal.Title = dto.Title;
-        goal.UserSubjectId = dto.UserSubjectId;
-        goal.UnitCode = dto.UnitCode;
-        goal.TargetValue = dto.TargetValue;
+        goal.Title = dto.Title.Trim();
         goal.EndDate = dto.EndDate;
 
         repository.Update(goal);
@@ -135,7 +149,7 @@ public sealed class GoalService(IRepository repository) : IGoalService
         var goal = await repository.Query<Goal>(false)
             .FirstOrDefaultAsync(g => g.GoalId == goalId, cancellationToken);
 
-        if (goal == null) return;
+        if (goal is null) return;
         if (goal.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         goal.IsCancelled = true;
