@@ -10,6 +10,10 @@ namespace StudyHub.Web.Controllers.StudyGroups;
 [Route("api/groups")]
 public sealed class StudyGroupsApiController(IStudyGroupService studyGroups) : ControllerBase
 {
+    [HttpGet("subjects")]
+    public async Task<IActionResult> GetSubjectOptions(CancellationToken cancellationToken) =>
+        Ok(await studyGroups.GetSubjectOptionsAsync(cancellationToken));
+
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? search, CancellationToken cancellationToken) =>
         Ok(await studyGroups.GetGroupsAsync(search, cancellationToken));
@@ -57,6 +61,15 @@ public sealed class StudyGroupsApiController(IStudyGroupService studyGroups) : C
             var group = await studyGroups.CreateGroupAsync(request, cancellationToken);
             return Created($"/api/groups/{group.Id}", group);
         });
+
+    [ValidateAntiForgeryToken]
+    [HttpPut("{groupId:long}")]
+    public Task<IActionResult> Update(
+        string groupId,
+        UpdateGroupRequest request,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await studyGroups.UpdateGroupAsync(
+            groupId, request, cancellationToken)));
 
     [ValidateAntiForgeryToken]
     [HttpPost("{groupId:long}/members/{userId:long}")]

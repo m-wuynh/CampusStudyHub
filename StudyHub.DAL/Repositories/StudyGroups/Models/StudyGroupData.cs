@@ -4,17 +4,17 @@ public sealed class StudyGroupData
 {
     public required string Id { get; init; }
     public required string Name { get; set; }
-    public required string Subject { get; set; }
-    public required string SubjectCssClass { get; set; }
+    public List<GroupSubjectData> Subjects { get; init; } = [];
+    public string Subject => Subjects.Count == 0 ? "Học tập" : string.Join(", ", Subjects.Select(item => item.Name));
+    public string SubjectCssClass => Subjects.FirstOrDefault()?.CssClass ?? "subject-toan";
     public required string Description { get; set; }
     public string Goal { get; set; } = string.Empty;
     public string MeetingFormat { get; set; } = "Online";
     public string MeetingSchedule { get; set; } = string.Empty;
-    public string ContactUrl { get; set; } = string.Empty;
     public string Rules { get; set; } = string.Empty;
     public bool IsPublic { get; set; }
     public string JoinMode { get; set; } = "Approval";
-    public short MaxMembers { get; set; } = 20;
+    public short? MaxMembers { get; set; }
     public required string OwnerUserId { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
     public string? CurrentMembershipStatus { get; set; }
@@ -49,6 +49,10 @@ public sealed class GroupPostData
 
 public sealed record GroupResourceData(string Id, string Title, string ResourceType, string? Url);
 
+public sealed record GroupSubjectData(string Name, string CssClass, bool IsCustom);
+
+public sealed record GroupSubjectOptionData(string Name, bool IsCustom);
+
 public sealed record GroupMembershipData(string GroupId, string Status, string Message);
 
 public sealed record GroupInviteData(
@@ -64,16 +68,29 @@ public sealed class CreateStudyGroupData
 {
     public required long OwnerUserId { get; init; }
     public required string Name { get; init; }
-    public required string Subject { get; init; }
+    public required IReadOnlyList<string> Subjects { get; init; }
     public string? Description { get; init; }
     public string? Goal { get; init; }
     public required string MeetingFormat { get; init; }
     public string? MeetingSchedule { get; init; }
-    public string? ContactUrl { get; init; }
     public string? Rules { get; init; }
     public required string Visibility { get; init; }
     public required string JoinMode { get; init; }
-    public short MaxMembers { get; init; }
+    public short? MaxMembers { get; init; }
+}
+
+public sealed class UpdateStudyGroupData
+{
+    public required string Name { get; init; }
+    public required IReadOnlyList<string> Subjects { get; init; }
+    public string? Description { get; init; }
+    public string? Goal { get; init; }
+    public required string MeetingFormat { get; init; }
+    public string? MeetingSchedule { get; init; }
+    public string? Rules { get; init; }
+    public required string Visibility { get; init; }
+    public required string JoinMode { get; init; }
+    public short? MaxMembers { get; init; }
 }
 
 public sealed class StudyGroupRepositoryException(string code, string message) : Exception(message)

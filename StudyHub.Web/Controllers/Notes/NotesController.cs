@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using StudyHub.BLL.DTOs.Notes;
@@ -43,7 +44,7 @@ public sealed class NotesController : Controller
         {
             current = await users.ResolveAsync(
                 User.Identity?.IsAuthenticated == true,
-                User.FindFirst(NotesUserResolver.UserIdClaim)?.Value,
+                User.FindFirstValue(ClaimTypes.NameIdentifier),
                 environment.IsDevelopment(),
                 HttpContext.RequestAborted);
 
