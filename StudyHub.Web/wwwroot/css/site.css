@@ -112,7 +112,9 @@ body {
 .btn-primary-sh {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  white-space: nowrap;
   background-color: var(--sh-indigo-600);
   color: white;
   border: none;
@@ -131,7 +133,9 @@ body {
 .btn-secondary-sh {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  white-space: nowrap;
   background-color: var(--sh-slate-100);
   color: var(--sh-slate-700);
   border: 1px solid var(--sh-slate-200);

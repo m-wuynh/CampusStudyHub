@@ -9,7 +9,9 @@ public partial class UserSubject
 
     public long UserId { get; set; }
 
-    public long AcademicTermId { get; set; }
+    public long? AcademicTermId { get; set; }
+
+    public long? GradeBookId { get; set; }
 
     public int? SubjectId { get; set; }
     
@@ -21,13 +23,13 @@ public partial class UserSubject
 
     public decimal CreditWeight { get; set; }
 
-    public decimal? TargetScore10 { get; set; }
-
     public string ColorHex { get; set; } = null!;
 
     public bool IsArchived { get; set; }
 
-    public virtual AcademicTerm AcademicTerm { get; set; } = null!;
+    public virtual AcademicTerm? AcademicTerm { get; set; }
+
+    public virtual GradeBook? GradeBook { get; set; }
 
     public virtual ICollection<Deadline> Deadlines { get; set; } = new List<Deadline>();
 
