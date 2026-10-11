@@ -8,6 +8,7 @@
     string Initial(string name) => string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpperInvariant();
 }
 
+<link rel="stylesheet" href="~/css/group-learning.css" asp-append-version="true" />
 <div id="group-details-page"
      data-group-id="@Model.Group.Id"
      data-is-member="@Model.Group.IsMember.ToString().ToLowerInvariant()"
@@ -124,7 +125,11 @@
         <button type="button" class="active" data-panel="overview"><i class="bi bi-house-door"></i>Tổng quan</button>
         <button type="button" data-panel="announcements"><i class="bi bi-megaphone"></i>Thông báo <span>@Model.Group.Announcements.Count</span></button>
         <button type="button" data-panel="chat"><i class="bi bi-chat-dots"></i>Chat nhóm</button>
-        <button type="button" data-panel="resources"><i class="bi bi-folder2-open"></i>Tài nguyên <span>@Model.Group.Resources.Count</span></button>
+        <button type="button" data-panel="sessions"><i class="bi bi-calendar-event"></i>Buổi học</button>
+        <button type="button" data-panel="assignments"><i class="bi bi-clipboard-check"></i>Bài tập</button>
+        <button type="button" data-panel="questions"><i class="bi bi-question-circle"></i>Hỏi đáp</button>
+        <button type="button" data-panel="progress"><i class="bi bi-graph-up"></i>Tiến độ</button>
+        <button type="button" data-panel="resources"><i class="bi bi-folder2-open"></i>Tài nguyên <span id="gl-resource-count">@Model.Group.Resources.Count</span></button>
         <button type="button" data-panel="members"><i class="bi bi-people"></i>Thành viên <span>@Model.Group.MemberCount@if (pendingMemberCount > 0){<text> + @pendingMemberCount chờ</text>}</span></button>
       </nav>
 
@@ -194,20 +199,11 @@
           </form>
         </section>
 
+        <partial name="_LearningPanels" />
         <section class="group-panel" data-panel-content="resources" hidden>
           <h2 class="group-section-title"><i class="bi bi-folder2-open"></i>Tài nguyên nhóm</h2>
-          <div class="row g-3">
-            @foreach (var resource in Model.Group.Resources)
-            {
-              <div class="col-md-6">
-                <a href="@(resource.Url ?? "#")" class="group-resource-card @(resource.Url is null ? "disabled" : "")">
-                  <i class="bi @(resource.ResourceType == "Note" ? "bi-journal-text" : resource.ResourceType == "Flashcard" ? "bi-layers" : "bi-file-earmark-text")"></i>
-                  <div><strong>@resource.Title</strong><span>@resource.ResourceType</span></div>
-                </a>
-              </div>
-            }
-          </div>
-          @if (Model.Group.Resources.Count == 0) { <div class="group-empty-state"><i class="bi bi-folder2-open"></i><p>Chưa có ghi chú, tài liệu hoặc flashcard được chia sẻ cho nhóm.</p></div> }
+          <p class="gl-meta">Chia sẻ ghi chú, PDF và flashcard của bạn. Khi bạn rời nhóm, tài nguyên trở về riêng tư.</p>
+          <div id="gl-resources" aria-live="polite"><p>Đang tải tài nguyên…</p></div>
         </section>
 
         <section class="group-panel" data-panel-content="members" hidden>
@@ -358,4 +354,5 @@
   <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@9.0.6/dist/browser/signalr.min.js"></script>
   <script src="~/js/subject-multiselect.js" asp-append-version="true"></script>
   <script src="~/js/group-details.js" asp-append-version="true"></script>
+  <script src="~/js/group-learning.js" asp-append-version="true"></script>
 }

@@ -1,5 +1,7 @@
 # Kịch bản review feature Study Group
 
+> Phần tài nguyên và phạm vi workspace trong tài liệu review ban đầu bên dưới đã được nâng cấp. Xem [GROUP_LEARNING.md](GROUP_LEARNING.md) cho buổi học, bài tập, chia sẻ tài nguyên, hỏi đáp, tiến độ và các quy tắc hiện hành.
+
 ## 1. Mục tiêu buổi review
 
 Feature Study Group cho phép sinh viên tìm và tham gia nhóm học tập, tạo nhóm mới,

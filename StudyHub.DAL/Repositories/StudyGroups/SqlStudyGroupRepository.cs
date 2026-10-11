@@ -121,7 +121,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .OrderByDescending(item => item.CreatedAtUtc)
             .Take(20)
             .Select(item => new GroupResourceData(
-                $"document-{item.DocumentId}", item.Title, "Document", item.ExternalUrl))
+                $"document-{item.DocumentId}", item.Title, "Document", $"/Groups/{groupId}/Resources/Document/{item.DocumentId}"))
             .ToListAsync(cancellationToken);
         result.Resources.AddRange(documents);
 
@@ -130,7 +130,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .OrderByDescending(item => item.UpdatedAtUtc)
             .Take(20)
             .Select(item => new GroupResourceData(
-                $"note-{item.NoteId}", item.Title, "Note", $"/Notes/Reader/{item.NoteId}"))
+                $"note-{item.NoteId}", item.Title, "Note", $"/Groups/{groupId}/Resources/Note/{item.NoteId}"))
             .ToListAsync(cancellationToken);
         result.Resources.AddRange(notes);
 
@@ -139,7 +139,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .OrderByDescending(item => item.UpdatedAtUtc)
             .Take(20)
             .Select(item => new GroupResourceData(
-                $"deck-{item.DeckId}", item.Title, "Flashcard", "/Flashcards"))
+                $"deck-{item.DeckId}", item.Title, "Flashcard", $"/Groups/{groupId}/Resources/Flashcard/{item.DeckId}"))
             .ToListAsync(cancellationToken);
         result.Resources.AddRange(decks);
 
@@ -340,6 +340,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         long userId,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var group = await context.StudyGroups
             .Include(item => item.GroupMembers)
             .SingleOrDefaultAsync(item => item.StudyGroupId == groupId && !item.IsArchived, cancellationToken)
@@ -356,7 +357,9 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         var wasPending = membership.Status == "Pending";
         membership.Status = "Left";
         membership.JoinedAtUtc = null;
+        await RestorePrivateResourcesAsync(groupId, userId, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return new GroupMembershipData(
             groupId.ToString(),
             "Left",
@@ -501,6 +504,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
                 throw new StudyGroupRepositoryException("invalid_action", "Thao tác không phù hợp với trạng thái thành viên hiện tại.");
         }
 
+        if (action is "kick" or "ban")
+            await RestorePrivateResourcesAsync(groupId, targetUserId, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
@@ -606,8 +611,25 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         long userId,
         CancellationToken cancellationToken = default) =>
         context.GroupMembers.AsNoTracking().AnyAsync(
-            item => item.StudyGroupId == groupId && item.UserId == userId && item.Status == "Active",
+            item => item.StudyGroupId == groupId && item.UserId == userId && item.Status == "Active" && !item.StudyGroup.IsArchived,
             cancellationToken);
+
+    private async Task RestorePrivateResourcesAsync(long groupId, long userId, CancellationToken ct)
+    {
+        await context.Notes.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
+                .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
+        await context.Documents.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
+                .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
+        await context.FlashcardDecks.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
+                .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
+        // Registration for future sessions no longer applies after leaving; historical attendance is retained.
+        var now = DateTimeOffset.UtcNow;
+        await context.GroupSessionAttendances.Where(x => x.UserId == userId && x.Session.StudyGroupId == groupId &&
+            x.Session.Status == "Scheduled" && x.Session.StartsAtUtc > now).ExecuteDeleteAsync(ct);
+    }
 
     private static StudyGroupData ToDomain(StudyGroup group, long currentUserId)
     {
