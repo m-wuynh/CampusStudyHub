@@ -1,0 +1,172 @@
+﻿        .fc {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #3c4043;
+        }
+        
+        /* Grid Borders */
+        .fc-theme-standard th, 
+        .fc-theme-standard td, 
+        .fc-theme-standard .fc-scrollgrid {
+            border-color: #dadce0;
+        }
+        .fc-scrollgrid {
+            border-left: none !important;
+            border-right: none !important;
+            border-bottom: none !important;
+        }
+        
+        /* Toolbar (Top Area) */
+        .fc-header-toolbar {
+            padding: 12px 24px;
+            margin-bottom: 0 !important;
+            border-bottom: 1px solid #dadce0;
+            display: flex;
+            align-items: center;
+        }
+        .fc-toolbar-title {
+            font-size: 1.375rem !important;
+            font-weight: 400 !important;
+            color: #3c4043;
+            margin-left: 16px !important;
+        }
+
+        /* Toolbar Buttons */
+        .fc-button-primary {
+            background-color: #fff !important;
+            color: #3c4043 !important;
+            border: 1px solid #dadce0 !important;
+            border-radius: 4px !important;
+            text-transform: capitalize;
+            font-weight: 500 !important;
+            box-shadow: none !important;
+            padding: 6px 16px !important;
+            font-size: 14px !important;
+            transition: background-color 0.15s;
+        }
+        .fc-button-primary:hover {
+            background-color: #f1f3f4 !important;
+        }
+        .fc-button-primary:not(:disabled).fc-button-active, 
+        .fc-button-primary:not(:disabled):active {
+            background-color: #e8f0fe !important;
+            color: #1a73e8 !important;
+            border-color: #e8f0fe !important;
+        }
+        .fc-today-button {
+            border-radius: 20px !important;
+            padding: 6px 20px !important;
+            margin-right: 16px !important;
+        }
+        
+        /* Day Headers */
+        .fc-col-header-cell {
+            padding: 8px 0 4px 0;
+            border-bottom: 1px solid #dadce0 !important;
+        }
+        .fc-col-header-cell-cushion {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none !important;
+            color: #70757a;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        /* Custom date number inside header */
+        .sh-date-num {
+            font-size: 24px;
+            font-weight: 400;
+            width: 46px;
+            height: 46px;
+            line-height: 46px;
+            border-radius: 50%;
+            display: inline-block;
+            text-align: center;
+            margin-top: 4px;
+            color: #3c4043;
+        }
+        
+        /* Highlight Today */
+        .fc-day-today .fc-col-header-cell-cushion {
+            color: #1a73e8;
+        }
+        .fc-day-today .sh-date-num {
+            background-color: #1a73e8;
+            color: #fff;
+        }
+        
+        /* Time Axis (Y-Axis) */
+        .fc-timegrid-axis-cushion {
+            font-size: 10px;
+            color: #70757a;
+            font-weight: 500;
+            padding: 8px !important;
+        }
+        .fc-timegrid-slot-label-cushion {
+            font-size: 11px;
+            color: #70757a;
+            text-transform: uppercase;
+            position: relative;
+            top: 0px; /* align with line like Google Calendar */
+        }
+        .fc-timegrid-slot.fc-timegrid-slot-lane {
+            height: 80px !important; 
+        }
+        .fc-timegrid-slot.fc-timegrid-slot-label {
+            height: 80px !important;
+        }
+        .fc-timegrid-slot-minor {
+            border-top-style: none !important;
+        }
+        /* Always show hour label cells */
+        .fc-timegrid-slot-label {
+            vertical-align: top !important;
+        }
+        .fc-timegrid-slot-label-cushion {
+            padding-top: 4px !important;
+        }
+        /* Fix event overflow onto time axis */
+        .fc-timegrid-col-events {
+            margin: 0 !important;
+        }
+        .fc-timegrid-now-indicator-arrow {
+            display: none;
+        }
+        .fc-timegrid-event-harness {
+            margin-right: 2px !important;
+        }
+
+        /* Events */
+        .fc-event {
+            border: none !important;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .fc-timegrid-event {
+            padding: 2px 4px;
+        }
+        
+        .event-state-pending { background: #1a73e8 !important; color: #fff !important; } /* Xanh dương (Default) */
+        .event-state-completed { background: #1e8e3e !important; color: #fff !important; } /* Xanh lá (Hoàn thành) */
+        .event-state-missed { background: #d93025 !important; color: #fff !important; } /* Đỏ (Missed) */
+
+        .fc-v-event .fc-event-title {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .fc-v-event .fc-event-time {
+            font-size: 10px;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        /* Completed Event Styling */
+        .event-completed {
+            background-color: rgba(30, 142, 62, 0.15) !important; /* light green */
+            color: #1e8e3e !important;
+            text-decoration: line-through;
+            opacity: 0.8;
+            border-left: 3px solid #1e8e3e !important;
+        }

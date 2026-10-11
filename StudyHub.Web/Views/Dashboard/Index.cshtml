@@ -102,6 +102,61 @@
     </div>
   </div>
 
+  <!-- ── 2.5 Weekly Performance Widget ── -->
+  @{
+      int weeklyTotal = Model.WeeklyTotalEvents;
+      int weeklyCompleted = Model.WeeklyCompletedEvents;
+      int weeklyMissed = Model.WeeklyMissedEvents;
+      int weeklyPct = weeklyTotal == 0 ? 0 : (weeklyCompleted * 100) / weeklyTotal;
+  }
+  <div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3 class="mb-0 fw-bold"
+          style="font-size:11px; color:var(--sh-slate-500); text-transform:uppercase; letter-spacing:.07em;">
+        Hiệu suất học tập tuần này (Thứ 2 - Chủ Nhật)
+      </h3>
+    </div>
+    <div class="row g-3">
+      <div class="col-12 col-md-6">
+        <div class="stat-card" style="border-left: 4px solid var(--sh-emerald-500);">
+          <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size:13px; font-weight:600; color:var(--sh-slate-700);">Ca đã hoàn thành</span>
+            <div class="stat-icon-wrap" style="background:var(--sh-emerald-50); color:var(--sh-emerald-600);">
+              <i class="bi bi-check-circle-fill"></i>
+            </div>
+          </div>
+          <div class="d-flex align-items-baseline gap-2 mt-3">
+            <span class="fw-black" style="font-size:28px; color:var(--sh-emerald-600);">@weeklyCompleted</span>
+            <span style="font-size:13px; color:var(--sh-slate-500); font-weight:500;">/ @weeklyTotal ca</span>
+          </div>
+          <div class="d-flex align-items-center gap-2 mt-2">
+            <div class="sh-progress flex-grow-1" style="height:6px; background:var(--sh-slate-100);">
+              <div class="sh-progress-bar emerald" style="width:@weeklyPct%;"></div>
+            </div>
+            <span style="font-size:11px; font-weight:bold; color:var(--sh-emerald-600);">@weeklyPct%</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6">
+        <div class="stat-card" style="border-left: 4px solid var(--sh-rose-500);">
+          <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size:13px; font-weight:600; color:var(--sh-slate-700);">Ca học bị bỏ lỡ (Missed)</span>
+            <div class="stat-icon-wrap" style="background:var(--sh-rose-50); color:var(--sh-rose-600);">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+          </div>
+          <div class="d-flex align-items-baseline gap-2 mt-3">
+            <span class="fw-black" style="font-size:28px; color:var(--sh-rose-600);">@weeklyMissed</span>
+            <span style="font-size:13px; color:var(--sh-slate-500); font-weight:500;">ca học</span>
+          </div>
+          <p class="mb-0 mt-2" style="font-size:12px; color:var(--sh-rose-600); font-weight:500;">
+            Quá thời gian nhưng chưa được tick hoàn thành
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── 3. Quick Actions ── -->
   <div id="dashboard-quick-actions" class="sh-card p-4 mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
