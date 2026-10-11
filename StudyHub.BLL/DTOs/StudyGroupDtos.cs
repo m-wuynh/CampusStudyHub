@@ -22,6 +22,7 @@ public sealed record GroupSummaryResponse(
 
 public sealed record GroupDetailsResponse(
     string Id,
+    long OwnerUserId,
     string Name,
     string Subject,
     string SubjectCssClass,

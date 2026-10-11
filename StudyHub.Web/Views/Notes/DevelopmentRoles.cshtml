@@ -1,0 +1,69 @@
+@model NotesDevelopmentRolesViewModel
+@{
+    ViewData["Title"] = "Kiểm thử quyền Notes";
+    ViewData["PageTitle"] = "Kiểm thử quyền Notes";
+    ViewData["PageSubtitle"] = "Development only · Owner / Member";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<section class="notes-module">
+    <div class="sh-card p-4" style="max-width:760px">
+        <p class="text-uppercase small fw-bold text-primary mb-1">Development only</p>
+        <h2 class="fw-bold mb-2" style="font-size:20px;color:var(--sh-slate-900)">Chọn persona kiểm thử</h2>
+        <p class="text-secondary">Chỉ hoạt động trong Development. Nếu database có cặp Owner/Member thật, trang dùng cặp đó. Nếu chỉ có một tài khoản, Notes có thể tạo nhóm kiểm thử và giả lập nhánh Member bằng chính tài khoản hiện tại.</p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-warning">@Model.ErrorMessage</div>
+        }
+
+        @if (Model.Personas.Count == 0)
+        {
+            <div class="alert alert-warning">
+                Chưa có cặp quyền Owner/Member thật trong database.
+                @if (Model.CanCreateSimulationGroup)
+                {
+                    <span>Tạo một nhóm phát triển dùng tài khoản hiện tại; không tạo User hay membership giả.</span>
+                }
+                else
+                {
+                    <span>Tài khoản hiện tại không Active hoặc không thể truy cập database.</span>
+                }
+            </div>
+
+            @if (Model.CanCreateSimulationGroup)
+            {
+                <form asp-controller="NotesDevelopmentRoles" asp-action="CreateSimulationGroup" method="post">
+                    <button class="btn btn-primary" type="submit">Tạo nhóm smoke test trong Notes</button>
+                </form>
+            }
+        }
+        else
+        {
+            @if (Model.Personas[0].IsSimulated)
+            {
+                <div class="alert alert-info">
+                    <strong>Giả lập Development:</strong> Owner và Member dùng cùng một UserId. Chế độ này kiểm tra nhánh giao diện/API và ChangeRequest; nó không thay thế kiểm thử membership giữa hai tài khoản thật.
+                </div>
+            }
+            <p class="small text-secondary">Nhóm: <strong>@Model.Personas[0].GroupName</strong> · ID @Model.Personas[0].GroupId</p>
+            <div class="d-grid gap-3">
+                @foreach (var persona in Model.Personas)
+                {
+                    <form asp-controller="NotesDevelopmentRoles" asp-action="Switch" method="post"
+                          class="border rounded-3 p-3 d-flex justify-content-between align-items-center gap-3">
+                        <input type="hidden" name="personaKey" value="@persona.PersonaKey" />
+                        <input type="hidden" name="userId" value="@persona.UserId" />
+                        <input type="hidden" name="groupId" value="@persona.GroupId" />
+                        <div>
+                            <span class="badge text-bg-secondary mb-1">@persona.RoleLabel</span>
+                            <strong>@persona.DisplayName</strong>
+                            <div class="small text-secondary">@persona.Email · UserId @persona.UserId</div>
+                        </div>
+                        <button class="btn btn-primary" type="submit">Mở workspace</button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+</section>

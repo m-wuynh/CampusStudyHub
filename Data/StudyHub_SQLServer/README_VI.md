@@ -15,6 +15,9 @@ Dùng SQL Server **2019 trở lên**, bao gồm Express/LocalDB, và SQL Server 
 5. Chạy `03_ChecksAndQueries.sql` để kiểm tra ràng buộc và xem ví dụ truy vấn.
 6. Trên database phát triển, chạy riêng `04_SmokeTests.sql`: 9 kiểm thử chức năng. Script rollback dữ liệu thử; số IDENTITY có thể vẫn bị nhảy, đây là bình thường.
 7. Sau khi tạo schema nền, chạy `dotnet ef database update` theo README ở thư mục gốc để áp dụng các EF Core Migration. Migration `AddMultiSubjectStudyGroups` chuyển nhóm sang nhiều môn và hỗ trợ tên môn cá nhân.
+8. Với M1 Notes/PDF, chạy thêm `06_M1_NotesPdf.sql` để thêm trạng thái lưu trữ, phiên bản PDF và bảng annotation. Chạy trên đúng database mà ứng dụng dùng.
+9. Với M2 Notes/References, chạy tiếp `07_M2_NotesReferences.sql` sau M1 để bật Quill Delta, trạng thái lưu trữ Note và liên kết tham chiếu PDF.
+10. Với M3/M4 Notes group sharing, chạy `08_M3_GroupApproval.sql` sau M2 rồi chạy `09_M3_M4_Preflight.sql`. Bản preflight phải trả `PASS` trước khi chạy ứng dụng.
 
 Chạy từng file theo thứ tự; gặp lỗi thì dừng và đọc thông báo. Sao lưu trước khi chạy lại file 02 vì thao tác reset dữ liệu không thể hoàn tác sau khi transaction đã commit. Muốn đổi tên database, sửa tên trong file 00 và cả `USE`/`DB_NAME()` ở các file còn lại.
 
