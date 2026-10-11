@@ -1,0 +1,397 @@
+@model FlashcardLearnViewModel
+
+@{
+    ViewData["Title"] = $"Learn - {Model.DeckTitle}";
+}
+
+<div class="container py-4">
+
+    <a asp-controller="Flashcards"
+       asp-action="Details"
+       asp-route-deckId="@Model.DeckId"
+       class="btn btn-outline-secondary mb-4">
+        <i class="bi bi-arrow-left"></i>
+        Quay lại Deck
+    </a>
+
+    <h2 class="fw-bold mb-1">
+        @Model.DeckTitle
+    </h2>
+
+    <p class="text-muted mb-4">
+        Learn Mode
+    </p>
+
+
+    @if (Model.Question is null)
+    {
+        <div class="alert alert-warning">
+            Không thể tạo câu hỏi Learn từ deck này.
+            Deck cần ít nhất 2 đáp án khác nhau và câu hỏi không được mơ hồ.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+
+                <p class="text-muted small mb-2">
+                    CÂU HỎI
+                </p>
+
+                <h3 class="mb-4">
+                    @Model.Question.QuestionText
+                </h3>
+
+                <form id="learnAnswerForm"
+                      asp-controller="Flashcards"
+                      asp-action="SubmitLearnAnswer"
+                      asp-route-deckId="@Model.DeckId"
+                      method="post">
+
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden"
+                           name="QuestionCardId"
+                           value="@Model.Question.QuestionCardId" />
+
+                    <input type="hidden"
+                           id="selectedAnswer"
+                           name="SelectedAnswer" />
+
+                    <div id="learnOptions">
+
+                        @foreach (var option in Model.Question.Options)
+                        {
+                            <button type="button"
+                                    class="learn-option btn btn-outline-secondary w-100 text-start p-3 mb-3"
+                                    data-answer="@option.Text">
+
+                                <span class="option-text">
+                                    @option.Text
+                                </span>
+
+                                <span class="option-result ms-auto"></span>
+
+                            </button>
+                        }
+
+                    </div>
+
+                </form>
+
+                <div id="learnFeedback"
+                     class="d-none mt-4">
+
+                    <div id="feedbackMessage"
+                         class="alert mb-3">
+                    </div>
+
+                    <button type="button"
+                            id="nextQuestionButton"
+                            class="btn btn-primary">
+                        Câu tiếp theo
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+    }
+
+</div>
+
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const form =
+                document.getElementById('learnAnswerForm');
+
+            if (!form) {
+                return;
+            }
+
+            const optionButtons =
+                document.querySelectorAll('.learn-option');
+
+            const selectedAnswerInput =
+                document.getElementById('selectedAnswer');
+
+            const feedback =
+                document.getElementById('learnFeedback');
+
+            const feedbackMessage =
+                document.getElementById('feedbackMessage');
+
+            const nextQuestionButton =
+                document.getElementById('nextQuestionButton');
+
+            let answered = false;
+
+
+            optionButtons.forEach(button => {
+
+                button.addEventListener('click', async function () {
+
+                    if (answered) {
+                        return;
+                    }
+
+                    const selectedAnswer =
+                        this.dataset.answer;
+
+                    if (!selectedAnswer) {
+                        return;
+                    }
+
+                    selectedAnswerInput.value =
+                        selectedAnswer;
+
+                    await submitAnswer(
+                        selectedAnswer,
+                        this
+                    );
+                });
+
+            });
+
+
+            async function submitAnswer(
+                selectedAnswer,
+                selectedButton) {
+
+                answered = true;
+
+                setOptionsDisabled(true);
+
+                const formData =
+                    new FormData(form);
+
+                try {
+
+                    const response =
+                        await fetch(form.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With':
+                                    'XMLHttpRequest'
+                            }
+                        });
+
+                    const data =
+                        await response.json();
+
+
+                    if (!response.ok) {
+
+                        answered = false;
+
+                        setOptionsDisabled(false);
+
+                        showError(
+                            data.message ??
+                            'Không thể kiểm tra đáp án.'
+                        );
+
+                        return;
+                    }
+
+
+                    renderAnswerResult(
+                        selectedAnswer,
+                        selectedButton,
+                        data
+                    );
+
+                }
+                catch (error) {
+
+                    answered = false;
+
+                    setOptionsDisabled(false);
+
+                    showError(
+                        'Có lỗi xảy ra khi kiểm tra đáp án.'
+                    );
+                }
+            }
+
+
+            function renderAnswerResult(
+                selectedAnswer,
+                selectedButton,
+                result) {
+
+                const isCorrect =
+                    result.isCorrect ??
+                    result.IsCorrect;
+
+                const correctAnswer =
+                    result.correctAnswer ??
+                    result.CorrectAnswer;
+
+
+                if (isCorrect) {
+
+                    markCorrect(selectedButton);
+
+                    feedbackMessage.className =
+                        'alert alert-success mb-3';
+
+                    feedbackMessage.textContent =
+                        'Chính xác!';
+
+                }
+                else {
+
+                    markIncorrect(selectedButton);
+
+                    const correctButton =
+                        findOptionButton(
+                            correctAnswer
+                        );
+
+                    if (correctButton) {
+                        markCorrect(correctButton);
+                    }
+
+                    feedbackMessage.className =
+                        'alert alert-danger mb-3';
+
+                    feedbackMessage.textContent =
+                        `Chưa chính xác. Đáp án đúng: ${correctAnswer}`;
+                }
+
+
+                feedback.classList.remove('d-none');
+            }
+
+
+            function findOptionButton(answer) {
+
+                return Array
+                    .from(optionButtons)
+                    .find(button =>
+                        button.dataset.answer
+                            ?.localeCompare(
+                                answer,
+                                undefined,
+                                {
+                                    sensitivity: 'accent'
+                                }
+                            ) === 0
+                    );
+            }
+
+
+            function markCorrect(button) {
+
+                button.classList.remove(
+                    'btn-outline-secondary'
+                );
+
+                button.classList.add(
+                    'btn-success'
+                );
+
+                const result =
+                    button.querySelector(
+                        '.option-result'
+                    );
+
+                if (result) {
+                    result.innerHTML =
+                        '<i class="bi bi-check-circle-fill"></i>';
+                }
+            }
+
+
+            function markIncorrect(button) {
+
+                button.classList.remove(
+                    'btn-outline-secondary'
+                );
+
+                button.classList.add(
+                    'btn-danger'
+                );
+
+                const result =
+                    button.querySelector(
+                        '.option-result'
+                    );
+
+                if (result) {
+                    result.innerHTML =
+                        '<i class="bi bi-x-circle-fill"></i>';
+                }
+            }
+
+
+            function setOptionsDisabled(disabled) {
+
+                optionButtons.forEach(button => {
+                    button.disabled = disabled;
+                });
+            }
+
+
+            function showError(message) {
+
+                feedbackMessage.className =
+                    'alert alert-danger mb-3';
+
+                feedbackMessage.textContent =
+                    message;
+
+                feedback.classList.remove('d-none');
+            }
+
+
+            nextQuestionButton
+                ?.addEventListener(
+                    'click',
+                    function () {
+
+                        window.location.reload();
+                    }
+                );
+
+        });
+    </script>
+}
+
+
+<style>
+    .learn-option {
+        display: flex;
+        align-items: center;
+        min-height: 72px;
+        border-width: 2px;
+        transition:
+            border-color 0.15s ease,
+            background-color 0.15s ease,
+            transform 0.1s ease;
+    }
+
+    .learn-option:not(:disabled):hover {
+        transform: translateY(-1px);
+    }
+
+    .learn-option:disabled {
+        opacity: 1;
+        cursor: default;
+    }
+
+    .option-text {
+        flex: 1;
+    }
+
+    .option-result {
+        font-size: 1.25rem;
+    }
+</style>

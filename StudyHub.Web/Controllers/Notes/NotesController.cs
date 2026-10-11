@@ -5,6 +5,7 @@ using StudyHub.BLL.Services.Notes;
 using StudyHub.DAL.Repositories.Common;
 using StudyHub.DAL.Repositories.Notes;
 using StudyHub.Web.ViewModels.Notes;
+using System.Security.Claims;
 
 namespace StudyHub.Web.Controllers.Notes;
 
@@ -43,7 +44,7 @@ public sealed class NotesController : Controller
         {
             current = await users.ResolveAsync(
                 User.Identity?.IsAuthenticated == true,
-                User.FindFirst(NotesUserResolver.UserIdClaim)?.Value,
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
                 environment.IsDevelopment(),
                 HttpContext.RequestAborted);
 
