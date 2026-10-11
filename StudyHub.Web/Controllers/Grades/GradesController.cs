@@ -240,7 +240,7 @@ public sealed class GradesController : Controller
 
     [HttpPost("AddGoal")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddGoal(CreateGoalDto dto, [FromForm] long currentGradeBookId, CancellationToken cancellationToken)
+    public async Task<IActionResult> AddGoal(CreateGoalDto dto, [FromForm] long? currentGradeBookId, CancellationToken cancellationToken)
     {
         try
         {
@@ -251,12 +251,12 @@ public sealed class GradesController : Controller
         {
             TempData["ErrorMessage"] = ex.Message;
         }
-        return RedirectToAction("Index", new { gradeBookId = currentGradeBookId });
+        return RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
     }
 
     [HttpPost("UpdateGoal")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateGoal(UpdateGoalDto dto, [FromForm] long currentGradeBookId, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateGoal(UpdateGoalDto dto, [FromForm] long? currentGradeBookId, CancellationToken cancellationToken)
     {
         try
         {
@@ -267,23 +267,146 @@ public sealed class GradesController : Controller
         {
             TempData["ErrorMessage"] = ex.Message;
         }
-        return RedirectToAction("Index", new { gradeBookId = currentGradeBookId });
+        return RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
     }
 
     [HttpPost("CancelGoal")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CancelGoal(long id, [FromForm] long currentGradeBookId, CancellationToken cancellationToken)
+    public async Task<IActionResult> CancelGoal(long id, [FromForm] long? currentGradeBookId, CancellationToken cancellationToken)
     {
         try
         {
             await goalService.CancelGoalAsync(currentUser.UserId, id, cancellationToken);
-            TempData["SuccessMessage"] = "Đã hủy mục tiêu thành công!";
+            TempData["SuccessMessage"] = "Đã xóa nấc mục tiêu thành công!";
         }
         catch (Exception ex)
         {
             TempData["ErrorMessage"] = ex.Message;
         }
-        return RedirectToAction("Index", new { gradeBookId = currentGradeBookId });
+        return RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
+    }
+
+    [HttpPost("DeleteGoal")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteGoal([FromBody] DeleteGoalRequest req, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await goalService.DeleteGoalAsync(currentUser.UserId, req.GoalId, cancellationToken);
+            return Json(new { ok = true });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { ok = false, error = ex.Message });
+        }
+    }
+
+    [HttpPost("SetGoalStatus")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetGoalStatus([FromBody] SetGoalStatusDto dto, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await goalService.SetGoalStatusAsync(currentUser.UserId, dto, cancellationToken);
+            return Json(new { ok = true });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { ok = false, error = ex.Message });
+        }
+    }
+
+    [HttpPost("DesignateBaseGoal")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DesignateBaseGoal([FromForm] long goalId, [FromForm] long? currentGradeBookId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await goalService.DesignateBaseGoalAsync(currentUser.UserId, goalId, cancellationToken);
+            TempData["SuccessMessage"] = "Đã chỉ định làm Mục tiêu gốc thành công!";
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        return RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
+    }
+
+    [HttpPost("ReorderGoals")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReorderGoals([FromBody] List<ReorderGoalDto> items, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await goalService.ReorderGoalsAsync(currentUser.UserId, items, cancellationToken);
+            return Json(new { ok = true });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { ok = false, error = ex.Message });
+        }
+    }
+
+    // ── Goal Activities ──────────────────────────────────────────
+
+    [HttpPost("AddGoalActivity")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddGoalActivity([FromBody] CreateGoalActivityDto dto, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var activity = await goalService.AddGoalActivityAsync(currentUser.UserId, dto, cancellationToken);
+            return Json(new { ok = true, data = activity });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { ok = false, error = ex.Message });
+        }
+    }
+
+    [HttpPost("UpdateGoalActivity")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateGoalActivity([FromBody] UpdateGoalActivityDto dto, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await goalService.UpdateGoalActivityAsync(currentUser.UserId, dto, cancellationToken);
+            return Json(new { ok = true });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { ok = false, error = ex.Message });
+        }
+    }
+
+    [HttpPost("DeleteGoalActivity")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteGoalActivity([FromBody] DeleteActivityRequest req, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await goalService.DeleteGoalActivityAsync(currentUser.UserId, req.ActivityId, cancellationToken);
+            return Json(new { ok = true });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { ok = false, error = ex.Message });
+        }
+    }
+
+    [HttpPost("ToggleGoalActivity")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleGoalActivity([FromBody] ToggleActivityRequest req, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var isCompleted = await goalService.ToggleGoalActivityCompletionAsync(currentUser.UserId, req.ActivityId, cancellationToken);
+            return Json(new { ok = true, isCompleted });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { ok = false, error = ex.Message });
+        }
     }
 
     // ── Academic Term ────────────────────────────────────────────
@@ -416,6 +539,21 @@ public class DeleteGradeRequest
 public class ReorderSubjectsRequest
 {
     public System.Collections.Generic.List<ReorderSubjectDto> Subjects { get; set; } = new();
+}
+
+public class DeleteGoalRequest
+{
+    public long GoalId { get; set; }
+}
+
+public class DeleteActivityRequest
+{
+    public long ActivityId { get; set; }
+}
+
+public class ToggleActivityRequest
+{
+    public long ActivityId { get; set; }
 }
 
 

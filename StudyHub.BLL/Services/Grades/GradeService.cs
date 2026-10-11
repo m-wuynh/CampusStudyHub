@@ -50,117 +50,262 @@ public sealed class GradeService(IRepository repository) : IGradeService
 
         var emptySummary = new YearGradeSummaryDto(null, null, "-", null, "-", 0);
 
-        if (!selectedGradeBookId.HasValue)
-        {
-            return new GradesPageDto(gradeBooks, null, null, new List<GradeColumnDto>(), emptySummary, new List<SubjectGradeDetailDto>(), new List<GoalLadderDto>());
-        }
-
-        // ── Load GradeBook & Columns ───────────────────────────────
-        var gradeBook = await repository.Query<GradeBook>()
-            .FirstOrDefaultAsync(gb => gb.GradeBookId == selectedGradeBookId.Value && gb.UserId == userId, cancellationToken);
-
-        GradeBookDto? gradeBookDto = gradeBook is null ? null
-            : new GradeBookDto(gradeBook.GradeBookId, gradeBook.Name, gradeBook.FromYear, gradeBook.ToYear);
-
-        var columns = gradeBook is null
-            ? new List<GradeColumnDto>()
-            : await repository.Query<GradeColumn>()
-                .Where(c => c.GradeBookId == gradeBook.GradeBookId)
-                .OrderBy(c => c.DisplayOrder).ThenBy(c => c.GradeColumnId)
-                .Select(c => new GradeColumnDto(c.GradeColumnId, c.GradeBookId, c.Name, c.Weight, c.DisplayOrder))
-                .ToListAsync(cancellationToken);
-
-        // ── Load UserSubjects & Entries ────────────────────────────
-        var userSubjects = await repository.Query<UserSubject>()
-            .Include(us => us.Subject)
-            .Include(us => us.GradeEntries)
-            .Where(us => us.UserId == userId && us.GradeBookId == selectedGradeBookId.Value && !us.IsArchived)
-            .ToListAsync(cancellationToken);
-
-        // Note: The SQL views are no longer strictly aligned with GradeBook, 
-        // so we will calculate the summary purely in C# based on the GradeCalculator.
-        // We can just omit the DB views to prevent errors.
-
-        // ── Load Goals (Goal Ladder) ───────────────────────────────
-        var termSubjectIds = userSubjects.Select(us => us.UserSubjectId).ToList();
-        var termGoals = await repository.Query<Goal>()
-            .Where(g => g.UserId == userId && termSubjectIds.Contains(g.UserSubjectId))
-            .OrderBy(g => g.TargetValue)
-            .ToListAsync(cancellationToken);
-
-        // ── Build SubjectGradeDetailDto ────────────────────────────
+        // ── 1. Load GradeBook & Columns & Table Subjects (CHỈ CHO BẢNG ĐIỂM ĐANG CHỌN) ──
+        GradeBookDto? gradeBookDto = null;
+        var columns = new List<GradeColumnDto>();
         var subjectDetails = new List<SubjectGradeDetailDto>();
-        foreach (var us in userSubjects)
+        var yearSummary = emptySummary;
+
+        if (selectedGradeBookId.HasValue)
         {
-            var entries = us.GradeEntries
-                .Select(g => new GradeEntryDto(g.GradeEntryId, g.UserSubjectId, g.GradeColumnId, g.Score))
-                .ToList();
+            var gradeBook = await repository.Query<GradeBook>()
+                .FirstOrDefaultAsync(gb => gb.GradeBookId == selectedGradeBookId.Value && gb.UserId == userId, cancellationToken);
 
-            var avg = GradeCalculator.CalculateAverage10FromEntries(entries, columns);
+            if (gradeBook != null)
+            {
+                gradeBookDto = new GradeBookDto(gradeBook.GradeBookId, gradeBook.Name, gradeBook.FromYear, gradeBook.ToYear);
 
-            subjectDetails.Add(new SubjectGradeDetailDto(
-                us.UserSubjectId,
-                us.CustomSubjectName ?? us.Subject?.SubjectName ?? "Môn học",
-                us.ColorHex,
-                us.CreditWeight,
-                avg,
-                entries
-            ));
+                columns = await repository.Query<GradeColumn>()
+                    .Where(c => c.GradeBookId == gradeBook.GradeBookId)
+                    .OrderBy(c => c.DisplayOrder).ThenBy(c => c.GradeColumnId)
+                    .Select(c => new GradeColumnDto(c.GradeColumnId, c.GradeBookId, c.Name, c.Weight, c.DisplayOrder))
+                    .ToListAsync(cancellationToken);
+
+                var currentGradeBookSubjects = await repository.Query<UserSubject>()
+                    .Include(us => us.Subject)
+                    .Include(us => us.GradeEntries)
+                    .Where(us => us.UserId == userId && us.GradeBookId == selectedGradeBookId.Value && !us.IsArchived)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var us in currentGradeBookSubjects)
+                {
+                    var entries = us.GradeEntries
+                        .Select(g => new GradeEntryDto(g.GradeEntryId, g.UserSubjectId, g.GradeColumnId, g.Score))
+                        .ToList();
+
+                    var avg = GradeCalculator.CalculateAverage10FromEntries(entries, columns);
+
+                    subjectDetails.Add(new SubjectGradeDetailDto(
+                        us.UserSubjectId,
+                        us.CustomSubjectName ?? us.Subject?.SubjectName ?? "Môn học",
+                        us.ColorHex,
+                        us.CreditWeight,
+                        avg,
+                        entries
+                    ));
+                }
+            }
         }
 
-        // ── Compute summary stats ──────────────────────────────────
-        decimal? highestScore = null;
-        string highestSubject = "-";
-        decimal? lowestScore = null;
-        string lowestSubject = "-";
-        int belowTargetCount = 0;
-
-        foreach (var sd in subjectDetails.Where(s => s.CurrentAverage10.HasValue))
+        // ── 2. Load Goal Sources (TÁCH BIỆT LOGIC BẢNG ĐIỂM VÀ MỤC TIÊU) ──────────
+        // Nguồn Goal gồm:
+        // a) Các môn thuộc Sổ điểm đang chọn (được tính CurrentAverage10 theo điểm của sổ đó)
+        // b) Các môn tự do đã detach (GradeBookId == null) của UserId này (CurrentAverage10 = null vì chưa/không còn điểm)
+        string? GetAcademicYearName(long? gbId)
         {
-            if (!highestScore.HasValue || sd.CurrentAverage10 > highestScore)
+            if (!gbId.HasValue) return null;
+            var gb = gradeBooks.FirstOrDefault(b => b.GradeBookId == gbId.Value);
+            if (gb == null) return null;
+            if (gb.FromYear > 0 && gb.ToYear > 0)
             {
-                highestScore = sd.CurrentAverage10;
-                highestSubject = sd.SubjectName;
+                return $"Năm học {gb.FromYear}–{gb.ToYear}";
             }
-            if (!lowestScore.HasValue || sd.CurrentAverage10 < lowestScore)
-            {
-                lowestScore = sd.CurrentAverage10;
-                lowestSubject = sd.SubjectName;
-            }
+            return !string.IsNullOrWhiteSpace(gb.Name) ? gb.Name : null;
+        }
 
-            // "Below target" = lowest InProgress goal target not yet reached
-            var subjectGoals = termGoals
-                .Where(g => g.UserSubjectId == sd.UserSubjectId && !g.IsCancelled)
+        var currentAcademicYearName = GetAcademicYearName(selectedGradeBookId);
+        var goalSubjectSources = new List<GoalSubjectSource>();
+
+        foreach (var sd in subjectDetails)
+        {
+            goalSubjectSources.Add(new GoalSubjectSource(sd.UserSubjectId, sd.SubjectName, sd.CurrentAverage10, selectedGradeBookId, currentAcademicYearName));
+        }
+
+        var detachedSubjects = await repository.Query<UserSubject>()
+            .Include(us => us.Subject)
+            .Where(us => us.UserId == userId && us.GradeBookId == null && !us.IsArchived)
+            .ToListAsync(cancellationToken);
+
+        foreach (var ds in detachedSubjects)
+        {
+            if (!goalSubjectSources.Any(s => s.UserSubjectId == ds.UserSubjectId))
+            {
+                var name = ds.CustomSubjectName ?? ds.Subject?.SubjectName ?? "Môn học";
+                goalSubjectSources.Add(new GoalSubjectSource(ds.UserSubjectId, name, null, null, null));
+            }
+        }
+
+        var allGoalSubjectIds = goalSubjectSources.Select(s => s.UserSubjectId).ToList();
+        var allGoals = allGoalSubjectIds.Any()
+            ? await repository.Query<Goal>(false)
+                .Include(g => g.ScheduleEvents.Where(e => !e.IsDeleted))
+                .Include(g => g.GoalHistories)
+                .Where(g => g.UserId == userId && allGoalSubjectIds.Contains(g.UserSubjectId))
                 .OrderBy(g => g.TargetValue)
-                .ToList();
+                .ToListAsync(cancellationToken)
+            : new List<Goal>();
 
-            var currentGoal = subjectGoals.FirstOrDefault(g => g.TargetValue > (sd.CurrentAverage10 ?? 0m));
-            if (currentGoal != null)
+        // ── Trạng thái mục tiêu tự động theo điểm số thực tế & Khởi tạo an toàn mục tiêu gốc ──
+        bool autoStatusChanged = false;
+        var subjectSourcesGrouped = goalSubjectSources
+            .GroupBy(s => new { s.GradeBookId, Normalized = s.SubjectName.Trim().ToLowerInvariant() });
+
+        foreach (var group in subjectSourcesGrouped)
+        {
+            var groupSubjectIds = group.Select(s => s.UserSubjectId).ToList();
+            var subGoals = allGoals.Where(g => groupSubjectIds.Contains(g.UserSubjectId) && !g.IsCancelled).ToList();
+            if (!subGoals.Any()) continue;
+
+            // Xử lý an toàn mục tiêu gốc:
+            // 1) Nếu chưa có mục tiêu gốc: tự động chọn mục tiêu sớm nhất làm mục tiêu gốc
+            // 2) Nếu có nhiều mục tiêu gốc: chỉ giữ mục tiêu sớm nhất là gốc
+            var baseGoals = subGoals.Where(g => g.IsBaseGoal).OrderBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue).ToList();
+            if (!baseGoals.Any())
             {
-                belowTargetCount++;
+                var earliest = subGoals.OrderBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue).First();
+                earliest.IsBaseGoal = true;
+                earliest.UpdatedAtUtc = DateTime.UtcNow;
+                repository.Update(earliest);
+                autoStatusChanged = true;
+            }
+            else if (baseGoals.Count > 1)
+            {
+                for (int i = 1; i < baseGoals.Count; i++)
+                {
+                    baseGoals[i].IsBaseGoal = false;
+                    baseGoals[i].UpdatedAtUtc = DateTime.UtcNow;
+                    repository.Update(baseGoals[i]);
+                    autoStatusChanged = true;
+                }
+            }
+
+            var canonicalAvg = group.FirstOrDefault(s => s.CurrentAverage10.HasValue)?.CurrentAverage10;
+
+            if (canonicalAvg.HasValue)
+            {
+                var curAvg = canonicalAvg.Value;
+                foreach (var g in subGoals)
+                {
+                    if (curAvg >= g.TargetValue)
+                    {
+                        if (g.Status != "Done")
+                        {
+                            g.Status = "Done";
+                            if (!g.AchievedScore.HasValue)
+                            {
+                                g.AchievedScore = curAvg;
+                                g.AchievedAtUtc = DateTime.UtcNow;
+                            }
+                            g.UpdatedAtUtc = DateTime.UtcNow;
+                            repository.Update(g);
+                            autoStatusChanged = true;
+                        }
+                    }
+                    else
+                    {
+                        // Đã có điểm thực tế nhưng chưa đạt TargetValue => InProgress
+                        if (g.Status != "InProgress" && !g.AchievedScore.HasValue)
+                        {
+                            g.Status = "InProgress";
+                            g.UpdatedAtUtc = DateTime.UtcNow;
+                            repository.Update(g);
+                            autoStatusChanged = true;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Không có điểm thực tế (ví dụ chưa nhập điểm hoặc vừa xóa bảng điểm)
+                foreach (var g in subGoals)
+                {
+                    // Bảo toàn trạng thái Done và thành tích nếu đã từng đạt trước đó
+                    if (g.AchievedScore.HasValue || g.Status == "Done")
+                    {
+                        continue;
+                    }
+
+                    // Chưa từng đạt => ToDo
+                    if (g.Status != "ToDo")
+                    {
+                        g.Status = "ToDo";
+                        g.UpdatedAtUtc = DateTime.UtcNow;
+                        repository.Update(g);
+                        autoStatusChanged = true;
+                    }
+                }
             }
         }
-
-        // Calculate GradeBook overall average
-        decimal? overallAvg = null;
-        var validSubjects = subjectDetails.Where(s => s.CurrentAverage10.HasValue && s.CreditWeight > 0).ToList();
-        if (validSubjects.Any())
+        if (autoStatusChanged)
         {
-            var sumWeighted = validSubjects.Sum(s => s.CurrentAverage10!.Value * s.CreditWeight);
-            var sumWeights = validSubjects.Sum(s => s.CreditWeight);
-            overallAvg = Math.Round(sumWeighted / sumWeights, 2, MidpointRounding.AwayFromZero);
+            await repository.SaveChangesAsync(cancellationToken);
         }
 
-        var yearSummary = new YearGradeSummaryDto(
-            overallAvg,
-            highestScore, highestSubject,
-            lowestScore, lowestSubject,
-            belowTargetCount);
+        // ── 3. Compute summary stats cho Sổ điểm được chọn ──────────────────────────
+        if (subjectDetails.Any())
+        {
+            decimal? highestScore = null;
+            string highestSubject = "-";
+            decimal? lowestScore = null;
+            string lowestSubject = "-";
+            int belowTargetCount = 0;
 
-        // ── Build Goal Ladder per subject ──────────────────────────
-        var goalLadders = BuildGoalLadders(subjectDetails, termGoals);
+            foreach (var sd in subjectDetails.Where(s => s.CurrentAverage10.HasValue))
+            {
+                if (!highestScore.HasValue || sd.CurrentAverage10 > highestScore)
+                {
+                    highestScore = sd.CurrentAverage10;
+                    highestSubject = sd.SubjectName;
+                }
+                if (!lowestScore.HasValue || sd.CurrentAverage10 < lowestScore)
+                {
+                    lowestScore = sd.CurrentAverage10;
+                    lowestSubject = sd.SubjectName;
+                }
 
-        return new GradesPageDto(gradeBooks, selectedGradeBookId, gradeBookDto, columns, yearSummary, subjectDetails, goalLadders);
+                var subjectGoals = allGoals
+                    .Where(g => g.UserSubjectId == sd.UserSubjectId && !g.IsCancelled)
+                    .OrderBy(g => g.TargetValue)
+                    .ToList();
+
+                var currentGoal = subjectGoals.FirstOrDefault(g => g.TargetValue > (sd.CurrentAverage10 ?? 0m));
+                if (currentGoal != null)
+                {
+                    belowTargetCount++;
+                }
+            }
+
+            decimal? overallAvg = null;
+            var validSubjects = subjectDetails.Where(s => s.CurrentAverage10.HasValue && s.CreditWeight > 0).ToList();
+            if (validSubjects.Any())
+            {
+                var sumWeighted = validSubjects.Sum(s => s.CurrentAverage10!.Value * s.CreditWeight);
+                var sumWeights = validSubjects.Sum(s => s.CreditWeight);
+                overallAvg = Math.Round(sumWeighted / sumWeights, 2, MidpointRounding.AwayFromZero);
+            }
+
+            yearSummary = new YearGradeSummaryDto(
+                overallAvg,
+                highestScore, highestSubject,
+                lowestScore, lowestSubject,
+                belowTargetCount);
+        }
+
+        // ── 4. Build Goal Ladder per subject ───────────────────────────────────────
+        var goalLadders = BuildGoalLadders(goalSubjectSources, allGoals);
+
+        // ── 5. Load All Active Subjects for GradeBook dropdown lookup in Goal modals ──
+        var allSubjects = await repository.Query<UserSubject>()
+            .Include(us => us.Subject)
+            .Where(us => us.UserId == userId && !us.IsArchived)
+            .OrderBy(us => us.CustomSubjectName ?? us.Subject!.SubjectName)
+            .Select(us => new GradeSubjectOptionDto(
+                us.UserSubjectId,
+                us.GradeBookId,
+                us.CustomSubjectName ?? us.Subject!.SubjectName ?? "Môn học"))
+            .ToListAsync(cancellationToken);
+
+        return new GradesPageDto(gradeBooks, selectedGradeBookId, gradeBookDto, columns, yearSummary, subjectDetails, goalLadders, allSubjects);
     }
 
     // ── Grade Entry CRUD ─────────────────────────────────────────
@@ -192,6 +337,7 @@ public sealed class GradeService(IRepository repository) : IGradeService
 
         await repository.AddAsync(entry, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
+        await SyncGoalStatusesForSubjectAsync(userId, dto.UserSubjectId, cancellationToken);
     }
 
     public async Task UpdateGradeEntryAsync(long userId, UpdateGradeEntryDto dto, CancellationToken cancellationToken = default)
@@ -206,10 +352,12 @@ public sealed class GradeService(IRepository repository) : IGradeService
 
         if (dto.Score < 0 || dto.Score > 10) throw new ArgumentException("Điểm phải nằm trong khoảng 0 đến 10.");
 
+        var userSubjectId = entry.UserSubjectId;
         entry.Score = dto.Score;
 
         repository.Update(entry);
         await repository.SaveChangesAsync(cancellationToken);
+        await SyncGoalStatusesForSubjectAsync(userId, userSubjectId, cancellationToken);
     }
 
     public async Task DeleteGradeEntryAsync(long userId, long entryId, CancellationToken cancellationToken = default)
@@ -221,8 +369,10 @@ public sealed class GradeService(IRepository repository) : IGradeService
         if (entry is null) return;
         if (entry.UserSubject.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
+        var userSubjectId = entry.UserSubjectId;
         repository.Remove(entry);
         await repository.SaveChangesAsync(cancellationToken);
+        await SyncGoalStatusesForSubjectAsync(userId, userSubjectId, cancellationToken);
     }
 
     public async Task SaveSubjectGradesAsync(long userId, SaveSubjectGradesDto dto, CancellationToken cancellationToken = default)
@@ -282,6 +432,7 @@ public sealed class GradeService(IRepository repository) : IGradeService
         }
 
         await repository.SaveChangesAsync(cancellationToken);
+        await SyncGoalStatusesForSubjectAsync(userId, dto.UserSubjectId, cancellationToken);
     }
 
     // ── Academic Term CRUD ───────────────────────────────────────
@@ -443,66 +594,212 @@ public sealed class GradeService(IRepository repository) : IGradeService
 
     // ── Private helpers ──────────────────────────────────────────
 
+    private sealed record GoalSubjectSource(long UserSubjectId, string SubjectName, decimal? CurrentAverage10, long? GradeBookId = null, string? AcademicYearName = null);
+
     private static List<GoalLadderDto> BuildGoalLadders(
-        List<SubjectGradeDetailDto> subjectDetails,
-        List<Goal> termGoals)
+        IEnumerable<GoalSubjectSource> subjects,
+        List<Goal> goals)
     {
         var result = new List<GoalLadderDto>();
 
-        foreach (var subject in subjectDetails)
+        // Nhóm các môn theo GradeBookId và tên môn học chuẩn hóa (không phân biệt hoa thường)
+        // để mọi mục tiêu của cùng một môn trong cùng bảng điểm năm học luôn gộp chung vào 1 Goal Ladder
+        var subjectGroups = subjects
+            .GroupBy(s => new
+            {
+                s.GradeBookId,
+                NormalizedName = (s.SubjectName ?? string.Empty).Trim().ToLowerInvariant()
+            })
+            .ToList();
+
+        foreach (var group in subjectGroups)
         {
-            var subjectGoals = termGoals
-                .Where(g => g.UserSubjectId == subject.UserSubjectId)
-                .OrderBy(g => g.TargetValue)
+            var groupSubjectIds = group.Select(s => s.UserSubjectId).ToHashSet();
+            var subjectGoals = goals
+                .Where(g => groupSubjectIds.Contains(g.UserSubjectId) && !g.IsCancelled)
                 .ToList();
 
             if (!subjectGoals.Any()) continue;
 
-            var currentAvg = subject.CurrentAverage10;
+            // Lấy môn học đại diện có điểm trung bình thực tế nếu có
+            var canonicalSubject = group.FirstOrDefault(s => s.CurrentAverage10.HasValue) ?? group.First();
+            var currentAvg = canonicalSubject.CurrentAverage10;
+            var academicYearName = canonicalSubject.AcademicYearName ?? group.FirstOrDefault(s => !string.IsNullOrEmpty(s.AcademicYearName))?.AcademicYearName;
 
-            // Determine which goal is InProgress:
-            // It's the minimum TargetValue that is still > CurrentAverage10 (among non-cancelled goals)
-            var activeGoals = subjectGoals.Where(g => !g.IsCancelled).OrderBy(g => g.TargetValue).ToList();
-            var inProgressGoal = activeGoals.FirstOrDefault(g => currentAvg == null || g.TargetValue > currentAvg.Value);
-
-            var goalDtos = subjectGoals.Select(g =>
+            // Xử lý an toàn dữ liệu cũ: nếu môn đã có mục tiêu nhưng chưa có IsBaseGoal, mục tiêu sớm nhất tự động là mục tiêu gốc
+            var baseGoals = subjectGoals.Where(g => g.IsBaseGoal).OrderBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue).ToList();
+            if (!baseGoals.Any() && subjectGoals.Any())
             {
-                GoalStatus status;
-                if (g.IsCancelled)
+                var earliest = subjectGoals.OrderBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue).First();
+                earliest.IsBaseGoal = true;
+            }
+
+            var goalDtos = new List<GoalDto>();
+            // Mục tiêu gốc xếp đầu tiên, tiếp theo là các nấc bổ sung theo DisplayOrder rồi đến TargetValue
+            foreach (var g in subjectGoals.OrderByDescending(g => g.IsBaseGoal).ThenBy(g => g.DisplayOrder).ThenBy(g => g.TargetValue))
+            {
+                var activities = g.ScheduleEvents.Select(e => new GoalActivityDto(
+                    e.ScheduleEventId,
+                    g.GoalId,
+                    e.Title,
+                    e.StartAtLocal,
+                    e.EndAtLocal,
+                    e.Description,
+                    e.IsCompleted
+                )).OrderBy(a => a.StartAtLocal).ToList();
+
+                var histories = g.GoalHistories.Select(h => new GoalHistoryDto(
+                    h.GoalHistoryId,
+                    h.GoalId,
+                    h.TargetValue,
+                    h.AchievedScore,
+                    h.AchievedAtUtc,
+                    h.CreatedAtUtc
+                )).OrderByDescending(h => h.AchievedAtUtc).ToList();
+
+                // Xác định trạng thái tự động theo điểm số thực tế
+                string lifecycleStatus;
+                if (currentAvg.HasValue)
                 {
-                    status = GoalStatus.Cancelled;
-                }
-                else if (currentAvg == null)
-                {
-                    status = GoalStatus.NoData;
-                }
-                else if (currentAvg >= g.TargetValue)
-                {
-                    status = GoalStatus.Achieved;
-                }
-                else if (inProgressGoal != null && g.GoalId == inProgressGoal.GoalId)
-                {
-                    status = GoalStatus.InProgress;
+                    if (currentAvg.Value >= g.TargetValue)
+                    {
+                        lifecycleStatus = "Done";
+                    }
+                    else
+                    {
+                        lifecycleStatus = "InProgress";
+                    }
                 }
                 else
                 {
-                    status = GoalStatus.Future;
+                    // Không có điểm thực tế (ví dụ chưa nhập điểm hoặc đã xóa sổ điểm)
+                    if (g.AchievedScore.HasValue || g.Status == "Done")
+                    {
+                        lifecycleStatus = "Done";
+                    }
+                    else
+                    {
+                        lifecycleStatus = "ToDo";
+                    }
                 }
 
-                return new GoalDto(
+                GoalStatus legacyStatus;
+                if (lifecycleStatus == "Done") legacyStatus = GoalStatus.Achieved;
+                else if (lifecycleStatus == "InProgress") legacyStatus = GoalStatus.InProgress;
+                else legacyStatus = GoalStatus.NoData;
+
+                goalDtos.Add(new GoalDto(
                     g.GoalId,
                     g.Title,
                     g.TargetValue,
                     currentAvg,
                     g.EndDate,
                     g.UserSubjectId,
-                    status);
-            }).ToList();
+                    legacyStatus,
+                    g.IsBaseGoal,
+                    lifecycleStatus,
+                    g.DisplayOrder,
+                    g.AchievedScore,
+                    g.AchievedAtUtc,
+                    activities,
+                    histories));
+            }
 
-            result.Add(new GoalLadderDto(subject.UserSubjectId, subject.SubjectName, currentAvg, goalDtos));
+            var baseGoal = goalDtos.FirstOrDefault(g => g.IsBaseGoal);
+            var additionalGoals = goalDtos.Where(g => !g.IsBaseGoal).ToList();
+
+            result.Add(new GoalLadderDto(
+                canonicalSubject.UserSubjectId,
+                canonicalSubject.SubjectName,
+                currentAvg,
+                goalDtos,
+                baseGoal != null,
+                baseGoal,
+                additionalGoals,
+                academicYearName));
         }
 
-        return result;
+        return result.OrderBy(l => l.SubjectName).ToList();
+    }
+
+    private async Task SyncGoalStatusesForSubjectAsync(long userId, long userSubjectId, CancellationToken cancellationToken)
+    {
+        var subject = await repository.Query<UserSubject>()
+            .Include(us => us.GradeEntries)
+            .FirstOrDefaultAsync(us => us.UserSubjectId == userSubjectId && us.UserId == userId && !us.IsArchived, cancellationToken);
+
+        if (subject == null) return;
+
+        var goals = await repository.Query<Goal>(false)
+            .Where(g => g.UserId == userId && g.UserSubjectId == userSubjectId && !g.IsCancelled)
+            .ToListAsync(cancellationToken);
+
+        if (!goals.Any()) return;
+
+        decimal? curAvg = null;
+        if (subject.GradeBookId.HasValue)
+        {
+            var columns = await repository.Query<GradeColumn>()
+                .Where(c => c.GradeBookId == subject.GradeBookId.Value)
+                .ToListAsync(cancellationToken);
+
+            curAvg = GradeCalculator.CalculateSubjectAverage(subject.GradeEntries, columns);
+        }
+
+        bool changed = false;
+        if (curAvg.HasValue)
+        {
+            var avg = curAvg.Value;
+            foreach (var g in goals)
+            {
+                if (avg >= g.TargetValue)
+                {
+                    if (g.Status != "Done")
+                    {
+                        g.Status = "Done";
+                        if (!g.AchievedScore.HasValue)
+                        {
+                            g.AchievedScore = avg;
+                            g.AchievedAtUtc = DateTime.UtcNow;
+                        }
+                        g.UpdatedAtUtc = DateTime.UtcNow;
+                        repository.Update(g);
+                        changed = true;
+                    }
+                }
+                else
+                {
+                    if (g.Status != "InProgress" && !g.AchievedScore.HasValue)
+                    {
+                        g.Status = "InProgress";
+                        g.UpdatedAtUtc = DateTime.UtcNow;
+                        repository.Update(g);
+                        changed = true;
+                    }
+                }
+            }
+        }
+        else
+        {
+            foreach (var g in goals)
+            {
+                if (!g.AchievedScore.HasValue && g.Status != "Done")
+                {
+                    if (g.Status != "ToDo")
+                    {
+                        g.Status = "ToDo";
+                        g.UpdatedAtUtc = DateTime.UtcNow;
+                        repository.Update(g);
+                        changed = true;
+                    }
+                }
+            }
+        }
+
+        if (changed)
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
     }
 }
 

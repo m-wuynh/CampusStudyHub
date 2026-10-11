@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ── 4. Toast Notification System ── */
-  window.showToast = function (message, type = 'success') {
+  window.showToast = function (message, type = 'success', duration = 3000) {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
@@ -66,34 +66,49 @@ document.addEventListener('DOMContentLoaded', () => {
     let icon = '';
     let color = '';
     if (type === 'success') {
-      icon = '<i class="bi bi-check-circle-fill fs-5"></i>';
+      icon = '<i class="bi bi-check-circle-fill"></i>';
       color = 'var(--sh-emerald-600)';
     } else if (type === 'error') {
-      icon = '<i class="bi bi-x-circle-fill fs-5"></i>';
+      icon = '<i class="bi bi-exclamation-triangle-fill"></i>';
       color = 'var(--sh-rose-600)';
-    } else if (type === 'info') {
-      icon = '<i class="bi bi-info-circle-fill fs-5"></i>';
+    } else if (type === 'warning') {
+      icon = '<i class="bi bi-exclamation-circle-fill"></i>';
+      color = 'var(--sh-amber-600)';
+    } else {
+      icon = '<i class="bi bi-info-circle-fill"></i>';
       color = 'var(--sh-indigo-600)';
     }
 
     toast.innerHTML = `
-      <div style="color: ${color}; display: flex; align-items: center;">${icon}</div>
-      <div style="flex-grow: 1;">
-        <p class="mb-0 fw-semibold" style="font-size: 13px; color: var(--sh-slate-900);">${message}</p>
+      <div style="color: ${color}; font-size: 16px; display: flex; align-items: center; flex-shrink: 0;">${icon}</div>
+      <div style="flex-grow: 1; min-width: 0;">
+        <span class="fw-semibold" style="font-size: 13px; color: var(--sh-slate-800); line-height: 1.4; display: block;">${message}</span>
       </div>
-      <button type="button" class="btn-close" style="font-size: 10px;" onclick="this.parentElement.remove()"></button>
+      <button type="button" class="btn-close ms-2" style="font-size: 9px; flex-shrink: 0;" aria-label="Close"></button>
     `;
+
+    const closeBtn = toast.querySelector('.btn-close');
+    if (closeBtn) {
+      closeBtn.onclick = () => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      };
+    }
 
     container.appendChild(toast);
     
     // Trigger animation
-    setTimeout(() => toast.classList.add('show'), 10);
+    requestAnimationFrame(() => {
+      setTimeout(() => toast.classList.add('show'), 10);
+    });
 
-    // Auto remove
+    // Auto remove after 3 seconds
     setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
+      if (toast.parentElement) {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }
+    }, duration);
   };
 
   // Mark notifications as read

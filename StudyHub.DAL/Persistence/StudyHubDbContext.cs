@@ -38,6 +38,8 @@ public partial class StudyHubDbContext : DbContext
 
     public virtual DbSet<Goal> Goals { get; set; }
 
+    public virtual DbSet<GoalHistory> GoalHistories { get; set; }
+
     public virtual DbSet<GradeBook> GradeBooks { get; set; }
 
     public virtual DbSet<GradeColumn> GradeColumns { get; set; }
@@ -444,6 +446,12 @@ public partial class StudyHubDbContext : DbContext
                 .HasPrecision(3)
                 .HasDefaultValueSql("(sysutcdatetime())");
 
+            entity.Property(e => e.IsBaseGoal).HasDefaultValue(false);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("ToDo");
+            entity.Property(e => e.DisplayOrder).HasDefaultValue(0);
+            entity.Property(e => e.AchievedScore).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.AchievedAtUtc).HasPrecision(3);
+
             entity.HasOne(d => d.User).WithMany(p => p.Goals)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -454,6 +462,23 @@ public partial class StudyHubDbContext : DbContext
                 .HasForeignKey(d => new { d.UserSubjectId, d.UserId })
                 .HasConstraintName("FK_Goals_SubjectOwner");
         });
+
+        modelBuilder.Entity<GoalHistory>(entity =>
+        {
+            entity.HasKey(e => e.GoalHistoryId);
+            entity.Property(e => e.TargetValue).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.AchievedScore).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.AchievedAtUtc).HasPrecision(3);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Goal).WithMany(p => p.GoalHistories)
+                .HasForeignKey(d => d.GoalId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_GoalHistories_Goal");
+        });
+
 
         modelBuilder.Entity<GradeBook>(entity =>
         {
@@ -711,6 +736,8 @@ public partial class StudyHubDbContext : DbContext
                 .HasPrecision(3)
                 .HasDefaultValueSql("(sysutcdatetime())");
 
+            entity.Property(e => e.IsCompleted).HasDefaultValue(false);
+
             entity.HasOne(d => d.User).WithMany(p => p.ScheduleEvents)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -720,7 +747,13 @@ public partial class StudyHubDbContext : DbContext
                 .HasPrincipalKey(p => new { p.UserSubjectId, p.UserId })
                 .HasForeignKey(d => new { d.UserSubjectId, d.UserId })
                 .HasConstraintName("FK_ScheduleEvents_SubjectOwner");
+
+            entity.HasOne(d => d.Goal).WithMany(p => p.ScheduleEvents)
+                .HasForeignKey(d => d.GoalId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_ScheduleEvents_Goal");
         });
+
 
         modelBuilder.Entity<ScheduleException>(entity =>
         {

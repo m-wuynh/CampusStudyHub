@@ -25,6 +25,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             e.RepeatUntilDate,
             e.Location,
             e.Description,
+            e.GoalId,
             e.IsCompleted
         )).ToList();
     }
@@ -49,6 +50,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             e.RepeatUntilDate,
             e.Location,
             e.Description,
+            e.GoalId,
             e.IsCompleted
         )).ToList();
     }
@@ -127,6 +129,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             entity.RepeatUntilDate,
             entity.Location,
             entity.Description,
+            entity.GoalId,
             entity.IsCompleted
         );
     }
@@ -146,6 +149,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             entity.RepeatUntilDate,
             entity.Location,
             entity.Description,
+            entity.GoalId,
             entity.IsCompleted);
     }
 
@@ -210,5 +214,16 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         entity.UpdatedAtUtc = DateTime.UtcNow;
         repository.Update(entity);
         await repository.SaveChangesAsync();
+    }
+
+    public async Task<bool> ToggleEventCompletionAsync(long userId, long id)
+    {
+        var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == id && e.UserId == userId && !e.IsDeleted);
+        if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
+        entity.IsCompleted = !entity.IsCompleted;
+        entity.UpdatedAtUtc = DateTime.UtcNow;
+        repository.Update(entity);
+        await repository.SaveChangesAsync();
+        return entity.IsCompleted;
     }
 }
