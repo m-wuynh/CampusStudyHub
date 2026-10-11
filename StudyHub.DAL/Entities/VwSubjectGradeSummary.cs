@@ -17,9 +17,12 @@ public partial class VwSubjectGradeSummary
 
     public decimal CreditWeight { get; set; }
 
-    public decimal? TargetScore10 { get; set; }
-
     public int? EnteredAssessmentCount { get; set; }
 
+    /// <summary>
+    /// Weighted average on scale 0–10.
+    /// Formula: SUM(Score * Weight) / SUM(Weight) across active (non-deleted) grade entries
+    /// in non-archived columns. Null if no valid entries exist.
+    /// </summary>
     public decimal? CurrentAverage10 { get; set; }
 }

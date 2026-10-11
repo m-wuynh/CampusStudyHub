@@ -15,7 +15,7 @@ public partial class Subject
 
     public bool IsActive { get; set; }
 
-    public virtual ICollection<StudyGroup> StudyGroups { get; set; } = new List<StudyGroup>();
+    public virtual ICollection<StudyGroupSubject> StudyGroupSubjects { get; set; } = new List<StudyGroupSubject>();
 
     public virtual ICollection<UserSubject> UserSubjects { get; set; } = new List<UserSubject>();
 }

@@ -38,6 +38,10 @@ public partial class StudyHubDbContext : DbContext
 
     public virtual DbSet<Goal> Goals { get; set; }
 
+    public virtual DbSet<GradeBook> GradeBooks { get; set; }
+
+    public virtual DbSet<GradeColumn> GradeColumns { get; set; }
+
     public virtual DbSet<GradeEntry> GradeEntries { get; set; }
 
     public virtual DbSet<GroupMember> GroupMembers { get; set; }
@@ -55,6 +59,8 @@ public partial class StudyHubDbContext : DbContext
     public virtual DbSet<ScheduleException> ScheduleExceptions { get; set; }
 
     public virtual DbSet<StudyGroup> StudyGroups { get; set; }
+
+    public virtual DbSet<StudyGroupSubject> StudyGroupSubjects { get; set; }
 
     public virtual DbSet<StudySession> StudySessions { get; set; }
 
@@ -419,20 +425,21 @@ public partial class StudyHubDbContext : DbContext
 
         modelBuilder.Entity<Goal>(entity =>
         {
-            entity.HasIndex(e => new { e.UserId, e.IsCancelled, e.EndDate }, "IX_Goals_User");
+            entity.HasIndex(e => new { e.UserId, e.IsCancelled }, "IX_Goals_User");
+
+            // Goal Ladder: no two active (non-cancelled) goals can share same TargetValue for same subject
+            entity.HasIndex(e => new { e.UserSubjectId, e.TargetValue }, "UQ_Goals_SubjectTargetValue")
+                  .IsUnique()
+                  .HasFilter("[IsCancelled] = 0");
 
             entity.Property(e => e.CreatedAtUtc)
                 .HasPrecision(3)
                 .HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.CurrentValue).HasColumnType("decimal(12, 2)");
             entity.Property(e => e.RowVersion)
                 .IsRowVersion()
                 .IsConcurrencyToken();
-            entity.Property(e => e.TargetValue).HasColumnType("decimal(12, 2)");
+            entity.Property(e => e.TargetValue).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.Title).HasMaxLength(200);
-            entity.Property(e => e.UnitCode)
-                .HasMaxLength(15)
-                .IsUnicode(false);
             entity.Property(e => e.UpdatedAtUtc)
                 .HasPrecision(3)
                 .HasDefaultValueSql("(sysutcdatetime())");
@@ -448,31 +455,73 @@ public partial class StudyHubDbContext : DbContext
                 .HasConstraintName("FK_Goals_SubjectOwner");
         });
 
-        modelBuilder.Entity<GradeEntry>(entity =>
+        modelBuilder.Entity<GradeBook>(entity =>
         {
-            entity.HasIndex(e => new { e.UserSubjectId, e.IsDeleted }, "IX_GradeEntries_Subject");
+            // One GradeBook per (UserId, FromYear, ToYear)
+            entity.HasIndex(e => new { e.UserId, e.FromYear, e.ToYear }, "UQ_GradeBooks_UserYear").IsUnique();
 
-            entity.Property(e => e.AssessmentType)
-                .HasMaxLength(20)
-                .IsUnicode(false)
-                .HasDefaultValue("Other");
+            entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.CreatedAtUtc)
                 .HasPrecision(3)
                 .HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.MaxScore)
-                .HasDefaultValue(10m)
-                .HasColumnType("decimal(8, 2)");
-            entity.Property(e => e.RowVersion)
-                .IsRowVersion()
-                .IsConcurrencyToken();
-            entity.Property(e => e.Score).HasColumnType("decimal(8, 2)");
-            entity.Property(e => e.Title).HasMaxLength(150);
             entity.Property(e => e.UpdatedAtUtc)
                 .HasPrecision(3)
                 .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.User).WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GradeBooks_User");
+        });
+
+        modelBuilder.Entity<GradeColumn>(entity =>
+        {
+            // Column names must be unique within a GradeBook (only for non-archived columns)
+            entity.HasIndex(e => new { e.GradeBookId, e.Name }, "UQ_GradeColumns_Name")
+                  .IsUnique()
+                  .HasFilter("[IsArchived] = 0");
+
+            entity.HasIndex(e => new { e.GradeBookId, e.IsArchived, e.DisplayOrder }, "IX_GradeColumns_Order");
+
+            entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Weight)
                 .HasDefaultValue(1m)
                 .HasColumnType("decimal(6, 2)");
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.GradeBook).WithMany(p => p.GradeColumns)
+                .HasForeignKey(d => d.GradeBookId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GradeColumns_GradeBook");
+        });
+
+        modelBuilder.Entity<GradeEntry>(entity =>
+        {
+            entity.HasIndex(e => new { e.UserSubjectId, e.IsDeleted }, "IX_GradeEntries_Subject");
+            entity.HasIndex(e => new { e.GradeColumnId, e.UserSubjectId, e.IsDeleted }, "IX_GradeEntries_Column");
+
+            entity.ToTable(t => t.HasCheckConstraint("CK_GradeEntries_Score", "[Score] >= 0 AND [Score] <= 10"));
+
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+            entity.Property(e => e.Score).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.UpdatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.GradeColumn).WithMany(p => p.GradeEntries)
+                .HasForeignKey(d => d.GradeColumnId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GradeEntries_Column");
 
             entity.HasOne(d => d.UserSubject).WithMany(p => p.GradeEntries)
                 .HasForeignKey(d => d.UserSubjectId)
@@ -699,14 +748,13 @@ public partial class StudyHubDbContext : DbContext
                 .IsUnicode(false)
                 .HasDefaultValue("Online");
             entity.Property(e => e.MeetingSchedule).HasMaxLength(250);
-            entity.Property(e => e.ContactUrl).HasMaxLength(2048);
             entity.Property(e => e.Rules).HasMaxLength(2000);
             entity.Property(e => e.GroupName).HasMaxLength(150);
             entity.Property(e => e.JoinMode)
                 .HasMaxLength(15)
                 .IsUnicode(false)
                 .HasDefaultValue("Approval");
-            entity.Property(e => e.MaxMembers).HasDefaultValue((short)20);
+            entity.Property(e => e.MaxMembers);
             entity.Property(e => e.RowVersion)
                 .IsRowVersion()
                 .IsConcurrencyToken();
@@ -723,9 +771,39 @@ public partial class StudyHubDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_StudyGroups_Owner");
 
-            entity.HasOne(d => d.Subject).WithMany(p => p.StudyGroups)
-                .HasForeignKey(d => d.SubjectId)
-                .HasConstraintName("FK_StudyGroups_Subject");
+        });
+
+        modelBuilder.Entity<StudyGroupSubject>(entity =>
+        {
+            entity.HasKey(e => e.StudyGroupSubjectId);
+
+            entity.HasIndex(e => new { e.StudyGroupId, e.SubjectId }, "UX_StudyGroupSubjects_Catalog")
+                .IsUnique()
+                .HasFilter("[SubjectId] IS NOT NULL");
+            entity.HasIndex(e => new { e.StudyGroupId, e.CustomSubjectName }, "UX_StudyGroupSubjects_Custom")
+                .IsUnique()
+                .HasFilter("[CustomSubjectName] IS NOT NULL");
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_StudyGroupSubjects_Choice",
+                "([SubjectId] IS NOT NULL AND [CustomSubjectName] IS NULL) OR ([SubjectId] IS NULL AND [CustomSubjectName] IS NOT NULL)"));
+
+            entity.Property(e => e.CustomSubjectName).HasMaxLength(150);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(e => e.StudyGroup).WithMany(e => e.StudyGroupSubjects)
+                .HasForeignKey(e => e.StudyGroupId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_StudyGroupSubjects_Group");
+            entity.HasOne(e => e.Subject).WithMany(e => e.StudyGroupSubjects)
+                .HasForeignKey(e => e.SubjectId)
+                .HasConstraintName("FK_StudyGroupSubjects_Subject");
+            entity.HasOne(e => e.AddedByUser).WithMany(e => e.AddedStudyGroupSubjects)
+                .HasForeignKey(e => e.AddedByUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StudyGroupSubjects_AddedBy");
         });
 
         modelBuilder.Entity<StudySession>(entity =>
@@ -848,12 +926,15 @@ public partial class StudyHubDbContext : DbContext
 
         modelBuilder.Entity<UserSubject>(entity =>
         {
-            // Removed old UQ_UserSubjects_Enrollment
-            entity.HasIndex(e => new { e.UserId, e.AcademicTermId, e.SubjectId }, "UQ_UserSubjects_CatalogEnrollment")
+            entity.HasOne(d => d.GradeBook).WithMany(p => p.UserSubjects)
+                .HasForeignKey(d => d.GradeBookId)
+                .HasConstraintName("FK_UserSubjects_GradeBook");
+
+            entity.HasIndex(e => new { e.UserId, e.GradeBookId, e.SubjectId }, "UQ_UserSubjects_CatalogEnrollment")
                   .IsUnique()
                   .HasFilter("[SubjectId] IS NOT NULL AND [IsArchived] = 0");
 
-            entity.HasIndex(e => new { e.UserId, e.AcademicTermId, e.CustomSubjectName }, "UQ_UserSubjects_CustomEnrollment")
+            entity.HasIndex(e => new { e.UserId, e.GradeBookId, e.CustomSubjectName }, "UQ_UserSubjects_CustomEnrollment")
                   .IsUnique()
                   .HasFilter("[CustomSubjectName] IS NOT NULL AND [IsArchived] = 0");
 
@@ -873,7 +954,6 @@ public partial class StudyHubDbContext : DbContext
             entity.Property(e => e.CreditWeight)
                 .HasDefaultValue(1m)
                 .HasColumnType("decimal(5, 2)");
-            entity.Property(e => e.TargetScore10).HasColumnType("decimal(4, 2)");
             entity.Property(e => e.TeacherName).HasMaxLength(100);
 
             entity.HasOne(d => d.Subject).WithMany(p => p.UserSubjects)
@@ -916,7 +996,6 @@ public partial class StudyHubDbContext : DbContext
             entity.Property(e => e.CreditWeight).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.CurrentAverage10).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.SubjectName).HasMaxLength(150);
-            entity.Property(e => e.TargetScore10).HasColumnType("decimal(4, 2)");
         });
 
         modelBuilder.Entity<VwTermGradeSummary>(entity =>

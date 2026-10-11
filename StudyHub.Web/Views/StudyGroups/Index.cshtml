@@ -72,16 +72,31 @@
       </div>
       <div class="modal-body px-4 py-4">
         <div class="row g-3">
-          <div class="col-md-8">
+          <div class="col-12">
             <label class="sh-label" for="group-name">Tên nhóm</label>
             <input id="group-name" class="sh-input" maxlength="150" placeholder="Ví dụ: Ôn thi Cơ sở dữ liệu" />
           </div>
-          <div class="col-md-4">
-            <label class="sh-label" for="group-subject">Môn học</label>
-            <select id="group-subject" class="sh-input">
-              <option>Toán</option><option>Vật lý</option><option>Hóa học</option>
-              <option>Sinh học</option><option>Lịch sử</option><option>Tiếng Anh</option><option>Cơ sở dữ liệu</option>
-            </select>
+          <div class="col-12">
+            <label class="sh-label" for="group-subject-toggle">Môn học <span class="text-danger">*</span></label>
+            <div id="group-subject-select" class="subject-multiselect">
+              <button id="group-subject-toggle" type="button" class="subject-multiselect-toggle"
+                      data-subject-toggle aria-expanded="false" aria-controls="group-subject-panel">
+                <span data-subject-summary>Chọn môn học</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div id="group-subject-panel" class="subject-multiselect-panel" data-subject-panel hidden>
+                <div class="subject-multiselect-search">
+                  <i class="bi bi-search"></i>
+                  <input type="text" maxlength="150" data-subject-search
+                         placeholder="Tìm hoặc nhập môn học mới..." autocomplete="off" />
+                </div>
+                <div class="group-subject-picker" data-subject-options aria-live="polite"></div>
+                <p class="subject-multiselect-hint" data-subject-hint>Nhập tên môn rồi nhấn Enter để thêm môn mới.</p>
+              </div>
+            </div>
+            <p class="mb-0 mt-2" style="font-size:10px;color:var(--sh-slate-500);">
+              Tích các môn có sẵn hoặc tìm và nhấn Enter để thêm môn mới. Tối đa 10 môn.
+            </p>
           </div>
           <div class="col-12">
             <label class="sh-label" for="group-desc">Mô tả</label>
@@ -100,20 +115,17 @@
             <input id="group-schedule" class="sh-input" maxlength="250" placeholder="Thứ 7, 19:00 hàng tuần" />
           </div>
           <div class="col-md-3">
-            <label class="sh-label" for="group-max-members">Tối đa</label>
-            <input id="group-max-members" class="sh-input" type="number" min="2" max="500" value="20" />
+            <label class="sh-label" for="group-max-members">Giới hạn người</label>
+            <input id="group-max-members" class="sh-input" type="number" min="2" max="500" placeholder="Không giới hạn" />
+            <small class="d-block mt-1" style="font-size:9px;color:var(--sh-slate-500);">Để trống nếu nhóm không giới hạn thành viên.</small>
           </div>
-          <div class="col-md-6">
+          <div class="col-12">
             <label class="sh-label" for="group-access">Cách tham gia</label>
             <select id="group-access" class="sh-input">
               <option value="Approval">Công khai · Cần duyệt</option>
               <option value="Open">Công khai · Vào ngay</option>
               <option value="InviteOnly">Riêng tư · Chỉ qua lời mời</option>
             </select>
-          </div>
-          <div class="col-md-6">
-            <label class="sh-label" for="group-contact">Liên kết liên hệ/họp</label>
-            <input id="group-contact" class="sh-input" maxlength="2048" placeholder="https://meet.google.com/..." />
           </div>
           <div class="col-12">
             <label class="sh-label" for="group-rules">Nội quy nhóm</label>
@@ -142,4 +154,5 @@
   </div>
 </div>
 
+<script src="~/js/subject-multiselect.js" asp-append-version="true"></script>
 <script src="~/js/groups.js" asp-append-version="true"></script>
