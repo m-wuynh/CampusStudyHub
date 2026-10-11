@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore.Storage;
 using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.StudyGroups;
 
@@ -36,4 +37,6 @@ public interface IRepository
     void RemoveRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class;
     int SaveChanges();
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 }
+

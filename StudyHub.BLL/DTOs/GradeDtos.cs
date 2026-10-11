@@ -42,6 +42,12 @@ public sealed record YearGradeSummaryDto(
 // ── Academic Term ────────────────────────────────────────────
 public sealed record AcademicTermDto(long Id, string TermName, DateOnly StartDate, DateOnly EndDate);
 
+// ── Grade Subject Option (for lookup across academic years) ──
+public sealed record GradeSubjectOptionDto(
+    long UserSubjectId,
+    long? GradeBookId,
+    string SubjectName);
+
 // ── Full page payload ────────────────────────────────────────
 public sealed record GradesPageDto(
     List<GradeBookDto> GradeBooks,
@@ -50,20 +56,42 @@ public sealed record GradesPageDto(
     List<GradeColumnDto> Columns,
     YearGradeSummaryDto Summary,
     List<SubjectGradeDetailDto> SubjectDetails,
-    List<GoalLadderDto> GoalLadders);
+    List<GoalLadderDto> GoalLadders,
+    List<GradeSubjectOptionDto> AllSubjects);
 
 // ── Goal Ladder ──────────────────────────────────────────────
-/// <summary>All goals for a single UserSubject, ordered by TargetValue ascending.</summary>
+public sealed record GoalActivityDto(
+    long Id,
+    long GoalId,
+    string Title,
+    DateTime StartAtLocal,
+    DateTime EndAtLocal,
+    string? Description,
+    bool IsCompleted);
+
+public sealed record GoalHistoryDto(
+    long Id,
+    long GoalId,
+    decimal TargetValue,
+    decimal AchievedScore,
+    DateTime AchievedAtUtc,
+    DateTime CreatedAtUtc);
+
+/// <summary>All goals for a single UserSubject, ordered by BaseGoal first, then additional rungs.</summary>
 public sealed record GoalLadderDto(
     long UserSubjectId,
     string SubjectName,
     decimal? CurrentAverage10,
-    List<GoalDto> Goals);
+    List<GoalDto> Goals,
+    bool HasBaseGoal = false,
+    GoalDto? BaseGoal = null,
+    List<GoalDto>? AdditionalGoals = null,
+    string? AcademicYearName = null);
 
 /// <summary>
 /// Represents a single rung on the Goal Ladder.
 /// CurrentValue is derived from the subject's CurrentAverage10 – never user-entered.
-/// Status is computed: Achieved / InProgress / Future / Cancelled.
+/// Status can be ToDo, InProgress, Done (or mapped to GoalStatus).
 /// </summary>
 public sealed record GoalDto(
     long Id,
@@ -72,15 +100,22 @@ public sealed record GoalDto(
     decimal? CurrentValue,
     DateOnly? EndDate,
     long UserSubjectId,
-    GoalStatus Status);
+    GoalStatus Status,
+    bool IsBaseGoal = false,
+    string GoalLifecycleStatus = "ToDo",
+    int DisplayOrder = 0,
+    decimal? AchievedScore = null,
+    DateTime? AchievedAtUtc = null,
+    List<GoalActivityDto>? Activities = null,
+    List<GoalHistoryDto>? Histories = null);
 
 public enum GoalStatus
 {
     /// <summary>Goal is cancelled by user – no longer tracked.</summary>
     Cancelled,
-    /// <summary>CurrentAverage10 >= TargetValue.</summary>
+    /// <summary>CurrentAverage10 >= TargetValue or status is Done.</summary>
     Achieved,
-    /// <summary>Lowest TargetValue that is still > CurrentAverage10, i.e. the next rung to climb.</summary>
+    /// <summary>Lowest TargetValue that is still > CurrentAverage10, or user set InProgress.</summary>
     InProgress,
     /// <summary>TargetValue > the current InProgress goal – future rungs.</summary>
     Future,
@@ -104,9 +139,37 @@ public sealed record UpdateGradeEntryDto(long Id, decimal Score);
 public sealed record GradeEntryInputDto(long? GradeEntryId, long GradeColumnId, decimal Score);
 public sealed record SaveSubjectGradesDto(long UserSubjectId, List<GradeEntryInputDto> Entries);
 
-// Goal
-public sealed record CreateGoalDto(long UserSubjectId, string Title, decimal TargetValue, DateOnly? EndDate);
-public sealed record UpdateGoalDto(long Id, string Title, DateOnly? EndDate);
+// Goal & Activities
+public sealed record CreateGoalDto(
+    long UserSubjectId,
+    string Title,
+    decimal TargetValue,
+    DateOnly? EndDate,
+    bool IsBaseGoal = false);
+
+public sealed record UpdateGoalDto(
+    long Id,
+    string Title,
+    decimal? TargetValue,
+    DateOnly? EndDate);
+
+public sealed record DesignateBaseGoalDto(long GoalId);
+public sealed record SetGoalStatusDto(long GoalId, string Status);
+public sealed record ReorderGoalDto(long GoalId, int NewDisplayOrder);
+
+public sealed record CreateGoalActivityDto(
+    long GoalId,
+    string Title,
+    DateTime StartAtLocal,
+    DateTime EndAtLocal,
+    string? Description);
+
+public sealed record UpdateGoalActivityDto(
+    long ActivityId,
+    string Title,
+    DateTime StartAtLocal,
+    DateTime EndAtLocal,
+    string? Description);
 
 // AcademicTerm
 public sealed record CreateTermDto(string TermName, DateOnly StartDate, DateOnly EndDate);

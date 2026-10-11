@@ -61,7 +61,7 @@ public sealed class GradeBookService(IRepository repository) : IGradeBookService
 
         var alreadyExists = await repository.AnyAsync<GradeBook>(
             gb => gb.UserId == userId && gb.FromYear == dto.FromYear && gb.ToYear == dto.ToYear, cancellationToken);
-        if (alreadyExists) throw new InvalidOperationException($"Bạn đã có sổ điểm năm học {dto.FromYear}–{dto.ToYear}. Không thể tạo trùng.");
+        if (alreadyExists) throw new InvalidOperationException("Sổ điểm này đã tồn tại");
 
         if (string.IsNullOrWhiteSpace(dto.Name)) throw new ArgumentException("Tên sổ điểm không được để trống.");
         if (dto.Name.Length > 200) throw new ArgumentException("Tên sổ điểm không được vượt quá 200 ký tự.");
@@ -101,36 +101,118 @@ public sealed class GradeBookService(IRepository repository) : IGradeBookService
 
     public async Task DeleteGradeBookAsync(long userId, long gradeBookId, CancellationToken cancellationToken = default)
     {
+        if (gradeBookId <= 0) throw new ArgumentException("ID sổ điểm không hợp lệ.");
+
         var gradeBook = await repository.Query<GradeBook>(false)
             .FirstOrDefaultAsync(gb => gb.GradeBookId == gradeBookId, cancellationToken);
 
-        if (gradeBook is null) return;
+        if (gradeBook is null) throw new ArgumentException("Sổ điểm không tồn tại hoặc đã bị xóa.");
         if (gradeBook.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
-        // 1. Get all GradeColumns for this GradeBook
-        var columns = await repository.Query<GradeColumn>(false)
-            .Where(c => c.GradeBookId == gradeBookId)
-            .ToListAsync(cancellationToken);
-
-        var columnIds = columns.Select(c => c.GradeColumnId).ToList();
-
-        // 2. Load & Remove GradeEntries
-        if (columnIds.Any())
+        await using var transaction = await repository.BeginTransactionAsync(cancellationToken);
+        try
         {
-            var entries = await repository.Query<GradeEntry>(false)
-                .Where(ge => columnIds.Contains(ge.GradeColumnId))
+            // 1. Lấy tất cả UserSubject thuộc GradeBook để GỠ LIÊN KẾT (detach), KHÔNG XÓA UserSubject & Goal
+            var subjects = await repository.Query<UserSubject>(false)
+                .Where(us => us.GradeBookId == gradeBookId)
                 .ToListAsync(cancellationToken);
-            foreach(var e in entries) repository.Remove(e);
+
+            var subjectIds = subjects.Select(us => us.UserSubjectId).ToList();
+
+            // 2. Lấy tất cả GradeColumn của GradeBook
+            var columns = await repository.Query<GradeColumn>(false)
+                .Where(c => c.GradeBookId == gradeBookId)
+                .ToListAsync(cancellationToken);
+
+            var columnIds = columns.Select(c => c.GradeColumnId).ToList();
+
+            // 3. Xóa các GradeEntry liên quan (thuộc cột điểm hoặc môn học của sổ điểm này)
+            if (columnIds.Any() || subjectIds.Any())
+            {
+                var entries = await repository.Query<GradeEntry>(false)
+                    .Where(ge => columnIds.Contains(ge.GradeColumnId) || (ge.UserSubjectId != 0 && subjectIds.Contains(ge.UserSubjectId)))
+                    .ToListAsync(cancellationToken);
+                foreach (var e in entries) repository.Remove(e);
+            }
+
+            // 4. Detach UserSubject (Gán GradeBookId = null để giữ nguyên UserSubject và Goal)
+            // Lấy danh sách các UserSubject hiện đã unlinked (GradeBookId == null) để tránh vi phạm unique index UQ_UserSubjects_CustomEnrollment
+            var existingUnlinkedSubjects = await repository.Query<UserSubject>(false)
+                .Where(us => us.UserId == userId && us.GradeBookId == null && !us.IsArchived)
+                .ToListAsync(cancellationToken);
+
+            foreach (var s in subjects)
+            {
+                var targetUnlinked = existingUnlinkedSubjects.FirstOrDefault(u =>
+                    (s.SubjectId.HasValue && u.SubjectId == s.SubjectId) ||
+                    (!string.IsNullOrWhiteSpace(s.CustomSubjectName) && string.Equals(u.CustomSubjectName, s.CustomSubjectName, StringComparison.OrdinalIgnoreCase)));
+
+                if (targetUnlinked != null && targetUnlinked.UserSubjectId != s.UserSubjectId)
+                {
+                    // Đã có môn unlinked cùng tên => Chuyển các Goal & tính năng khác sang môn unlinked có sẵn, rồi xóa s
+                    var goalsToMove = await repository.Query<Goal>(false)
+                        .Where(g => g.UserSubjectId == s.UserSubjectId)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var g in goalsToMove)
+                    {
+                        var hasDupGoal = await repository.AnyAsync<Goal>(
+                            x => x.UserId == userId && x.UserSubjectId == targetUnlinked.UserSubjectId && x.TargetValue == g.TargetValue && !x.IsCancelled,
+                            cancellationToken);
+                        if (!hasDupGoal)
+                        {
+                            g.UserSubjectId = targetUnlinked.UserSubjectId;
+                            repository.Update(g);
+                        }
+                        else
+                        {
+                            repository.Remove(g);
+                        }
+                    }
+
+                    var deadlines = await repository.Query<Deadline>(false).Where(d => d.UserSubjectId == s.UserSubjectId).ToListAsync(cancellationToken);
+                    foreach (var d in deadlines) { d.UserSubjectId = targetUnlinked.UserSubjectId; repository.Update(d); }
+
+                    var decks = await repository.Query<FlashcardDeck>(false).Where(fd => fd.UserSubjectId == s.UserSubjectId).ToListAsync(cancellationToken);
+                    foreach (var fd in decks) { fd.UserSubjectId = targetUnlinked.UserSubjectId; repository.Update(fd); }
+
+                    var notes = await repository.Query<Note>(false).Where(n => n.UserSubjectId == s.UserSubjectId).ToListAsync(cancellationToken);
+                    foreach (var n in notes) { n.UserSubjectId = targetUnlinked.UserSubjectId; repository.Update(n); }
+
+                    var events = await repository.Query<ScheduleEvent>(false).Where(se => se.UserSubjectId == s.UserSubjectId).ToListAsync(cancellationToken);
+                    foreach (var se in events) { se.UserSubjectId = targetUnlinked.UserSubjectId; repository.Update(se); }
+
+                    var sessions = await repository.Query<StudySession>(false).Where(ss => ss.UserSubjectId == s.UserSubjectId).ToListAsync(cancellationToken);
+                    foreach (var ss in sessions) { ss.UserSubjectId = targetUnlinked.UserSubjectId; repository.Update(ss); }
+
+                    var docs = await repository.Query<Document>(false).Where(doc => doc.UserSubjectId == s.UserSubjectId).ToListAsync(cancellationToken);
+                    foreach (var doc in docs) { doc.UserSubjectId = targetUnlinked.UserSubjectId; repository.Update(doc); }
+
+                    repository.Remove(s);
+                }
+                else
+                {
+                    s.GradeBookId = null;
+                    repository.Update(s);
+                    existingUnlinkedSubjects.Add(s);
+                }
+            }
+
+            // 5. Xóa GradeColumn
+            foreach (var c in columns) repository.Remove(c);
+
+            // 6. Xóa GradeBook
+            repository.Remove(gradeBook);
+
+            // 7. Commit transaction
+            await repository.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
-
-        // 3. Remove GradeColumns
-        foreach(var c in columns) repository.Remove(c);
-
-        // 4. Remove GradeBook
-        repository.Remove(gradeBook);
-
-        // 5. Commit
-        await repository.SaveChangesAsync(cancellationToken);
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task<GradeBookDto> CreateGradeBookWithColumnsAsync(long userId, CreateGradeBookWithColumnsDto dto, CancellationToken cancellationToken = default)
@@ -139,7 +221,7 @@ public sealed class GradeBookService(IRepository repository) : IGradeBookService
 
         var alreadyExists = await repository.AnyAsync<GradeBook>(
             gb => gb.UserId == userId && gb.FromYear == dto.FromYear && gb.ToYear == dto.ToYear, cancellationToken);
-        if (alreadyExists) throw new InvalidOperationException($"Bạn đã có sổ điểm năm học {dto.FromYear}–{dto.ToYear}. Không thể tạo trùng.");
+        if (alreadyExists) throw new InvalidOperationException("Sổ điểm này đã tồn tại");
 
         if (string.IsNullOrWhiteSpace(dto.Name)) throw new ArgumentException("Tên bảng điểm không được để trống.");
 
@@ -175,20 +257,41 @@ public sealed class GradeBookService(IRepository repository) : IGradeBookService
             }
         }
 
-        // Add Subjects
+        // Add or Reuse Subjects
         if (dto.SubjectNames != null && dto.SubjectNames.Any())
         {
-            foreach (var subj in dto.SubjectNames)
+            var cleanNames = dto.SubjectNames
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (cleanNames.Any())
             {
-                if (string.IsNullOrWhiteSpace(subj)) continue;
-                await repository.AddAsync(new UserSubject
+                var existingSubjects = await repository.Query<UserSubject>(false)
+                    .Where(us => us.UserId == userId && us.CustomSubjectName != null && cleanNames.Contains(us.CustomSubjectName))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var subj in cleanNames)
                 {
-                    UserId = userId,
-                    GradeBookId = gradeBook.GradeBookId,
-                    CustomSubjectName = subj.Trim(),
-                    CreditWeight = 1,
-                    ColorHex = "#4f46e5"
-                }, cancellationToken);
+                    var existing = existingSubjects.FirstOrDefault(us => string.Equals(us.CustomSubjectName, subj, StringComparison.OrdinalIgnoreCase));
+                    if (existing != null)
+                    {
+                        existing.GradeBookId = gradeBook.GradeBookId;
+                        repository.Update(existing);
+                    }
+                    else
+                    {
+                        await repository.AddAsync(new UserSubject
+                        {
+                            UserId = userId,
+                            GradeBookId = gradeBook.GradeBookId,
+                            CustomSubjectName = subj,
+                            CreditWeight = 1,
+                            ColorHex = "#4f46e5"
+                        }, cancellationToken);
+                    }
+                }
             }
         }
 

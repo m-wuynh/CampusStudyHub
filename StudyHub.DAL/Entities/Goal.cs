@@ -21,6 +21,16 @@ public partial class Goal
 
     public bool IsCancelled { get; set; }
 
+    public bool IsBaseGoal { get; set; }
+
+    public string Status { get; set; } = "ToDo";
+
+    public int DisplayOrder { get; set; }
+
+    public decimal? AchievedScore { get; set; }
+
+    public DateTime? AchievedAtUtc { get; set; }
+
     public DateTime CreatedAtUtc { get; set; }
 
     public DateTime UpdatedAtUtc { get; set; }
@@ -30,4 +40,9 @@ public partial class Goal
     public virtual User User { get; set; } = null!;
 
     public virtual UserSubject UserSubject { get; set; } = null!;
+
+    public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();
+
+    public virtual ICollection<ScheduleEvent> ScheduleEvents { get; set; } = new List<ScheduleEvent>();
 }
+
