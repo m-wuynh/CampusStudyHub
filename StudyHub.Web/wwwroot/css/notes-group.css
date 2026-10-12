@@ -1,0 +1,23 @@
+.notes-group-workspace { max-width: 1180px; margin: 0 auto; }
+.notes-group-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 12px; }
+.notes-group-card { display: flex; flex-direction: column; align-items: flex-start; padding: 15px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; }
+.notes-group-card strong { color: #172033; font-size: 14px; }
+.notes-group-card > span, .notes-group-card-link > span { color: #64748b; font-size: 11px; margin-top: 5px; }
+.notes-group-card > p { color: #475569; font-size: 12px; white-space: pre-wrap; margin: 10px 0 0; }
+.notes-group-card-link { display: grid; grid-template-columns: 32px 1fr; gap: 2px 8px; width: 100%; text-decoration: none; }
+.notes-group-card-link > i { grid-row: span 3; color: #5965d8; font-size: 23px; }
+.notes-group-card-link > strong, .notes-group-card-link > span { min-width: 0; overflow-wrap: anywhere; }
+.notes-group-card-link .notes-group-open { color: #4f46e5; font-weight: 700; }
+.notes-group-preview { max-height: 5.5em; overflow: hidden; }
+.notes-group-empty { color: #64748b; font-size: 12px; text-align: center; padding: 26px 10px; margin: 0; }
+.notes-group-create { padding: 14px; background: #f8fafc; border-radius: 12px; }
+.notes-group-reader { max-width: 1500px; margin: 0 auto; }
+.group-reader-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 18px; margin-bottom: 12px; }
+.group-reader-heading h1 { font-size: 18px; font-weight: 750; margin: 8px 0 2px; }
+.group-reader-heading p { color: #64748b; font-size: 11px; margin: 0; }
+.group-reader-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 12px; }
+.group-reader-toolbar label { display: inline-flex; align-items: center; gap: 5px; color: #475569; }
+.group-reader-toolbar input[type="color"] { width: 28px; height: 26px; border: 0; padding: 0; background: transparent; }
+#group-pdf-workspace { min-height: 70vh; padding: 12px; overflow: auto; }
+#group-pdf-pages { min-height: 65vh; }
+@media (max-width: 640px) { .group-reader-heading { align-items: flex-start; flex-direction: column; } .group-reader-toolbar { position: sticky; top: 0; z-index: 10; } }

@@ -8,6 +8,7 @@
     string Initial(string name) => string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpperInvariant();
 }
 
+<link rel="stylesheet" href="~/css/group-learning.css" asp-append-version="true" />
 <div id="group-details-page"
      data-group-id="@Model.Group.Id"
      data-is-member="@Model.Group.IsMember.ToString().ToLowerInvariant()"
@@ -86,6 +87,20 @@
             <p style="font-size:11px;color:var(--sh-slate-500);">Bạn sẽ truy cập được nội dung nhóm sau khi Owner hoặc Moderator chấp nhận.</p>
             <button id="withdraw-request-btn" type="button" class="btn-secondary-sh w-100 justify-content-center">Rút yêu cầu</button>
           }
+          else if (Model.Group.MembershipStatus == "Banned")
+          {
+            <i class="bi bi-slash-circle d-block mb-2" style="font-size:32px;color:var(--sh-rose-600);"></i>
+            <h2 class="fw-bold" style="font-size:15px;">Bạn đã bị cấm khỏi nhóm</h2>
+            <p style="font-size:11px;color:var(--sh-slate-500);">Bạn cần được người đã cấm gỡ cấm trước khi có thể xin vào hoặc tham gia nhóm.</p>
+            @if (Model.Group.HasPendingUnbanRequest)
+            {
+              <p class="mb-0" style="font-size:11px;">Yêu cầu gỡ cấm đang chờ xử lý.</p>
+            }
+            else
+            {
+              <button id="request-unban-btn" type="button" class="btn-primary-sh w-100 justify-content-center">Xin gỡ cấm</button>
+            }
+          }
           else if (Model.Group.JoinMode == "InviteOnly")
           {
             <i class="bi bi-lock-fill d-block mb-2" style="font-size:32px;color:var(--sh-indigo-600);"></i>
@@ -110,7 +125,11 @@
         <button type="button" class="active" data-panel="overview"><i class="bi bi-house-door"></i>Tổng quan</button>
         <button type="button" data-panel="announcements"><i class="bi bi-megaphone"></i>Thông báo <span>@Model.Group.Announcements.Count</span></button>
         <button type="button" data-panel="chat"><i class="bi bi-chat-dots"></i>Chat nhóm</button>
-        <button type="button" data-panel="resources"><i class="bi bi-folder2-open"></i>Tài nguyên <span>@Model.Group.Resources.Count</span></button>
+        <button type="button" data-panel="sessions"><i class="bi bi-calendar-event"></i>Buổi học</button>
+        <button type="button" data-panel="assignments"><i class="bi bi-clipboard-check"></i>Bài tập</button>
+        <button type="button" data-panel="questions"><i class="bi bi-question-circle"></i>Hỏi đáp</button>
+        <button type="button" data-panel="progress"><i class="bi bi-graph-up"></i>Tiến độ</button>
+        <button type="button" data-panel="resources"><i class="bi bi-folder2-open"></i>Tài nguyên <span id="gl-resource-count">@Model.Group.Resources.Count</span></button>
         <button type="button" data-panel="members"><i class="bi bi-people"></i>Thành viên <span>@Model.Group.MemberCount@if (pendingMemberCount > 0){<text> + @pendingMemberCount chờ</text>}</span></button>
       </nav>
 
@@ -180,8 +199,12 @@
           </form>
         </section>
 
+        <partial name="_LearningPanels" />
         <section class="group-panel" data-panel-content="resources" hidden>
-          <h2 class="group-section-title"><i class="bi bi-folder2-open"></i>Tài nguyên nhóm</h2>
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <h2 class="group-section-title mb-0"><i class="bi bi-folder2-open"></i>Tài nguyên nhóm</h2>
+            <a href="/Notes/Groups/@Model.Group.Id" class="btn-primary-sh"><i class="bi bi-journal-richtext"></i>Notes &amp; PDF workspace</a>
+          </div>
           <div class="row g-3">
             @foreach (var resource in Model.Group.Resources)
             {
@@ -215,10 +238,15 @@
               <article class="group-member-row" data-member-id="@member.UserId">
                 @if (!string.IsNullOrWhiteSpace(member.AvatarUrl)) { <img src="@member.AvatarUrl" alt="" referrerpolicy="no-referrer" /> }
                 else { <span class="group-avatar">@Initial(member.DisplayName)</span> }
-                <div class="flex-grow-1"><strong>@member.DisplayName</strong><span>@(member.Status == "Pending" ? "Đang chờ duyệt" : member.Role)</span></div>
+                <div class="flex-grow-1"><strong>@member.DisplayName</strong><span>@(member.Status == "Pending" ? "Đang chờ duyệt" : member.Status == "Banned" ? "Đang xin gỡ cấm" : member.Role)</span></div>
                 @if (Model.Group.CanManage && member.Status == "Pending")
                 {
                   <div class="d-flex gap-1"><button type="button" class="member-action btn-primary-sh" data-action="approve">Duyệt</button><button type="button" class="member-action btn-secondary-sh" data-action="reject">Từ chối</button></div>
+                }
+                else if (Model.Group.CanManage && member.Status == "Banned" && member.HasPendingUnbanRequest &&
+                    (member.BannedByUserId == Model.Group.Members.FirstOrDefault(m => m.IsCurrentUser)?.UserId || member.BannedByUserId == null && Model.Group.IsOwner))
+                {
+                  <button type="button" class="member-action btn-primary-sh" data-action="unban">Gỡ cấm</button>
                 }
                 else if (Model.Group.CanManage && !member.IsCurrentUser && member.Role != "Owner" && (Model.Group.IsOwner || member.Role != "Moderator"))
                 {
@@ -339,4 +367,5 @@
   <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@9.0.6/dist/browser/signalr.min.js"></script>
   <script src="~/js/subject-multiselect.js" asp-append-version="true"></script>
   <script src="~/js/group-details.js" asp-append-version="true"></script>
+  <script src="~/js/group-learning.js" asp-append-version="true"></script>
 }

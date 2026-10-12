@@ -919,6 +919,106 @@ namespace StudyHub.DAL.Migrations
                         });
                 });
 
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupAnswer", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AuthorUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<long>("QuestionId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.ToTable("GroupAnswers");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupAssignment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("AllowLateSubmission")
+                        .HasColumnType("bit");
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("DueAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.Property<long?>("SessionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long>("StudyGroupId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("StudyGroupId", "DueAtUtc");
+
+                    b.ToTable("GroupAssignments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_GroupAssignments_Status", "Status IN ('Open','Closed')");
+                        });
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupAssignmentAssignee", b =>
+                {
+                    b.Property<long>("AssignmentId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("AssignmentId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("GroupAssignmentAssignees");
+                });
+
             modelBuilder.Entity("StudyHub.DAL.Entities.GroupInvite", b =>
                 {
                     b.Property<string>("InviteCode")
@@ -970,6 +1070,9 @@ namespace StudyHub.DAL.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("BannedByUserId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("JoinedAtUtc")
                         .HasPrecision(3)
                         .HasColumnType("datetime2(3)");
@@ -995,6 +1098,10 @@ namespace StudyHub.DAL.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(15)")
                         .HasDefaultValue("Pending");
+
+                    b.Property<DateTime?>("UnbanRequestedAtUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
 
                     b.HasKey("StudyGroupId", "UserId");
 
@@ -1055,6 +1162,241 @@ namespace StudyHub.DAL.Migrations
                         .IsDescending(false, false, true);
 
                     b.ToTable("GroupPosts");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupQuestion", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("AcceptedAnswerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("AuthorUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.Property<long>("StudyGroupId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("Id", "AcceptedAnswerId");
+
+                    b.HasIndex("StudyGroupId", "CreatedAtUtc");
+
+                    b.ToTable("GroupQuestions");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupSessionAttendance", b =>
+                {
+                    b.Property<long>("SessionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("Attended")
+                        .HasColumnType("bit");
+
+                    b.HasKey("SessionId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("GroupSessionAttendances");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupStudySession", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("EndsAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("MeetingUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Objective")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Preparation")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("StartsAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long>("StudyGroupId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("StudyGroupId", "StartsAtUtc");
+
+                    b.ToTable("GroupStudySessions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_GroupStudySessions_Status", "Status IN ('Scheduled','Completed','Cancelled')");
+
+                            t.HasCheckConstraint("CK_GroupStudySessions_Time", "EndsAtUtc > StartsAtUtc");
+                        });
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupSubmission", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AssignmentId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(12000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Feedback")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("ResourceUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset?>("ReviewedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<long?>("ReviewedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTimeOffset>("SubmittedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("AssignmentId", "UserId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("GroupSubmissions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_GroupSubmissions_Status", "Status IN ('Submitted','NeedsRevision','Completed')");
+                        });
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupWeeklyGoal", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.Property<long>("StudyGroupId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("TargetAssignments")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetSessions")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateOnly>("WeekStart")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudyGroupId", "WeekStart")
+                        .IsUnique();
+
+                    b.ToTable("GroupWeeklyGoals", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_GroupWeeklyGoals_Target", "TargetSessions BETWEEN 0 AND 100 AND TargetAssignments BETWEEN 0 AND 100 AND TargetSessions + TargetAssignments > 0");
+                        });
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.Note", b =>
@@ -2182,6 +2524,64 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("UserSubject");
                 });
 
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupAnswer", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.GroupQuestion", "Question")
+                        .WithMany("Answers")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupAssignment", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.GroupStudySession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", null)
+                        .WithMany()
+                        .HasForeignKey("StudyGroupId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupAssignmentAssignee", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.GroupAssignment", "Assignment")
+                        .WithMany("Assignees")
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("StudyHub.DAL.Entities.GroupInvite", b =>
                 {
                     b.HasOne("StudyHub.DAL.Entities.User", "CreatedByUser")
@@ -2229,6 +2629,88 @@ namespace StudyHub.DAL.Migrations
                         .HasConstraintName("FK_GroupPosts_Member");
 
                     b.Navigation("GroupMember");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupQuestion", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", null)
+                        .WithMany()
+                        .HasForeignKey("StudyGroupId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.GroupAnswer", null)
+                        .WithMany()
+                        .HasForeignKey("Id", "AcceptedAnswerId")
+                        .HasPrincipalKey("QuestionId", "Id")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupSessionAttendance", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.GroupStudySession", "Session")
+                        .WithMany("Attendees")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupStudySession", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", null)
+                        .WithMany()
+                        .HasForeignKey("StudyGroupId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupSubmission", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("StudyHub.DAL.Entities.GroupAssignmentAssignee", "Assignee")
+                        .WithMany("Submissions")
+                        .HasForeignKey("AssignmentId", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Assignee");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupWeeklyGoal", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", null)
+                        .WithMany()
+                        .HasForeignKey("StudyGroupId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.Note", b =>
@@ -2486,6 +2968,16 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("GradeEntries");
                 });
 
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupAssignment", b =>
+                {
+                    b.Navigation("Assignees");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupAssignmentAssignee", b =>
+                {
+                    b.Navigation("Submissions");
+                });
+
             modelBuilder.Entity("StudyHub.DAL.Entities.GroupMember", b =>
                 {
                     b.Navigation("GroupPosts");
@@ -2494,6 +2986,16 @@ namespace StudyHub.DAL.Migrations
             modelBuilder.Entity("StudyHub.DAL.Entities.GroupPost", b =>
                 {
                     b.Navigation("ContentReports");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupQuestion", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GroupStudySession", b =>
+                {
+                    b.Navigation("Attendees");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.Note", b =>

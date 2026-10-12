@@ -1,0 +1,38 @@
+@model GroupResourceViewModel
+@{
+    ViewData["Title"] = Model.Content.Title;
+    ViewData["PageTitle"] = Model.Content.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div style="max-width:1000px;margin:auto">
+    <a href="/Groups/@Model.GroupId" class="btn-secondary-sh mb-3">← Quay lại nhóm</a>
+    <article class="sh-card p-4">
+        <h1 class="h4">@Model.Content.Title</h1>
+        <p class="text-muted">Tài nguyên được chia sẻ trong nhóm · Chỉ đọc</p>
+        @foreach (var notePage in Model.Pages)
+        {
+            <section class="border-top pt-3 mt-3"><h2 class="h5">@notePage.Title</h2><div style="white-space:pre-wrap;overflow-wrap:anywhere">@notePage.Body</div></section>
+        }
+        @if (Model.Content.Kind != "Note" && !string.IsNullOrWhiteSpace(Model.Content.Body))
+        {
+            <p style="white-space:pre-wrap">@Model.Content.Body</p>
+        }
+        @if (Model.Content.ExternalUrl != null)
+        {
+            <a href="@Model.Content.ExternalUrl" target="_blank" rel="noopener noreferrer" class="btn-primary-sh">Mở tài liệu</a>
+        }
+        @if (Model.Content.StorageKey != null)
+        {
+            <a href="/Groups/@Model.GroupId/Resources/Document/@Model.ResourceId/pdf" target="_blank" rel="noopener" class="btn-secondary-sh mb-3">Mở PDF trong tab mới</a>
+            <iframe title="@Model.Content.Title" src="/Groups/@Model.GroupId/Resources/Document/@Model.ResourceId/pdf" style="width:100%;height:75vh;border:0"></iframe>
+        }
+        @foreach (var card in Model.Content.Cards)
+        {
+            <details class="border rounded p-3 my-3"><summary style="white-space:pre-wrap">@card.Front</summary><div class="mt-3 border-top pt-3" style="white-space:pre-wrap">@card.Back</div></details>
+        }
+        @if (Model.Content.Kind == "Flashcard" && Model.Content.Cards.Count == 0)
+        {
+            <p class="text-muted">Bộ flashcard chưa có thẻ.</p>
+        }
+    </article>
+</div>

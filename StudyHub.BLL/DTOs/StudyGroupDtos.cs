@@ -22,6 +22,7 @@ public sealed record GroupSummaryResponse(
 
 public sealed record GroupDetailsResponse(
     string Id,
+    long OwnerUserId,
     string Name,
     string Subject,
     string SubjectCssClass,
@@ -43,7 +44,8 @@ public sealed record GroupDetailsResponse(
     IReadOnlyList<GroupMemberResponse> Members,
     IReadOnlyList<GroupPostResponse> Announcements,
     IReadOnlyList<GroupPostResponse> Messages,
-    IReadOnlyList<GroupResourceResponse> Resources);
+    IReadOnlyList<GroupResourceResponse> Resources,
+    bool HasPendingUnbanRequest);
 
 public sealed record GroupMemberResponse(
     string UserId,
@@ -53,7 +55,9 @@ public sealed record GroupMemberResponse(
     string Status,
     DateTimeOffset RequestedAt,
     DateTimeOffset? JoinedAt,
-    bool IsCurrentUser);
+    bool IsCurrentUser,
+    bool HasPendingUnbanRequest,
+    string? BannedByUserId);
 
 public sealed record GroupPostResponse(
     string Id,

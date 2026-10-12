@@ -1,0 +1,165 @@
+/* Notes PDF reader: compact, restrained workspace with a non-overlapping tool rail. */
+#notes-reader {
+  --reader-ink: #172033;
+  --reader-muted: #748096;
+  --reader-line: #e2e7ef;
+  --reader-accent: #4f46e5;
+  --reader-soft: #f5f7fb;
+  width: 100%; max-width: 100%; min-width: 0; overflow-x: clip; color: var(--reader-ink);
+}
+#notes-reader > * { max-width: 100%; min-width: 0; }
+#notes-reader .reader-heading { min-height: 68px; padding: 14px 18px; border: 1px solid var(--reader-line); border-radius: 16px; background: #fff; box-shadow: 0 3px 14px rgb(23 32 51 / .04); }
+#notes-reader .reader-heading h2 { color: var(--reader-ink); letter-spacing: -.02em; }
+#notes-reader #reader-status { display: inline-block; margin-top: 3px; }
+#notes-reader #reader-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; width: 100%; min-width: 0; align-items: stretch; }
+#notes-reader #reader-layout.note-workspace-open { grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); }
+#notes-reader .reader-document-column { display: block; width: 100%; min-width: 0; }
+#notes-reader .reader-tool-rail {
+  position: fixed; left: calc(50% + 36px); top: auto; bottom: 14px; transform: translateX(-50%); z-index: 1060;
+  display: flex; flex-wrap: wrap; align-content: center; align-items: center; justify-content: center; gap: 3px;
+  width: max-content; max-width: calc(100vw - 110px); max-height: min(48vh, 360px); padding: 8px !important; overflow: visible;
+  border: 1px solid var(--reader-line); border-radius: 16px; background: rgb(255 255 255 / .98);
+  box-shadow: 0 12px 32px rgb(23 32 51 / .16); scrollbar-width: none;
+  transition: box-shadow .18s ease;
+}
+#notes-reader .reader-tool-rail:hover,
+#notes-reader.reader-settings-open .reader-tool-rail { width: max-content; box-shadow: 0 16px 38px rgb(23 32 51 / .22); }
+#notes-reader .reader-rail-title { margin: 0; color: var(--reader-muted); font-size: .68rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) .reader-rail-title,
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) .reader-hint,
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) .reader-rail-group > button > span,
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) #reader-search,
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) #reader-search-status,
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) #reader-page-number,
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) #reader-page-count { display: none; }
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) .reader-rail-group > button {
+  min-width: 44px; height: 44px; min-height: 44px; padding: 0 !important; border: 0 !important;
+  border-radius: 0 !important; background: transparent !important; box-shadow: none !important;
+  color: #59657a; font-size: 1rem; justify-content: center;
+}
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) .reader-rail-group > button > span { display: none !important; }
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) .reader-rail-group > button:hover { color: #3730a3; background: #f0f1ff !important; }
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) .reader-rail-group > button.active { color: #3730a3; background: #ececff !important; box-shadow: inset 2px 0 #5b55e7 !important; }
+#notes-reader:not(.reader-settings-open) .reader-tool-rail:not(:hover) .reader-rail-group > button i { font-size: 1.1rem; }
+#notes-reader .reader-rail-group { position: relative; display: flex; flex: 0 0 auto; align-items: center; gap: 4px; max-width: 100%; padding: 0 6px 0 0; margin-right: 3px; border-right: 1px solid var(--reader-line); }
+#notes-reader .reader-rail-group:last-child { padding-right: 0; margin-right: 0; border-right: 0; }
+#notes-reader .reader-rail-group > button { display: flex; flex: 0 0 42px; width: 42px; min-width: 42px; min-height: 42px; align-items: center; justify-content: center; gap: 8px; overflow: hidden; border-radius: 10px; text-align: left; white-space: nowrap; }
+#notes-reader .reader-tool-rail:hover .reader-rail-group > button,
+#notes-reader.reader-settings-open .reader-rail-group > button { flex-basis: auto; width: auto; min-width: 42px; padding-inline: 10px; justify-content: flex-start; }
+#notes-reader .reader-tool-rail:hover .reader-rail-group > button > span,
+#notes-reader.reader-settings-open .reader-rail-group > button > span { display: inline; }
+#notes-reader .reader-tool-rail:hover .reader-rail-title,
+#notes-reader.reader-settings-open .reader-rail-title,
+#notes-reader .reader-tool-rail:hover .reader-hint,
+#notes-reader.reader-settings-open .reader-hint { display: block; }
+#notes-reader .reader-tool-rail:hover #reader-search,
+#notes-reader.reader-settings-open #reader-search,
+#notes-reader .reader-tool-rail:hover #reader-page-number,
+#notes-reader.reader-settings-open #reader-page-number,
+#notes-reader .reader-tool-rail:hover #reader-page-count,
+#notes-reader.reader-settings-open #reader-page-count,
+#notes-reader .reader-tool-rail:hover #reader-search-status,
+#notes-reader.reader-settings-open #reader-search-status { display: revert; }
+#notes-reader .reader-tool-rail .reader-rail-group > button i { flex: 0 0 auto; }
+#notes-reader .reader-tool-rail .reader-rail-row { flex: 0 0 auto; }
+#notes-reader .reader-tool-rail .reader-tool-settings:not([hidden]) { position: absolute; left: 0; bottom: calc(100% + 10px); width: 220px; }
+#notes-reader .reader-tool-rail .btn-outline-secondary { --bs-btn-color: #49566d; --bs-btn-border-color: transparent; --bs-btn-hover-bg: #f0f2f8; --bs-btn-hover-color: #283248; --bs-btn-hover-border-color: transparent; --bs-btn-active-bg: #e9eaff; --bs-btn-active-color: #3730a3; }
+#notes-reader .reader-tool-rail button.active { background: #e9eaff; color: #3730a3; box-shadow: inset 0 0 0 1px #d5d7ff; }
+#notes-reader .reader-tool-rail button:focus-visible { outline: 3px solid rgb(79 70 229 / .28); outline-offset: 1px; }
+#notes-reader .reader-tool-rail .reader-tool-settings:not([hidden]) { position: static; display: grid; width: 100%; gap: 11px; padding: 12px; border: 1px solid #dfe3f3; border-radius: 12px; background: #f8f9ff; box-shadow: inset 3px 0 #6961ed; }
+#notes-reader .reader-tool-rail .reader-tool-settings:not([hidden]) { position: absolute; left: 0; bottom: calc(100% + 10px); z-index: 2; width: 220px; }
+#notes-reader .reader-tool-settings small { color: var(--reader-muted); font-size: .72rem; line-height: 1.4; }
+#notes-reader .reader-rail-row { display: flex; align-items: center; justify-content: center; gap: 5px; }
+#notes-reader .reader-rail-row > button { flex: 1; }
+#notes-reader .reader-color-control { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #536077; font-size: .76rem; }
+#notes-reader .reader-color-control input { width: 38px; height: 30px; border: 1px solid #d8deea; border-radius: 8px; padding: 3px; background: #fff; }
+#notes-reader .reader-range-control { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; color: #536077; font-size: .76rem; }
+#notes-reader .reader-range-control output { color: var(--reader-accent); font-variant-numeric: tabular-nums; font-weight: 700; }
+#notes-reader .reader-range-control input { grid-column: 1 / -1; width: 100%; accent-color: var(--reader-accent); }
+#notes-reader .reader-hint { color: var(--reader-muted); font-size: .7rem; line-height: 1.35; }
+#notes-reader #pdf-reader-workspace { width: 100%; box-sizing: border-box; height: min(76vh, 960px); min-height: 520px; min-width: 0; overflow: hidden; padding: 10px !important; border: 1px solid var(--reader-line); border-radius: 16px; background: #fff; box-shadow: 0 8px 24px rgb(23 32 51 / .06); }
+#notes-reader #reader-layout.note-workspace-open #pdf-reader-workspace { height: min(76vh, 960px); min-height: 520px; }
+#notes-reader .note-workspace { display: flex; min-width: 0; height: min(76vh, 960px); min-height: 520px; flex-direction: column; gap: 8px; padding: 14px !important; overflow: hidden; border: 1px solid var(--reader-line); border-radius: 16px; background: #fff; }
+#notes-reader .note-workspace[hidden] { display: none !important; }
+#notes-reader .note-workspace-heading { display: flex; flex: 0 0 auto; align-items: flex-start; justify-content: space-between; gap: 10px; }
+#notes-reader .note-workspace-heading h3 { color: var(--reader-ink); }
+#notes-reader .note-workspace .note-quill-toolbar { flex: 0 0 auto; padding: 3px; border-radius: 9px 9px 0 0; }
+#notes-reader .note-workspace .note-quill-toolbar .ql-formats { margin-right: 5px; }
+#notes-reader .note-workspace .note-quill-editor { flex: 1 1 auto; min-height: 120px; overflow: auto; }
+#notes-reader .note-workspace .note-quill-editor .ql-editor { min-height: 180px; padding: 12px; font-size: .87rem; line-height: 1.6; }
+#notes-reader .note-workspace .note-quill-editor .ql-editor img { max-width: 100%; border-radius: 8px; }
+#notes-reader .note-capture-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; gap: 6px; }
+#notes-reader .note-capture-actions #save-note { margin-left: auto; }
+#notes-reader .note-reference-section { flex: 0 0 auto; max-height: 25%; overflow: auto; padding-top: 8px; border-top: 1px solid var(--reader-line); }
+#notes-reader .note-reference-list { max-height: 130px; overflow: auto; }
+#notes-reader .reader-capture-mode { cursor: crosshair !important; }
+#notes-reader .reader-capture-selection { position: absolute; z-index: 15; pointer-events: none; border: 2px solid #4f46e5; border-radius: 3px; background: rgb(79 70 229 / .16); box-shadow: 0 0 0 9999px rgb(15 23 42 / .06); }
+#notes-reader .reader-reference-marker { position: absolute; z-index: 14; pointer-events: none; border: 2px solid #ea580c; border-radius: 4px; background: rgb(251 146 60 / .2); box-shadow: 0 0 0 3px rgb(234 88 12 / .12); animation: reader-reference-pulse .7s ease-in-out 3 alternate; }
+@keyframes reader-reference-pulse { from { background: rgb(251 146 60 / .12); } to { background: rgb(251 146 60 / .48); } }
+#notes-reader #reader-pages { display: block; width: 100%; height: 100%; min-width: 0; box-sizing: border-box; overflow: auto; overscroll-behavior: contain; border-radius: 11px; background: #eef1f6; }
+#notes-reader #reader-pages.inklayer-page-flow { display: grid !important; grid-template-columns: minmax(0, 1fr); justify-items: center; box-sizing: border-box; padding: 20px; }
+#notes-reader #reader-pages.reader-erasing, #notes-reader #reader-pages.reader-erasing .konvajs-content { cursor: crosshair !important; }
+#notes-reader .inklayer-page-flow-page { position: relative; width: fit-content; max-width: 100%; box-sizing: border-box; background: #fff; box-shadow: 0 5px 22px rgb(23 32 51 / .16); }
+#notes-reader .reader-comments-popover { position: absolute; z-index: 20; max-height: min(70vh, 460px); overflow: auto; margin: 0; box-shadow: 0 12px 32px rgb(15 23 42 / .24); }
+#notes-reader .inklayer-page-flow-canvas, #notes-reader .inklayer-page-flow-text, #notes-reader .inklayer-page-flow-annotations { max-width: 100%; }
+/* PDF canvas already paints the document. Keep the text layer for search only. */
+#notes-reader .inklayer-page-flow-text { pointer-events: none; user-select: none; -webkit-user-select: none; }
+#notes-reader.reader-text-capture .inklayer-page-flow-text { pointer-events: auto; user-select: text; -webkit-user-select: text; cursor: text; }
+#notes-reader.reader-text-capture .inklayer-page-flow-text ::selection { color: transparent; background: rgb(79 70 229 / .28); }
+#notes-reader .inklayer-page-flow-text :is(span, br) { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; }
+#notes-reader .reader-tool-label { color: var(--reader-muted); font-size: .75rem; font-weight: 650; margin-right: .2rem; }
+#notes-reader .reader-page-number { width: 58px; text-align: center; }
+#notes-reader .reader-search { width: 100%; }
+#notes-reader .reader-comment-thread { display: grid; gap: .65rem; max-height: 380px; overflow: auto; }
+#notes-reader .reader-comment { border: 1px solid var(--reader-line); border-radius: 10px; background: #f8f9fc; padding: .75rem; }
+#notes-reader .reader-comment-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3rem .8rem; color: var(--reader-ink); font-size: .82rem; }
+#notes-reader .reader-comment-heading time { color: var(--reader-muted); font-size: .72rem; }
+#notes-reader .reader-comment p { margin: .5rem 0 0; color: #49566d; font-size: .85rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+#notes-reader .reader-comment-actions { display: flex; gap: .8rem; margin-top: .45rem; }
+#notes-reader .reader-comment-thread:empty { display: none; }
+#notes-reader .reader-tool-label ~ button:disabled, #notes-reader #tool-highlight:disabled, #notes-reader #delete-annotation:disabled { opacity: .5; cursor: not-allowed; }
+#notes-reader kbd { vertical-align: middle; }
+
+/* Keep wide PDF surfaces inside the app content area. */
+.app-wrapper, .main-content-offset, .main-content-offset > main { min-width: 0; }
+.main-content-offset > main { width: 100%; max-width: 100%; }
+main:has(#notes-reader) { overflow-x: clip; }
+@media (min-width: 992px) {
+  body.studyhub-sidebar-compact #app-sidebar { width: 72px; overflow: hidden; transition: width .18s ease, box-shadow .18s ease; }
+  body.studyhub-sidebar-compact .main-content-offset { margin-left: 72px; }
+  body.studyhub-sidebar-compact #app-sidebar:hover { width: 260px; overflow: visible; box-shadow: 8px 0 26px rgb(15 23 42 / .16); }
+  body.studyhub-sidebar-compact #app-sidebar .sidebar-brand { justify-content: center; padding-inline: 10px; }
+  body.studyhub-sidebar-compact #app-sidebar .sidebar-brand > div:first-child > div:last-child, body.studyhub-sidebar-compact #app-sidebar .sidebar-nav-label, body.studyhub-sidebar-compact #app-sidebar .sidebar-nav-item span, body.studyhub-sidebar-compact #app-sidebar .sidebar-user-card .overflow-hidden { display: none; }
+  body.studyhub-sidebar-compact #app-sidebar .sidebar-nav { padding: 16px 8px; }
+  body.studyhub-sidebar-compact #app-sidebar .sidebar-nav-item { justify-content: center; padding: 10px 0; }
+  body.studyhub-sidebar-compact #app-sidebar .sidebar-nav-item > div { justify-content: center; }
+  body.studyhub-sidebar-compact #app-sidebar .sidebar-nav-item .nav-icon { margin: 0 !important; }
+  body.studyhub-sidebar-compact #app-sidebar .sidebar-user { padding: 8px; }
+  body.studyhub-sidebar-compact #app-sidebar .sidebar-user-card { flex-direction: column; gap: 8px; padding: 8px 4px; }
+  body.studyhub-sidebar-compact #app-sidebar:hover .sidebar-brand { justify-content: space-between; padding-inline: 20px; }
+  body.studyhub-sidebar-compact #app-sidebar:hover .sidebar-brand > div:first-child > div:last-child, body.studyhub-sidebar-compact #app-sidebar:hover .sidebar-nav-label, body.studyhub-sidebar-compact #app-sidebar:hover .sidebar-nav-item span, body.studyhub-sidebar-compact #app-sidebar:hover .sidebar-user-card .overflow-hidden { display: block; }
+  body.studyhub-sidebar-compact #app-sidebar:hover .sidebar-nav { padding: 20px 16px; }
+  body.studyhub-sidebar-compact #app-sidebar:hover .sidebar-nav-item { justify-content: space-between; padding: 10px 12px; }
+  body.studyhub-sidebar-compact #app-sidebar:hover .sidebar-nav-item > div { justify-content: flex-start; }
+  body.studyhub-sidebar-compact #app-sidebar:hover .sidebar-user { padding: 16px; }
+  body.studyhub-sidebar-compact #app-sidebar:hover .sidebar-user-card { flex-direction: row; padding: 8px; }
+  body.studyhub-sidebar-compact #app-sidebar:hover ~ .main-content-offset #notes-reader .reader-tool-rail { left: calc(50% + 130px); }
+}
+@media (max-width: 767.98px) {
+  #notes-reader #reader-layout, #notes-reader.reader-settings-open #reader-layout { display: grid; grid-template-columns: minmax(0, 1fr); }
+  #notes-reader #reader-layout.note-workspace-open { grid-template-columns: minmax(0, 1fr); }
+  #notes-reader .reader-tool-rail, #notes-reader .reader-tool-rail:hover, #notes-reader.reader-settings-open .reader-tool-rail { position: fixed; left: 50%; right: auto; top: auto; bottom: 8px; transform: translateX(-50%); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; width: calc(100vw - 16px); max-width: calc(100vw - 16px); max-height: 48vh; overflow: auto; padding: 12px !important; }
+  #notes-reader .reader-tool-rail .reader-rail-title, #notes-reader .reader-tool-rail .reader-hint, #notes-reader .reader-tool-rail .reader-rail-group > button > span, #notes-reader .reader-tool-rail #reader-search, #notes-reader .reader-tool-rail #reader-search-status, #notes-reader .reader-tool-rail #reader-page-number, #notes-reader .reader-tool-rail #reader-page-count { display: revert; }
+  #notes-reader .reader-tool-rail .reader-rail-group > button { justify-content: flex-start; padding-inline: .5rem; font-size: .875rem; }
+  #notes-reader .reader-tool-rail:not(:hover) .reader-rail-title, #notes-reader .reader-tool-rail:not(:hover) .reader-hint, #notes-reader .reader-tool-rail:not(:hover) #reader-search, #notes-reader .reader-tool-rail:not(:hover) #reader-search-status, #notes-reader .reader-tool-rail:not(:hover) #reader-page-number, #notes-reader .reader-tool-rail:not(:hover) #reader-page-count { display: revert; }
+  #notes-reader .reader-tool-rail:not(:hover) .reader-rail-group > button > span { display: inline !important; }
+  #notes-reader .reader-tool-rail:not(:hover) .reader-rail-group > button { justify-content: flex-start; padding-inline: .5rem; font-size: .875rem; }
+  #notes-reader .reader-tool-rail .reader-tool-settings:not([hidden]) { grid-column: 1 / -1; }
+  #notes-reader #pdf-reader-workspace { height: 68vh; min-height: 420px; padding: .5rem !important; }
+  #notes-reader #reader-layout.note-workspace-open #pdf-reader-workspace { height: 54vh; min-height: 360px; }
+  #notes-reader .note-workspace { height: 62vh; min-height: 480px; }
+  #notes-reader .note-workspace .note-quill-editor .ql-editor { min-height: 120px; }
+  #notes-reader #reader-pages.inklayer-page-flow { padding: 8px; }
+  #notes-reader .reader-save { justify-content: flex-start; }
+  #notes-reader #reader-page-count { width: 100%; margin-left: 0 !important; }
+}

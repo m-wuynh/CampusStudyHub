@@ -1,0 +1,37 @@
+@model GroupPdfReaderModel
+@{
+    ViewData["Title"] = "PDF nhóm";
+    ViewData["PageTitle"] = "PDF trong StudyGroup";
+    ViewData["PageSubtitle"] = "Annotation được tách riêng theo từng nhóm";
+    ViewData["CompactStudySidebar"] = true;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<main id="group-pdf-reader" class="notes-group-reader" data-group-id="@Model.GroupId" data-document-id="@Model.DocumentId" data-user-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" data-user-name="@User.Identity?.Name">
+    @Html.AntiForgeryToken()
+    <div class="group-reader-heading sh-card">
+        <div><a href="/Notes/Groups/@Model.GroupId" class="btn btn-sm btn-light"><i class="bi bi-arrow-left"></i> Tài nguyên nhóm</a><h1 id="group-reader-title">Đang mở PDF…</h1><p id="group-reader-status" role="status">Đang kiểm tra quyền thành viên.</p></div>
+        <button id="group-reader-save" class="btn-primary-sh" type="button" disabled><i class="bi bi-floppy"></i> Lưu annotation nhóm</button>
+    </div>
+    <div class="group-reader-toolbar sh-card" aria-label="Công cụ PDF">
+        <button class="btn btn-sm btn-outline-secondary" data-tool="select" type="button" disabled><i class="bi bi-cursor"></i> Chọn</button>
+        <button class="btn btn-sm btn-outline-secondary" data-tool="free-highlight" type="button" disabled><i class="bi bi-highlighter"></i> Highlight</button>
+        <label class="small">Màu <input id="group-highlight-color" type="color" value="#facc15" disabled></label>
+        <button class="btn btn-sm btn-outline-secondary" data-tool="freehand" type="button" disabled><i class="bi bi-pencil"></i> Bút</button>
+        <label class="small">Màu <input id="group-pen-color" type="color" value="#ef4444" disabled></label>
+        <button id="group-reader-zoom-out" class="btn btn-sm btn-outline-secondary" type="button" disabled>−</button>
+        <button id="group-reader-zoom-in" class="btn btn-sm btn-outline-secondary" type="button" disabled>+</button>
+        <button id="group-reader-fit" class="btn btn-sm btn-outline-secondary" type="button" disabled>Vừa chiều rộng</button>
+    </div>
+    <div id="group-pdf-workspace" class="sh-card"><div id="group-pdf-pages" aria-label="Các trang PDF"></div></div>
+</main>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/notes-module.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notes-reader.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notes-group.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/notes/assets/inklayer-core.css" asp-append-version="true" />
+}
+@section Scripts {
+    <script type="module" src="~/notes/assets/groupReader.js" asp-append-version="true"></script>
+}

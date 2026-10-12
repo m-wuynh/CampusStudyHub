@@ -48,7 +48,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .Where(group => !group.IsArchived &&
                 (group.Visibility == "Public" || group.GroupMembers.Any(member =>
                     member.UserId == currentUserId &&
-                    (member.Status == "Active" || member.Status == "Pending"))))
+                    (member.Status == "Active" || member.Status == "Pending" || member.Status == "Banned"))))
             .Include(group => group.StudyGroupSubjects)
                 .ThenInclude(item => item.Subject)
             .Include(group => group.GroupMembers)
@@ -89,7 +89,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         if (group is null) return null;
 
         var currentMembership = group.GroupMembers.SingleOrDefault(member => member.UserId == currentUserId);
-        var canPreview = group.Visibility == "Public" || currentMembership?.Status is "Active" or "Pending";
+        var canPreview = group.Visibility == "Public" || currentMembership?.Status is "Active" or "Pending" or "Banned";
         if (!canPreview) return null;
 
         var isActiveMember = currentMembership?.Status == "Active";
@@ -121,7 +121,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .OrderByDescending(item => item.CreatedAtUtc)
             .Take(20)
             .Select(item => new GroupResourceData(
-                $"document-{item.DocumentId}", item.Title, "Document", item.ExternalUrl))
+                $"document-{item.DocumentId}", item.Title, "Document", $"/Groups/{groupId}/Resources/Document/{item.DocumentId}"))
             .ToListAsync(cancellationToken);
         result.Resources.AddRange(documents);
 
@@ -130,7 +130,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .OrderByDescending(item => item.UpdatedAtUtc)
             .Take(20)
             .Select(item => new GroupResourceData(
-                $"note-{item.NoteId}", item.Title, "Note", $"/Notes/Reader/{item.NoteId}"))
+                $"note-{item.NoteId}", item.Title, "Note", $"/Groups/{groupId}/Resources/Note/{item.NoteId}"))
             .ToListAsync(cancellationToken);
         result.Resources.AddRange(notes);
 
@@ -139,7 +139,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .OrderByDescending(item => item.UpdatedAtUtc)
             .Take(20)
             .Select(item => new GroupResourceData(
-                $"deck-{item.DeckId}", item.Title, "Flashcard", "/Flashcards"))
+                $"deck-{item.DeckId}", item.Title, "Flashcard", $"/Groups/{groupId}/Resources/Flashcard/{item.DeckId}"))
             .ToListAsync(cancellationToken);
         result.Resources.AddRange(decks);
 
@@ -340,6 +340,7 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         long userId,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var group = await context.StudyGroups
             .Include(item => item.GroupMembers)
             .SingleOrDefaultAsync(item => item.StudyGroupId == groupId && !item.IsArchived, cancellationToken)
@@ -356,11 +357,32 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         var wasPending = membership.Status == "Pending";
         membership.Status = "Left";
         membership.JoinedAtUtc = null;
+        await RestorePrivateResourcesAsync(groupId, userId, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return new GroupMembershipData(
             groupId.ToString(),
             "Left",
             wasPending ? "Đã rút yêu cầu tham gia." : "Bạn đã rời nhóm.");
+    }
+
+    public async Task<GroupMembershipData> RequestUnbanAsync(long groupId, long userId, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var membership = await context.GroupMembers
+            .Include(item => item.StudyGroup)
+            .SingleOrDefaultAsync(item => item.StudyGroupId == groupId && item.UserId == userId, cancellationToken);
+        if (membership is null || membership.StudyGroup.IsArchived)
+            throw new StudyGroupRepositoryException("not_found", "Không tìm thấy nhóm học tập.");
+        if (membership.Status != "Banned")
+            throw new StudyGroupRepositoryException("invalid_action", "Bạn không bị cấm khỏi nhóm này.");
+        if (membership.UnbanRequestedAtUtc is not null)
+            return new GroupMembershipData(groupId.ToString(), "Banned", "Yêu cầu gỡ cấm đang chờ xử lý.");
+
+        membership.UnbanRequestedAtUtc = DateTime.UtcNow;
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new GroupMembershipData(groupId.ToString(), "Banned", "Đã gửi yêu cầu gỡ cấm tới người đã cấm bạn.");
     }
 
     public async Task<GroupPostData> AddPostAsync(
@@ -462,6 +484,15 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             case "ban":
                 target.Status = "Banned";
                 target.JoinedAtUtc = null;
+                target.BannedByUserId = actorUserId;
+                target.UnbanRequestedAtUtc = null;
+                break;
+            case "unban" when target.Status == "Banned" && target.UnbanRequestedAtUtc is not null &&
+                (target.BannedByUserId == actorUserId || target.BannedByUserId is null && actorIsOwner):
+                target.Status = "Left";
+                target.MemberRole = "Member";
+                target.BannedByUserId = null;
+                target.UnbanRequestedAtUtc = null;
                 break;
             case "promote" when actorIsOwner && target.Status == "Active":
                 target.MemberRole = "Moderator";
@@ -473,6 +504,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
                 throw new StudyGroupRepositoryException("invalid_action", "Thao tác không phù hợp với trạng thái thành viên hiện tại.");
         }
 
+        if (action is "kick" or "ban")
+            await RestorePrivateResourcesAsync(groupId, targetUserId, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
@@ -578,8 +611,25 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
         long userId,
         CancellationToken cancellationToken = default) =>
         context.GroupMembers.AsNoTracking().AnyAsync(
-            item => item.StudyGroupId == groupId && item.UserId == userId && item.Status == "Active",
+            item => item.StudyGroupId == groupId && item.UserId == userId && item.Status == "Active" && !item.StudyGroup.IsArchived,
             cancellationToken);
+
+    private async Task RestorePrivateResourcesAsync(long groupId, long userId, CancellationToken ct)
+    {
+        await context.Notes.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
+                .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
+        await context.Documents.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
+                .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
+        await context.FlashcardDecks.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
+                .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
+        // Registration for future sessions no longer applies after leaving; historical attendance is retained.
+        var now = DateTimeOffset.UtcNow;
+        await context.GroupSessionAttendances.Where(x => x.UserId == userId && x.Session.StudyGroupId == groupId &&
+            x.Session.Status == "Scheduled" && x.Session.StartsAtUtc > now).ExecuteDeleteAsync(ct);
+    }
 
     private static StudyGroupData ToDomain(StudyGroup group, long currentUserId)
     {
@@ -599,7 +649,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             OwnerUserId = group.OwnerUserId.ToString(),
             CreatedAt = AsUtc(group.CreatedAtUtc),
             CurrentMembershipStatus = membership?.Status,
-            CurrentMemberRole = membership?.MemberRole
+            CurrentMemberRole = membership?.MemberRole,
+            HasPendingUnbanRequest = membership?.UnbanRequestedAtUtc is not null
         };
 
         result.Subjects.AddRange(group.StudyGroupSubjects
@@ -612,7 +663,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .Select(item => new GroupSubjectData(item.Name, GetSubjectCssClass(item.Name), item.IsCustom)));
 
         result.Members.AddRange(group.GroupMembers
-            .Where(member => member.Status is "Active" or "Pending")
+            .Where(member => member.Status is "Active" or "Pending" ||
+                member.Status == "Banned" && member.UnbanRequestedAtUtc != null)
             .OrderBy(member => member.Status == "Pending")
             .ThenBy(member => member.User.DisplayName)
             .Select(member => new GroupMemberData
@@ -622,6 +674,8 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
                 AvatarUrl = member.User.AvatarUrl,
                 Role = group.OwnerUserId == member.UserId ? "Owner" : member.MemberRole,
                 Status = member.Status,
+                HasPendingUnbanRequest = member.UnbanRequestedAtUtc is not null,
+                BannedByUserId = member.BannedByUserId?.ToString(),
                 RequestedAt = AsUtc(member.RequestedAtUtc),
                 JoinedAt = member.JoinedAtUtc.HasValue ? AsUtc(member.JoinedAtUtc.Value) : null
             }));
