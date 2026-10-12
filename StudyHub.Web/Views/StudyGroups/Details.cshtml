@@ -181,7 +181,10 @@
         </section>
 
         <section class="group-panel" data-panel-content="resources" hidden>
-          <h2 class="group-section-title"><i class="bi bi-folder2-open"></i>Tài nguyên nhóm</h2>
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <h2 class="group-section-title mb-0"><i class="bi bi-folder2-open"></i>Tài nguyên nhóm</h2>
+            <a href="/Notes/Groups/@Model.Group.Id" class="btn-primary-sh"><i class="bi bi-journal-richtext"></i>Notes &amp; PDF workspace</a>
+          </div>
           <div class="row g-3">
             @foreach (var resource in Model.Group.Resources)
             {

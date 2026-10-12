@@ -1,0 +1,23 @@
+{
+  "name": "studyhub-notes-m0",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": "^22.13.0 || >=24.0.0"
+  },
+  "scripts": {
+    "postinstall": "node scripts/patch-inklayer-page-flow.mjs",
+    "build": "node scripts/patch-inklayer-page-flow.mjs && vite build"
+  },
+  "dependencies": {
+    "@inklayer-dev/core": "0.3.0",
+    "quill": "2.0.3"
+  },
+  "devDependencies": {
+    "vite": "7.3.7"
+  },
+  "overrides": {
+    "pdfjs-dist": "6.2.108"
+  }
+}

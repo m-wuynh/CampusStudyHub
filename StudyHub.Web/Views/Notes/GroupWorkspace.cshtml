@@ -1,0 +1,46 @@
+@model long
+@{
+    ViewData["Title"] = "Tài nguyên nhóm · Notes";
+    ViewData["PageTitle"] = "Notes & PDF · StudyGroup";
+    ViewData["PageSubtitle"] = "Tài liệu chia sẻ và đề xuất chỉnh sửa có phê duyệt";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<main id="group-notes-workspace" class="notes-group-workspace" data-group-id="@Model" data-user-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value">
+    @Html.AntiForgeryToken()
+    <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+        <a href="/Groups/@Model" class="btn btn-light"><i class="bi bi-arrow-left"></i> StudyGroup</a>
+        <span id="group-notes-status" class="small text-secondary" role="status">Đang kiểm tra quyền thành viên…</span>
+    </div>
+    <section class="sh-card p-4 mb-4">
+        <h2 id="group-notes-title" class="h5 fw-bold mb-1">Tài nguyên nhóm</h2>
+        <p class="small text-secondary mb-0">PDF giữ nguyên file gốc. Mỗi nhóm có annotation riêng; chỉnh sửa của thành viên sẽ chờ chủ sở hữu duyệt.</p>
+    </section>
+    <section class="sh-card p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h6 fw-bold mb-0"><i class="bi bi-file-earmark-pdf me-2"></i>PDF được chia sẻ</h2><span id="group-pdf-count" class="badge text-bg-light">0</span></div>
+        <div id="group-pdf-list" class="notes-group-grid"></div>
+        <p id="group-pdf-empty" class="notes-group-empty" hidden>Nhóm chưa có PDF Notes nào.</p>
+    </section>
+    <section class="sh-card p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h6 fw-bold mb-0"><i class="bi bi-journal-text me-2"></i>Group Notes</h2><span id="group-note-count" class="badge text-bg-light">0</span></div>
+        <form id="group-note-create" class="notes-group-create mb-4">
+            <div class="row g-2"><div class="col-md-4"><label class="form-label small fw-semibold" for="new-group-note-title">Tiêu đề</label><input id="new-group-note-title" class="form-control" maxlength="200" required placeholder="Tên ghi chú"></div><div class="col-md-8"><label class="form-label small fw-semibold" for="new-group-note-body">Nội dung</label><textarea id="new-group-note-body" class="form-control" rows="2" required placeholder="Ghi chú học tập…"></textarea></div></div>
+            <div class="d-flex justify-content-end mt-2"><button class="btn-primary-sh" type="submit"><i class="bi bi-send"></i> Tạo ghi chú / gửi đề xuất</button></div>
+        </form>
+        <div id="group-note-list" class="notes-group-grid"></div>
+        <p id="group-note-empty" class="notes-group-empty" hidden>Chưa có Group Note. Ghi chú cá nhân có thể được chia sẻ từ thư viện.</p>
+    </section>
+    <section class="sh-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h6 fw-bold mb-0"><i class="bi bi-inbox me-2"></i>Đề xuất đang chờ</h2><span id="group-request-count" class="badge text-bg-warning">0</span></div>
+        <div id="group-request-list" class="notes-group-grid"></div>
+        <p id="group-request-empty" class="notes-group-empty" hidden>Không có đề xuất đang chờ.</p>
+    </section>
+</main>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/notes-module.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notes-group.css" asp-append-version="true" />
+}
+@section Scripts {
+    <script type="module" src="~/notes/assets/groupWorkspace.js" asp-append-version="true"></script>
+}

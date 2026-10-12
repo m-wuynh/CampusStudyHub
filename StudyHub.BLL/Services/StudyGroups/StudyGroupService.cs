@@ -230,6 +230,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         var canManage = isMember && (isOwner || group.CurrentMemberRole == "Moderator");
         return new GroupDetailsResponse(
             group.Id,
+            long.Parse(group.OwnerUserId),
             group.Name,
             group.Subject,
             group.SubjectCssClass,
