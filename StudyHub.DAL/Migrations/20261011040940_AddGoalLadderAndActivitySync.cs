@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -24,13 +24,6 @@ namespace StudyHub.DAL.Migrations
                 table: "ScheduleEvents",
                 type: "bigint",
                 nullable: true);
-
-            migrationBuilder.AddColumn<bool>(
-                name: "IsCompleted",
-                table: "ScheduleEvents",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "AchievedAtUtc",
@@ -147,10 +140,6 @@ namespace StudyHub.DAL.Migrations
 
             migrationBuilder.DropColumn(
                 name: "GoalId",
-                table: "ScheduleEvents");
-
-            migrationBuilder.DropColumn(
-                name: "IsCompleted",
                 table: "ScheduleEvents");
 
             migrationBuilder.DropColumn(
