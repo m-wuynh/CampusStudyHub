@@ -58,7 +58,7 @@ public sealed record FlashcardLearnQuestionDto(
     string QuestionText,
     IReadOnlyList<FlashcardLearnOptionDto> Options);
 
-public sealed record SubmitFalshcardLearnAnswerRequestDto(
+public sealed record SubmitFlashcardLearnAnswerRequestDto(
     long QuestionCardId,
     string? SelectedAnswer);
 

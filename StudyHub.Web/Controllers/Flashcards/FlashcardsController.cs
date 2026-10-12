@@ -355,7 +355,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
             var result = await flashcardService.SubmitLearnAnswerAsync(
                 deckId,
                 currentUser.UserId,
-                new SubmitFalshcardLearnAnswerRequestDto(
+                new SubmitFlashcardLearnAnswerRequestDto(
                     model.QuestionCardId,
                     model.SelectedAnswer),
                 cancellationToken);

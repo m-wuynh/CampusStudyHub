@@ -292,8 +292,14 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             }
             else
             {
-                var eligibleCards = cards
-                    .Where(card => IsLearnQuestionUnamibiguous(card, cards))
+                var eligibleCards = cards.GroupBy(
+                    card => card.BackText.Trim(),
+                    StringComparer.OrdinalIgnoreCase)
+                    .Where(group => group
+                        .Select(card => card.FrontText.Trim())
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Count() == 1)
+                    .SelectMany(group => group)
                     .ToList();
 
                 if (eligibleCards.Count == 0)
@@ -345,7 +351,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
         public async Task<FlashcardLearnAnswerResultDto?> SubmitLearnAnswerAsync(
             long deckId,
             long currentUserId,
-            SubmitFalshcardLearnAnswerRequestDto request,
+            SubmitFlashcardLearnAnswerRequestDto request,
             CancellationToken cancellationToken = default)
         {
             var selectedAnswer = request.SelectedAnswer?.Trim();

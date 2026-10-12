@@ -45,7 +45,7 @@ namespace StudyHub.BLL.Services.Flashcards.Interfaces
         Task<FlashcardLearnAnswerResultDto?> SubmitLearnAnswerAsync(
             long deckId,
             long currentuserId,
-            SubmitFalshcardLearnAnswerRequestDto request,
+            SubmitFlashcardLearnAnswerRequestDto request,
             CancellationToken cancellationToken = default);
 
     }
