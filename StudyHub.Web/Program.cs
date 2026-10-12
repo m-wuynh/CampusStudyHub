@@ -99,6 +99,23 @@ builder.Services.AddHostedService<StudyHub.Web.BackgroundServices.EmailNotificat
 
 var app = builder.Build();
 
+// A client can leave the dashboard while EF Core is opening a database connection.
+// RequestAborted then cancels the query; this is an expected end to that request.
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+    {
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = 499;
+        }
+    }
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");

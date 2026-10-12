@@ -58,7 +58,7 @@ public sealed class DashboardController(
         };
 
         // ── 2. Grades & Goals Data ─────────────────────────────────────
-        var gradesPage = await gradeService.GetGradePageAsync(userId, null, cancellationToken);
+        var gradesPage = await gradeService.GetGradePageAsync(userId, null, cancellationToken, includeSubjectOptions: false);
         var currentAvg = gradesPage.Summary.CurrentAverage10;
 
         string? currentRankText = currentAvg.HasValue
