@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M0 — InkLayer & Quill Spike</title>
+  <script type="module" crossorigin src="/notes/assets/spike.js"></script>
+  <link rel="modulepreload" crossorigin href="/notes/assets/chunks/inklayer-core-CTCVS4Uw.js">
+  <link rel="modulepreload" crossorigin href="/notes/assets/chunks/quill.snow-urzWyq_x.js">
+  <link rel="stylesheet" crossorigin href="/notes/assets/inklayer-core.css">
+  <link rel="stylesheet" crossorigin href="/notes/assets/notes-quill.css">
+  <link rel="stylesheet" crossorigin href="/notes/assets/spike-Ce_kJVWx.css">
+</head>
+<body>
+  <header><div><p class="eyebrow">CAMPUS STUDY HUB · MILESTONE 0</p><h1>PDF và ghi chú — spike kỹ thuật</h1></div><span class="badge">Development · PDF range load</span></header>
+  <main>
+    <section class="card">
+      <div class="section-heading"><div><p class="eyebrow">1 · INKLAYER CORE</p><h2>PDF và annotation</h2></div><span id="pdf-status" class="status">Chưa mở PDF</span></div>
+      <div class="toolbar">
+        <label class="file-button">Chọn PDF<input id="pdf-file" type="file" accept="application/pdf,.pdf"></label>
+        <button id="select-text" disabled>Chọn chữ</button><button id="highlight" disabled>Tô sáng chữ</button><button id="rectangle" disabled>Vẽ khung</button>
+        <button id="save-annotations" disabled>Lưu annotation</button><button id="restore-annotations" disabled>Nạp lại</button>
+        <button id="zoom-out" disabled>−</button><button id="zoom-in" disabled>+</button>
+      </div>
+      <div class="toolbar secondary"><button id="export-pdf" disabled>Tải PDF có annotation</button><span id="annotation-status" class="muted">Annotation test được lưu trong trình duyệt.</span></div>
+      <div id="pdf-workspace"><div id="pages"></div></div>
+    </section>
+    <section class="card">
+      <div class="section-heading"><div><p class="eyebrow">2 · QUILL 2</p><h2>Delta tiếng Việt</h2></div><span id="note-status" class="status">Chưa lưu</span></div>
+      <div id="note-editor"></div>
+      <div class="toolbar"><button id="save-note">Lưu Delta</button><button id="restore-note">Nạp Delta</button><span class="muted">Chỉ dùng localStorage cho spike.</span></div>
+    </section>
+    <section class="card">
+      <div class="section-heading"><div><p class="eyebrow">3 · STUDY GROUP BOUNDARY</p><h2>IStudyGroupGateway</h2></div><button id="run-gateway">Chạy 3 ca kiểm tra</button></div>
+      <p class="muted">Fake gateway chỉ phục vụ demo M0 trong Development. Notes thật dùng StudyGroup service qua DI, không truy vấn trực tiếp bảng StudyGroups.</p>
+      <ul id="gateway-results" class="results"><li>Chưa chạy kiểm tra.</li></ul>
+    </section>
+    <aside class="notice"><strong>Phạm vi M0:</strong> kiểm tra SDK và adapter boundary. Đây chưa phải chức năng lưu trữ PDF/Notes thật; dữ liệu spike nằm trong localStorage trên máy và trình duyệt hiện tại.</aside>
+  </main>
+</body>
+</html>

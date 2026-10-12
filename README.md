@@ -1,7 +1,7 @@
 
 # Campus Study Hub
 
-Ứng dụng ASP.NET Core MVC hỗ trợ quản lý ghi chú, flashcards, lịch học, điểm số và nhóm học tập.
+Ứng dụng ASP.NET Core MVC hỗ trợ flashcards, lịch học, điểm số và nhóm học tập. Notes/PDF gồm M1 (thư viện PDF, Reader, annotation), M2 (Quill Notes, split view, capture và tham chiếu), M3 (group share, GroupNote snapshot và ChangeRequest approval) và M4 (StudyGroup gateway thật + workspace tích hợp).
 
 ## Kiến trúc ASP.NET Core 3 layer
 
@@ -77,6 +77,16 @@ Chạy bản ASP.NET Core:
 dotnet run --project StudyHub.Web/StudyHub.Web.csproj --launch-profile https
 ```
 
+Bundle Notes/PDF đã được đưa vào `StudyHub.Web/wwwroot/notes`; không cần cài npm để
+chạy bản tải về. Trước lần chạy M1 đầu tiên trên database hiện tại, chạy
+`Data/StudyHub_SQLServer/06_M1_NotesPdf.sql` trong SSMS. Chạy tiếp `07_M2_NotesReferences.sql`, `08_M3_GroupApproval.sql` rồi `09_M3_M4_Preflight.sql` theo đúng thứ tự.
+
+Kiểm thử nhanh M1: từ thư mục `CampusStudyHub`, chạy
+`dotnet run --project StudyHub.Web/StudyHub.Web.csproj --launch-profile https`, đăng
+nhập phát triển, mở **Ghi chú & Tài liệu**, tải PDF, mở Reader, thêm annotation, lưu
+bằng nút hoặc Ctrl+S, tải lại trang và xác nhận annotation vẫn còn. Các bước chi tiết
+nằm trong [`M1_Notes_PDF_TEST_VI.md`](M1_Notes_PDF_TEST_VI.md).
+
 Ở môi trường `Development`, trang đăng nhập có nút **Đăng nhập phát triển**. Nút này
 tự tạo một tài khoản local trong database nên thành viên trong nhóm có thể chạy và
 kiểm thử ứng dụng mà không cần Google Client ID/Client Secret. Endpoint tương ứng bị
@@ -119,3 +129,5 @@ dotnet tool run dotnet-ef database update `
 `BaselineExistingDatabase` đăng ký schema Database First hiện hữu mà không tạo lại
 bảng hoặc xóa dữ liệu. Các thay đổi schema tiếp theo phải được tạo và áp dụng bằng
 EF Core Migration.
+
+Kiểm thử M2 chi tiết nằm trong [`M2_Notes_References_TEST_VI.md`](M2_Notes_References_TEST_VI.md). Smoke test StudyGroup và nghiệm thu M3/M4 nằm trong [`M3_M4_GroupApproval_TEST_VI.md`](M3_M4_GroupApproval_TEST_VI.md).

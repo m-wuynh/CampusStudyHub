@@ -24,6 +24,18 @@ public partial class StudyHubDbContext : DbContext
 
     public virtual DbSet<Document> Documents { get; set; }
 
+    public virtual DbSet<DocumentVersion> DocumentVersions { get; set; }
+
+    public virtual DbSet<DocumentAnnotation> DocumentAnnotations { get; set; }
+
+    public virtual DbSet<GroupDocumentShare> GroupDocumentShares { get; set; }
+
+    public virtual DbSet<GroupNote> GroupNotes { get; set; }
+
+    public virtual DbSet<GroupAnnotationSet> GroupAnnotationSets { get; set; }
+
+    public virtual DbSet<GroupChangeRequest> GroupChangeRequests { get; set; }
+
     public virtual DbSet<DocumentBookmark> DocumentBookmarks { get; set; }
 
     public virtual DbSet<ExternalLogin> ExternalLogins { get; set; }
@@ -51,6 +63,8 @@ public partial class StudyHubDbContext : DbContext
     public virtual DbSet<GroupPost> GroupPosts { get; set; }
 
     public virtual DbSet<Note> Notes { get; set; }
+
+    public virtual DbSet<NoteReferenceLink> NoteReferenceLinks { get; set; }
 
     public virtual DbSet<Reminder> Reminders { get; set; }
 
@@ -253,6 +267,7 @@ public partial class StudyHubDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasDefaultValue("Private");
+            entity.Property(e => e.IsArchived).HasDefaultValue(false);
 
             entity.HasOne(d => d.OwnerUser).WithMany(p => p.Documents)
                 .HasForeignKey(d => d.OwnerUserId)
@@ -267,6 +282,119 @@ public partial class StudyHubDbContext : DbContext
                 .HasPrincipalKey(p => new { p.UserSubjectId, p.UserId })
                 .HasForeignKey(d => new { d.UserSubjectId, d.OwnerUserId })
                 .HasConstraintName("FK_Documents_SubjectOwner");
+        });
+
+        modelBuilder.Entity<DocumentVersion>(entity =>
+        {
+            entity.HasKey(e => e.DocumentVersionId);
+            entity.HasIndex(e => new { e.DocumentId, e.CreatedAtUtc });
+            entity.HasIndex(e => e.StorageKey).IsUnique();
+            entity.Property(e => e.StorageKey).HasMaxLength(512);
+            entity.Property(e => e.Sha256).HasMaxLength(64).IsUnicode(false);
+            entity.Property(e => e.OriginalFileName).HasMaxLength(255);
+            entity.Property(e => e.MimeType).HasMaxLength(150).IsUnicode(false);
+            entity.Property(e => e.PageCount);
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.HasOne<Document>().WithMany().HasForeignKey(e => e.DocumentId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_DocumentVersions_Document");
+        });
+
+        modelBuilder.Entity<DocumentAnnotation>(entity =>
+        {
+            entity.HasKey(e => new { e.DocumentVersionId, e.OwnerUserId, e.AnnotationKey });
+            entity.Property(e => e.AnnotationKey).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.PayloadJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.UpdatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.HasOne<DocumentVersion>().WithMany().HasForeignKey(e => e.DocumentVersionId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_DocumentAnnotations_Version");
+            entity.HasOne<User>().WithMany().HasForeignKey(e => e.OwnerUserId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_DocumentAnnotations_User");
+        });
+
+        modelBuilder.Entity<GroupDocumentShare>(entity =>
+        {
+            entity.HasKey(e => e.GroupDocumentShareId);
+            entity.HasIndex(e => new { e.DocumentId, e.StudyGroupId })
+                .IsUnique().HasFilter("[IsActive] = 1");
+            entity.HasIndex(e => new { e.StudyGroupId, e.IsActive, e.SharedAtUtc });
+            entity.Property(e => e.SharedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UnsharedAtUtc).HasPrecision(3);
+            entity.HasOne<Document>().WithMany().HasForeignKey(e => e.DocumentId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupDocumentShares_Document");
+            entity.HasOne<StudyGroup>().WithMany().HasForeignKey(e => e.StudyGroupId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupDocumentShares_Group");
+            entity.HasOne<User>().WithMany().HasForeignKey(e => e.SharedByUserId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupDocumentShares_User");
+        });
+
+        modelBuilder.Entity<GroupNote>(entity =>
+        {
+            entity.HasKey(e => e.GroupNoteId);
+            entity.ToTable("GroupNotes", table =>
+                table.HasCheckConstraint("CK_GroupNotes_ContentDeltaJson", "ISJSON([ContentDeltaJson]) = 1"));
+            entity.HasIndex(e => new { e.StudyGroupId, e.IsDeleted, e.UpdatedAtUtc });
+            entity.HasIndex(e => new { e.SourceNoteId, e.StudyGroupId })
+                .IsUnique().HasFilter("[SourceNoteId] IS NOT NULL AND [IsDeleted] = 0");
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.ContentDeltaJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.HasOne<StudyGroup>().WithMany().HasForeignKey(e => e.StudyGroupId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupNotes_Group");
+            entity.HasOne<User>().WithMany().HasForeignKey(e => e.OwnerUserId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupNotes_Owner");
+            entity.HasOne<Note>().WithMany().HasForeignKey(e => e.SourceNoteId)
+                .OnDelete(DeleteBehavior.SetNull).HasConstraintName("FK_GroupNotes_SourceNote");
+        });
+
+        modelBuilder.Entity<GroupAnnotationSet>(entity =>
+        {
+            entity.HasKey(e => new { e.StudyGroupId, e.DocumentVersionId });
+            entity.ToTable("GroupAnnotationSets", table =>
+                table.HasCheckConstraint("CK_GroupAnnotationSets_PayloadJson", "ISJSON([PayloadJson]) = 1"));
+            entity.Property(e => e.PayloadJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.UpdatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
+            entity.HasOne<StudyGroup>().WithMany().HasForeignKey(e => e.StudyGroupId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupAnnotationSets_Group");
+            entity.HasOne<DocumentVersion>().WithMany().HasForeignKey(e => e.DocumentVersionId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupAnnotationSets_Version");
+        });
+
+        modelBuilder.Entity<GroupChangeRequest>(entity =>
+        {
+            entity.HasKey(e => e.GroupChangeRequestId);
+            entity.ToTable("GroupChangeRequests", table =>
+            {
+                table.HasCheckConstraint("CK_GroupChangeRequests_Target", "([TargetType] = 'GroupNote' AND [DocumentVersionId] IS NULL AND (([Operation] = 'CREATE' AND [TargetGroupNoteId] IS NULL) OR ([Operation] IN ('UPDATE','DELETE') AND [TargetGroupNoteId] IS NOT NULL))) OR ([TargetType] = 'GroupAnnotation' AND [TargetGroupNoteId] IS NULL AND [DocumentVersionId] IS NOT NULL)");
+                table.HasCheckConstraint("CK_GroupChangeRequests_Operation", "[Operation] IN ('CREATE','UPDATE','DELETE')");
+                table.HasCheckConstraint("CK_GroupChangeRequests_Status", "[Status] IN ('Pending','Approved','Rejected','Conflict','Cancelled')");
+                table.HasCheckConstraint("CK_GroupChangeRequests_ProposedJson", "[ProposedPayloadJson] IS NULL OR ISJSON([ProposedPayloadJson]) = 1");
+                table.HasCheckConstraint("CK_GroupChangeRequests_ProposedContent", "([TargetType] = 'GroupNote' AND ([Operation] = 'DELETE' OR ([ProposedTitle] IS NOT NULL AND [ProposedPayloadJson] IS NOT NULL))) OR ([TargetType] = 'GroupAnnotation' AND [ProposedPayloadJson] IS NOT NULL)");
+                table.HasCheckConstraint("CK_GroupChangeRequests_BaseVersion", "([TargetType] = 'GroupNote' AND [Operation] = 'CREATE' AND [BaseVersionToken] IS NULL) OR ((([TargetType] = 'GroupNote' AND [Operation] IN ('UPDATE','DELETE')) OR [TargetType] = 'GroupAnnotation') AND [BaseVersionToken] IS NOT NULL)");
+            });
+            entity.HasIndex(e => new { e.StudyGroupId, e.Status, e.CreatedAtUtc });
+            entity.Property(e => e.TargetType).HasMaxLength(20).IsUnicode(false);
+            entity.Property(e => e.Operation).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.ProposedTitle).HasMaxLength(200);
+            entity.Property(e => e.ProposedPayloadJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.BaseVersionToken).HasMaxLength(24).IsUnicode(false);
+            entity.Property(e => e.Status).HasMaxLength(12).IsUnicode(false).HasDefaultValue("Pending");
+            entity.Property(e => e.ResolutionNote).HasMaxLength(1000);
+            entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.ResolvedAtUtc).HasPrecision(3);
+            entity.HasOne<StudyGroup>().WithMany().HasForeignKey(e => e.StudyGroupId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupChangeRequests_Group");
+            entity.HasOne<User>().WithMany().HasForeignKey(e => e.RequesterUserId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupChangeRequests_Requester");
+            entity.HasOne<User>().WithMany().HasForeignKey(e => e.ReviewerUserId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupChangeRequests_Reviewer");
+            entity.HasOne<GroupNote>().WithMany().HasForeignKey(e => e.TargetGroupNoteId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupChangeRequests_GroupNote");
+            entity.HasOne<DocumentVersion>().WithMany().HasForeignKey(e => e.DocumentVersionId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupChangeRequests_Version");
         });
 
         modelBuilder.Entity<DocumentBookmark>(entity =>
@@ -606,6 +734,8 @@ public partial class StudyHubDbContext : DbContext
             entity.HasIndex(e => new { e.OwnerUserId, e.IsDeleted, e.UpdatedAtUtc }, "IX_Notes_Owner").IsDescending(false, false, true);
 
             entity.Property(e => e.Body).HasDefaultValue("");
+            entity.Property(e => e.ContentDeltaJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.IsArchived).HasDefaultValue(false);
             entity.Property(e => e.BodyFormat)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -638,6 +768,26 @@ public partial class StudyHubDbContext : DbContext
                 .HasPrincipalKey(p => new { p.UserSubjectId, p.UserId })
                 .HasForeignKey(d => new { d.UserSubjectId, d.OwnerUserId })
                 .HasConstraintName("FK_Notes_SubjectOwner");
+        });
+
+        modelBuilder.Entity<NoteReferenceLink>(entity =>
+        {
+            entity.HasKey(e => e.NoteReferenceLinkId);
+            entity.ToTable("NoteReferenceLinks", table =>
+            {
+                table.HasCheckConstraint("CK_NoteReferenceLinks_PageIndex", "[PageIndex] >= 0");
+                table.HasCheckConstraint("CK_NoteReferenceLinks_CaptureType", "[CaptureType] IN ('Text','Area')");
+                table.HasCheckConstraint("CK_NoteReferenceLinks_AnchorJson", "ISJSON([AnchorJson]) = 1");
+            });
+            entity.HasIndex(e => new { e.NoteId, e.CreatedAtUtc }, "IX_NoteReferenceLinks_Note_Created").IsDescending(false, true);
+            entity.Property(e => e.AnchorJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.CaptureType).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.CapturedText).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.HasOne<Note>().WithMany().HasForeignKey(e => e.NoteId)
+                .OnDelete(DeleteBehavior.Cascade).HasConstraintName("FK_NoteReferenceLinks_Note");
+            entity.HasOne<DocumentVersion>().WithMany().HasForeignKey(e => e.DocumentVersionId)
+                .OnDelete(DeleteBehavior.Cascade).HasConstraintName("FK_NoteReferenceLinks_DocumentVersion");
         });
 
         modelBuilder.Entity<Reminder>(entity =>

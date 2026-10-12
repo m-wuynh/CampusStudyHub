@@ -303,4 +303,83 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
 
     }
 
+    //learn mode
+    [HttpGet("{deckId:long}/Learn")]
+    public async Task<IActionResult> Learn(
+        long deckId,
+        CancellationToken cancellationToken)
+    {
+        var deck = await flashcardDeckService.GetDeckDetailAsync(
+            deckId,
+            currentUser.UserId,
+            cancellationToken);
+
+        if(deck is null)
+        {
+            return NotFound();
+        }
+
+        var question = await flashcardService.GetLearnQuestionAsync(
+            deckId,
+            currentUser.UserId,
+            cancellationToken: cancellationToken);
+
+        var model = new FlashcardLearnViewModel
+        {
+            DeckId = deck.DeckId,
+            DeckTitle = deck.Title,
+            Question = question
+        };
+
+        return View("Learn", model);
+
+    }
+
+    [HttpPost("{deckId:long}/Learn/Answer")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SubmitLearnAnswer(
+        long deckId,
+        FlashcardLearnAnswerFormViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(new
+            {
+                message = "Dữ liệu câu trả lời không hợp lệ"
+            });
+        }
+
+        try
+        {
+            var result = await flashcardService.SubmitLearnAnswerAsync(
+                deckId,
+                currentUser.UserId,
+                new SubmitFlashcardLearnAnswerRequestDto(
+                    model.QuestionCardId,
+                    model.SelectedAnswer),
+                cancellationToken);
+
+            if(result is null)
+            {
+                return NotFound();
+            }
+
+            return Json(new
+            {
+                questionCardId = result.QuestionCardId,
+                selectedAnswer = result.SelectedAnswer,
+                correctAnswer = result.CorrectAnswer,
+                isCorrect = result.IsCorrect
+            });
+        }
+        catch(ArgumentException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
 }

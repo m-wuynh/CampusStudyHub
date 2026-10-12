@@ -14,6 +14,9 @@ Dùng SQL Server **2019 trở lên**, bao gồm Express/LocalDB, và SQL Server 
 4. Trên môi trường phát triển, chạy `02_SeedDemo.sql` để xóa dữ liệu nghiệp vụ hiện tại và tạo lại bộ dữ liệu mẫu THPT. Script giữ nguyên schema và `SystemSettings`; không chạy trên database có dữ liệu cần bảo toàn.
 5. Chạy `03_ChecksAndQueries.sql` để kiểm tra ràng buộc và xem ví dụ truy vấn.
 6. Trên database phát triển, chạy riêng `04_SmokeTests.sql`: 9 kiểm thử chức năng. Script rollback dữ liệu thử; số IDENTITY có thể vẫn bị nhảy, đây là bình thường.
+7. Với M1 Notes/PDF, chạy thêm `06_M1_NotesPdf.sql` sau schema nền để thêm trạng thái lưu trữ, phiên bản PDF và bảng annotation.
+8. Với M2 Notes/References, chạy tiếp `07_M2_NotesReferences.sql` sau M1 để bật Quill Delta, trạng thái lưu trữ Note và liên kết tham chiếu PDF.
+9. Với M3/M4 Notes group sharing, chạy `08_M3_GroupApproval.sql` sau M2 rồi chạy `09_M3_M4_Preflight.sql`. Bản preflight phải trả `PASS` trước khi chạy ứng dụng.
 
 Chạy từng file theo thứ tự; gặp lỗi thì dừng và đọc thông báo. Sao lưu trước khi chạy lại file 02 vì thao tác reset dữ liệu không thể hoàn tác sau khi transaction đã commit. Muốn đổi tên database, sửa tên trong file 00 và cả `USE`/`DB_NAME()` ở các file còn lại.
 
