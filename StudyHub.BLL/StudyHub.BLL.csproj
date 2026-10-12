@@ -10,4 +10,8 @@
     <ProjectReference Include="..\StudyHub.DAL\StudyHub.DAL.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\Flashcards\LearnSessions\" />
+  </ItemGroup>
+
 </Project>
