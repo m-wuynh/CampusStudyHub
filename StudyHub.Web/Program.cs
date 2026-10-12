@@ -173,3 +173,5 @@ static async Task<GatewayCheck> Check(
 }
 
 public sealed record GatewayCheck(string Name, bool ExpectedAllowed, bool ActualAllowed, bool Passed);
+
+public partial class Program { }

@@ -58,7 +58,7 @@ public sealed class GroupLearningTests(GroupLearningFixture f) : IClassFixture<G
         Assert.Equal(HttpStatusCode.Conflict, (await owner.PutAsJsonAsync(Root() + $"/sessions/{session.Id}", new { title, objective = "Changed", startsAtUtc = session.StartsAtUtc, endsAtUtc = session.EndsAtUtc, revision = 0 })).StatusCode);
         await using (var db = f.NewDb())
         {
-            await db.GroupStudySessions.Where(x => x.Id == session.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.StartsAtUtc, DateTimeOffset.UtcNow.AddHours(-1)));
+            await EntityFrameworkQueryableExtensions.ExecuteUpdateAsync(db.GroupStudySessions.Where(x => x.Id == session.Id), s => s.SetProperty(x => x.StartsAtUtc, DateTimeOffset.UtcNow.AddHours(-1)));
         }
         await Ok(await moderator.PutAsJsonAsync(Root() + $"/sessions/{session.Id}/attendance/{f.MemberId}", new { attended = true }));
         await Ok(await owner.PostAsJsonAsync(Root() + $"/sessions/{session.Id}/status", new { status = "Completed", summary = "Đã giải 5 bài", revision = 1 }));
@@ -104,9 +104,9 @@ public sealed class GroupLearningTests(GroupLearningFixture f) : IClassFixture<G
         var a = (await Data(owner)).Assignments.Single(x => x.Title == title);
         Assert.Equal(HttpStatusCode.BadRequest, (await member.PostAsJsonAsync(Root() + $"/assignments/{a.Id}/submissions", new { resourceUrl = "javascript:alert(1)" })).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await owner.PostAsJsonAsync(Root(f.OtherGroupId) + $"/assignments/{a.Id}/close", new { revision = 1 })).StatusCode);
-        await using (var db = f.NewDb()) { await db.GroupAssignments.Where(x => x.Id == a.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.DueAtUtc, DateTimeOffset.UtcNow.AddHours(-1))); }
+        await using (var db = f.NewDb()) { await EntityFrameworkQueryableExtensions.ExecuteUpdateAsync(db.GroupAssignments.Where(x => x.Id == a.Id), s => s.SetProperty(x => x.DueAtUtc, DateTimeOffset.UtcNow.AddHours(-1))); }
         Assert.Equal(HttpStatusCode.BadRequest, (await member.PostAsJsonAsync(Root() + $"/assignments/{a.Id}/submissions", new { content = "Too late" })).StatusCode);
-        await using (var db = f.NewDb()) { await db.GroupAssignments.Where(x => x.Id == a.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.AllowLateSubmission, true)); }
+        await using (var db = f.NewDb()) { await EntityFrameworkQueryableExtensions.ExecuteUpdateAsync(db.GroupAssignments.Where(x => x.Id == a.Id), s => s.SetProperty(x => x.AllowLateSubmission, true)); }
         await Ok(await member.PostAsJsonAsync(Root() + $"/assignments/{a.Id}/submissions", new { content = "Late allowed" }));
         Assert.True((await Data(owner)).Assignments.Single(x => x.Id == a.Id).Submissions.Single().IsLate);
     }
