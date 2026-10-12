@@ -86,6 +86,8 @@ builder.Services.AddScoped<GroupNotesService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<IStudyGroupService, StudyGroupService>();
+builder.Services.AddScoped<IGroupLearningRepository, SqlGroupLearningRepository>();
+builder.Services.AddScoped<GroupLearningService>();
 builder.Services.AddScoped<IFlashcardDeckService, FlashcardDeckService>();
 builder.Services.AddScoped<IFlashcardService, FlashcardService>();
 builder.Services.AddScoped<StudyHub.BLL.Services.Grades.IGradeService, StudyHub.BLL.Services.Grades.GradeService>();

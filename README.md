@@ -108,11 +108,13 @@ dotnet user-secrets set "Authentication:Google:ClientSecret" "YOUR_CLIENT_SECRET
 - Thành viên có vòng đời `Pending`, `Active`, `Rejected`, `Left`, `Banned`; người bị ban không thể tự tham gia lại. `MaxMembers` để trống nghĩa là nhóm không giới hạn thành viên.
 - Ba vai trò gọn cho ứng dụng học tập: Owner, Moderator và Member. Owner/Moderator được duyệt, từ chối, mời ra hoặc cấm thành viên; Owner được bổ nhiệm Moderator.
 - Lời mời có mã ngẫu nhiên, ngày hết hạn và giới hạn lượt sử dụng. Link có dạng `/Groups/Invite/{code}`.
-- Workspace nhóm gồm Tổng quan, Thông báo, Chat, Tài nguyên và Thành viên. Người chưa được duyệt chỉ xem phần giới thiệu công khai.
+- Workspace nhóm gồm Tổng quan, Thông báo, Chat, Buổi học, Bài tập, Hỏi đáp, Tiến độ, Tài nguyên và Thành viên. Người chưa được duyệt chỉ xem phần giới thiệu công khai.
 - Thông báo được tách khỏi chat và hỗ trợ ghim một thông báo quan trọng.
 - Chat cập nhật tức thời bằng SignalR; nếu không tải được SignalR client, giao diện tự chuyển sang REST và polling dự phòng.
 - Ghi chú, tài liệu và flashcard chỉ xuất hiện trong nhóm khi dữ liệu có đúng `StudyGroupId` và `Visibility = 'Group'`.
 - Các thao tác thay đổi thành viên chạy trong transaction SQL và API dùng antiforgery token.
+
+Buổi học hỗ trợ đăng ký, điểm danh và tổng kết; bài tập có giao việc, phiên bản bài nộp và phản hồi. Thành viên chia sẻ/đọc ghi chú, PDF, flashcard trong nhóm, đặt câu hỏi theo chủ đề và xem tiến độ tuần. Xem [hướng dẫn Study Group nâng cấp](GROUP_LEARNING.md) để biết quy tắc chi tiết, migration và cách chạy kiểm thử.
 
 Sau khi pull code có thay đổi schema, áp dụng EF Core migrations:
 

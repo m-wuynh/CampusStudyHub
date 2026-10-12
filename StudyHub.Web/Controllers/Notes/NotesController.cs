@@ -1,11 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using StudyHub.BLL.DTOs.Notes;
+using StudyHub.BLL.Services.Notes;
+using StudyHub.DAL.Repositories.Common;
+using StudyHub.DAL.Repositories.Notes;
 using StudyHub.Web.ViewModels.Notes;
 using System.Security.Claims;
 
 namespace StudyHub.Web.Controllers.Notes;
 
 [Route("Notes")]
-public sealed class NotesController(IWebHostEnvironment environment) : Controller
+public sealed class NotesController : Controller
 {
     private readonly INotesWorkspaceService service;
     private readonly INotebookService notebooks;

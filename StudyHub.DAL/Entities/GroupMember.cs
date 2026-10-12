@@ -17,6 +17,10 @@ public partial class GroupMember
 
     public DateTime? JoinedAtUtc { get; set; }
 
+    public long? BannedByUserId { get; set; }
+
+    public DateTime? UnbanRequestedAtUtc { get; set; }
+
     public virtual ICollection<GroupPost> GroupPosts { get; set; } = new List<GroupPost>();
 
     public virtual StudyGroup StudyGroup { get; set; } = null!;

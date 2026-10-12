@@ -9,6 +9,7 @@ public interface IStudyGroupService
     Task<GroupDetailsResponse?> GetGroupAsync(string groupId, CancellationToken cancellationToken = default);
     Task<GroupMembershipResponse> JoinAsync(string groupId, CancellationToken cancellationToken = default);
     Task<GroupMembershipResponse> LeaveOrWithdrawAsync(string groupId, CancellationToken cancellationToken = default);
+    Task<GroupMembershipResponse> RequestUnbanAsync(string groupId, CancellationToken cancellationToken = default);
     Task<GroupPostResponse> AddMessageAsync(string groupId, string content, CancellationToken cancellationToken = default);
     Task<GroupPostResponse> AddAnnouncementAsync(string groupId, string content, bool isPinned, CancellationToken cancellationToken = default);
     Task<GroupDetailsResponse> CreateGroupAsync(CreateGroupRequest request, CancellationToken cancellationToken = default);

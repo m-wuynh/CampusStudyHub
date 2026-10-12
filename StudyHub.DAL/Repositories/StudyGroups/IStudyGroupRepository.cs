@@ -38,6 +38,8 @@ public interface IStudyGroupRepository
         long userId,
         CancellationToken cancellationToken = default);
 
+    Task<GroupMembershipData> RequestUnbanAsync(long groupId, long userId, CancellationToken cancellationToken = default);
+
     Task<GroupPostData> AddPostAsync(
         long groupId,
         long userId,
