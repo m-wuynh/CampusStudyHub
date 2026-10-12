@@ -51,12 +51,27 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
                         type = ev.EventType,
                         location = ev.Location,
                         description = ev.Description,
+                        goalId = ev.GoalId,
                         isCompleted = ev.IsCompleted
                     }
                 });
             }
         }
         return Json(result);
+    }
+
+    [HttpPost("ToggleCompletion/{id}")]
+    public async Task<IActionResult> ToggleCompletion(long id)
+    {
+        try
+        {
+            var isCompleted = await calendarService.ToggleEventCompletionAsync(CurrentUserId, id);
+            return Ok(new { ok = true, isCompleted });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { ok = false, error = ex.Message });
+        }
     }
 
     [HttpGet("Create")]

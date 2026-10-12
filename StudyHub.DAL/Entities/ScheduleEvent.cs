@@ -29,6 +29,7 @@ public partial class ScheduleEvent
 
     public string? Description { get; set; }
 
+    public long? GoalId { get; set; }
     public bool IsCompleted { get; set; }
 
     public bool IsDeleted { get; set; }
@@ -46,4 +47,7 @@ public partial class ScheduleEvent
     public virtual User User { get; set; } = null!;
 
     public virtual UserSubject? UserSubject { get; set; }
+
+    public virtual Goal? Goal { get; set; }
 }
+

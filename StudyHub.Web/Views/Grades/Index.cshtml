@@ -11,23 +11,328 @@
     var selectedGradeBook = data.GradeBooks.FirstOrDefault(t => t.GradeBookId == data.SelectedGradeBookId);
     var columns = data.Columns;
     var gradeBook = data.GradeBook;
+
+    string GetSubjectIcon(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "bi-calculator";
+        var lower = name.ToLower();
+        if (lower.Contains("toán") || lower.Contains("math")) return "bi-calculator";
+        if (lower.Contains("văn") || lower.Contains("ngữ văn") || lower.Contains("literature")) return "bi-journal-text";
+        if (lower.Contains("anh") || lower.Contains("tiếng anh") || lower.Contains("english")) return "bi-translate";
+        if (lower.Contains("lý") || lower.Contains("vật lý") || lower.Contains("physics")) return "bi-lightning-charge";
+        if (lower.Contains("hóa") || lower.Contains("chemistry")) return "bi-eyedropper";
+        if (lower.Contains("sinh") || lower.Contains("biology")) return "bi-tree";
+        if (lower.Contains("sử") || lower.Contains("lịch sử") || lower.Contains("history")) return "bi-hourglass-split";
+        if (lower.Contains("địa") || lower.Contains("địa lý") || lower.Contains("geo")) return "bi-globe";
+        if (lower.Contains("tin") || lower.Contains("tin học") || lower.Contains("cs") || lower.Contains("it")) return "bi-laptop";
+        return "bi-book";
+    }
 }
+
+<style>
+  /* ── Goal Ladder & Subject Section Styling ── */
+  .subject-goal-section {
+    margin-bottom: 24px;
+  }
+  .subject-header-card {
+    background: #ffffff;
+    border: 1px solid var(--sh-slate-200);
+    border-radius: 14px;
+    padding: 14px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .subject-icon-box {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 10px;
+    background: #eff6ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sh-indigo-600);
+    font-size: 22px;
+  }
+  .subject-score-pill {
+    background: #eff6ff;
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+  .subject-score-pill.no-score {
+    background: #f1f5f9;
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  /* ── Goal Card (Full Width) ── */
+  .goal-card-full {
+    background: #ffffff;
+    border: 1px solid var(--sh-slate-200);
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .goal-card-full:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  }
+  .goal-icon-bullseye {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    background: #ede9fe;
+    color: #6366f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+  }
+  .badge-base-goal {
+    background: #eff6ff;
+    color: #4f46e5;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .badge-academic-year {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+  .goal-current-score-pill {
+    background: #eff6ff;
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .goal-current-score-pill.no-score {
+    background: #f1f5f9;
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  /* Progress Section */
+  .goal-progress-section {
+    flex: 1 1 35%;
+    min-width: 220px;
+    max-width: 460px;
+  }
+  .goal-progress-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--sh-slate-500);
+    margin-bottom: 4px;
+  }
+  .goal-progress-track {
+    flex-grow: 1;
+    height: 7px;
+    background: #e2e8f0;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .goal-progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: #4f46e5;
+    transition: width 0.4s ease;
+  }
+  .goal-progress-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sh-slate-800);
+    min-width: 42px;
+    text-align: right;
+  }
+
+  /* Status Pill with colored dot */
+  .goal-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    white-space: nowrap;
+  }
+  .status-pill-done {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  .status-pill-inprogress {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+  .status-pill-todo {
+    background: #f1f5f9;
+    color: #64748b;
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .dot-done {
+    background: #16a34a;
+  }
+  .dot-inprogress {
+    background: #2563eb;
+  }
+  .dot-todo {
+    background: #64748b;
+  }
+
+  /* Activities Inner Box */
+  .goal-activities-box {
+    background: #ffffff;
+    border: 1px solid var(--sh-slate-200);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-top: 16px;
+  }
+  .activity-row {
+    background: #ffffff;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--sh-slate-100);
+    transition: background 0.15s ease;
+  }
+  .activity-row:last-child {
+    border-bottom: none;
+  }
+  .activity-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+  .activity-badge-done {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  .activity-badge-todo {
+    background: #f1f5f9;
+    color: #64748b;
+  }
+  .btn-add-activity-dashed {
+    border: 1px dashed var(--sh-slate-300);
+    background: #ffffff;
+    color: var(--sh-indigo-600);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-align: center;
+    display: block;
+    width: 100%;
+  }
+  .btn-add-activity-dashed:hover {
+    background: #f8fafc;
+    border-color: var(--sh-indigo-500);
+    color: var(--sh-indigo-700);
+  }
+
+  .btn-icon-subtle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    background: transparent;
+    color: var(--sh-slate-500);
+    border-radius: 6px;
+    font-size: 13px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+  .btn-icon-subtle:hover:not(:disabled) {
+    background: #f1f5f9;
+    color: var(--sh-slate-800);
+  }
+  .btn-icon-subtle.primary:hover {
+    background: #e0e7ff;
+    color: #4338ca;
+  }
+  .btn-icon-subtle.danger:hover {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+  .btn-icon-subtle:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .collapse-toggle-btn[aria-expanded="false"] i.bi-chevron-up {
+    transform: rotate(180deg);
+  }
+  .collapse-toggle-btn[aria-expanded="true"] i.bi-chevron-up {
+    transform: rotate(0deg);
+  }
+  .collapse-toggle-btn[aria-expanded="false"] i.bi-chevron-down {
+    transform: rotate(0deg);
+  }
+  .collapse-toggle-btn[aria-expanded="true"] i.bi-chevron-down {
+    transform: rotate(180deg);
+  }
+  .collapse-toggle-btn i {
+    display: inline-block;
+    transition: transform 0.25s ease;
+  }
+  .cursor-pointer {
+    cursor: pointer;
+  }
+</style>
 
 <div id="grades-view" style="max-width:1280px; margin:0 auto;">
 
   @if (TempData["ErrorMessage"] != null)
   {
-      <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert" style="font-size:13px; border-radius: 8px;">
-          <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
+      var errMsg = TempData["ErrorMessage"]?.ToString() ?? "";
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.showToast) {
+                window.showToast('@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(errMsg))', 'error');
+            }
+        });
+      </script>
   }
   @if (TempData["SuccessMessage"] != null)
   {
-      <div class="alert alert-success alert-dismissible fade show mb-3" role="alert" style="font-size:13px; border-radius: 8px;">
-          <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
+      var succMsg = TempData["SuccessMessage"]?.ToString() ?? "";
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.showToast) {
+                window.showToast('@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(succMsg))', 'success');
+            }
+        });
+      </script>
   }
 
   <!-- ── Stats Row ── -->
@@ -70,14 +375,14 @@
   <!-- ── Tabs ── -->
   <ul class="nav nav-tabs mb-4" style="border-bottom:2px solid var(--sh-slate-200);">
     <li class="nav-item">
-      <button class="nav-link active fw-bold px-4"
+      <button class="nav-link active fw-bold px-4" id="tab-btn-grades"
               style="font-size:12px; color:var(--sh-indigo-600); border-bottom:2px solid var(--sh-indigo-600); border-top:0; border-left:0; border-right:0; background:transparent;"
               onclick="gradeTab(this,'grades-tab')">
         📊 Bảng điểm
       </button>
     </li>
     <li class="nav-item">
-      <button class="nav-link fw-semibold px-4"
+      <button class="nav-link fw-semibold px-4" id="tab-btn-goals"
               style="font-size:12px; color:var(--sh-slate-500); border:0; background:transparent;"
               onclick="gradeTab(this,'goals-tab')">
         🎯 Mục tiêu học tập
@@ -455,120 +760,339 @@
 
   <!-- ═══ GOALS TAB ═══ -->
   <div id="goals-tab" style="display:none;">
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-3">
-      <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">Mục tiêu học tập – Goal Ladder</h3>
-      @if(data.SubjectDetails.Any()) {
-        <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#addGoalModal">
-          <i class="bi bi-plus-lg"></i> Đặt mục tiêu mới
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+      <div>
+        <h3 class="fw-bold mb-1" style="font-size:18px; color:var(--sh-slate-900);">Mục tiêu học tập – Goal Ladder</h3>
+        <p class="text-muted mb-0" style="font-size:13px;">Thiết lập mục tiêu học tập cố định và theo dõi tiến độ thực hiện theo từng môn học.</p>
+      </div>
+      @if(data.SubjectDetails.Any() || data.GoalLadders.Any() || (data.AllSubjects != null && data.AllSubjects.Any())) {
+        <button class="btn" style="background:#4f46e5; color:#ffffff; font-weight:600; font-size:13px; border-radius:8px; padding:8px 18px; border:none; box-shadow:0 1px 2px rgba(79,70,229,0.2);" data-bs-toggle="modal" data-bs-target="#addGoalModal" onclick="resetAddGoalModal()">
+          <i class="bi bi-plus-lg me-1"></i> Đặt mục tiêu mới
         </button>
       }
     </div>
 
     @if (!data.GoalLadders.Any()) {
-      <div class="sh-card text-center py-5">
+      <div class="sh-card text-center py-5" style="border:1px solid var(--sh-slate-200); border-radius:14px; background:#ffffff;">
         <div style="font-size:48px; margin-bottom:12px;">🎯</div>
-        <h4 class="fw-bold" style="font-size:14px; color:var(--sh-slate-700);">Chưa có mục tiêu nào</h4>
-        <p class="text-muted" style="font-size:12px;">Đặt mục tiêu điểm số để theo dõi tiến độ học tập.</p>
-        @if(data.SubjectDetails.Any()) {
-          <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+        <h4 class="fw-bold" style="font-size:16px; color:var(--sh-slate-800);">Chưa có mục tiêu nào</h4>
+        <p class="text-muted" style="font-size:13px;">Hãy đặt mục tiêu gốc điểm số đầu tiên để bắt đầu hành trình cải thiện kết quả học tập!</p>
+        @if(data.SubjectDetails.Any() || (data.AllSubjects != null && data.AllSubjects.Any())) {
+          <button class="btn" style="background:#4f46e5; color:#ffffff; font-weight:600; font-size:13px; border-radius:8px; padding:8px 18px; border:none;" data-bs-toggle="modal" data-bs-target="#addGoalModal" onclick="resetAddGoalModal()">
             <i class="bi bi-trophy me-1"></i> Đặt mục tiêu đầu tiên
           </button>
         }
       </div>
     } else {
-      <div class="row g-3">
-        @foreach (var ladder in data.GoalLadders)
+      @for (int ladderIdx = 0; ladderIdx < data.GoalLadders.Count; ladderIdx++)
+      {
+        var ladder = data.GoalLadders[ladderIdx];
+        var currentAvg = ladder.CurrentAverage10;
+        var hasBaseGoal = ladder.HasBaseGoal && ladder.BaseGoal != null;
+        var baseGoal = ladder.BaseGoal;
+        var additionalGoals = ladder.AdditionalGoals ?? new List<GoalDto>();
+
+        var allSubjectGoals = new List<GoalDto>();
+        if (hasBaseGoal && baseGoal != null)
         {
-          <div class="col-12 col-md-6">
-            <div class="sh-card p-4">
-              <!-- Subject header -->
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                  <h4 class="fw-bold mb-0" style="font-size:13px; color:var(--sh-slate-900);">@ladder.SubjectName</h4>
-                  <div style="font-size:11px; color:var(--sh-slate-500);">
-                    Điểm hiện tại:
-                    <span class="fw-bold" style="color:var(--sh-indigo-600);">
-                      @(ladder.CurrentAverage10?.ToString("0.0") ?? "Chưa có điểm")
+          allSubjectGoals.Add(baseGoal);
+        }
+        if (additionalGoals.Any())
+        {
+          allSubjectGoals.AddRange(additionalGoals.OrderBy(g => g.DisplayOrder).ThenBy(g => g.TargetValue));
+        }
+
+        <div class="subject-goal-section mb-4">
+          <!-- Subject Header Card -->
+          <div class="subject-header-card">
+            <div class="d-flex align-items-center gap-3">
+              <div class="subject-icon-box">
+                <i class="bi @GetSubjectIcon(ladder.SubjectName)"></i>
+              </div>
+              <div>
+                @{
+                  var yearBadge = !string.IsNullOrWhiteSpace(ladder.AcademicYearName) 
+                    ? ladder.AcademicYearName 
+                    : (gradeBook != null ? (gradeBook.FromYear > 0 && gradeBook.ToYear > 0 ? $"Năm học {gradeBook.FromYear}–{gradeBook.ToYear}" : gradeBook.Name) : null);
+                }
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <h4 class="fw-bold mb-0" style="font-size: 16px; color: var(--sh-slate-900);">@ladder.SubjectName</h4>
+                  @if (!string.IsNullOrWhiteSpace(yearBadge)) {
+                    <span class="badge-academic-year">
+                      <i class="bi bi-calendar3 me-1 text-primary"></i>@yearBadge
                     </span>
-                  </div>
+                  }
                 </div>
-                <button class="btn-secondary-sh" style="font-size:11px; padding:4px 10px;"
+                <div style="font-size: 12px; color: var(--sh-slate-500); margin-top: 2px;">
+                  Điểm TB hiện tại:
+                  <span class="subject-score-pill @(!currentAvg.HasValue ? "no-score" : "")">
+                    @(currentAvg?.ToString("0.0") ?? "Chưa có điểm")
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size: 13px; color: var(--sh-slate-500); font-weight: 500;">
+                @allSubjectGoals.Count mục tiêu
+              </span>
+              <button class="btn btn-sm btn-outline-primary py-1 px-2 d-flex align-items-center gap-1" style="font-size: 12px; border-radius: 6px;"
+                      type="button"
+                      onclick="openAddGoalForSubject(@ladder.UserSubjectId, '@Html.Raw(ladder.SubjectName.Replace("'","\\\'"))')"
+                      title="Thêm nấc mục tiêu cho môn @ladder.SubjectName">
+                <i class="bi bi-plus-lg"></i> Thêm nấc
+              </button>
+              <button class="btn-icon-subtle collapse-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#subject-goals-@ladder.UserSubjectId" aria-expanded="true" aria-controls="subject-goals-@ladder.UserSubjectId" title="Thu gọn / Mở rộng môn học">
+                <i class="bi bi-chevron-up"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Subject Goals List (Collapsible) -->
+          <div class="collapse show" id="subject-goals-@ladder.UserSubjectId">
+            @if (!allSubjectGoals.Any()) {
+              <div class="p-4 text-center rounded-3 bg-white border mb-3" style="font-size:13px; color:var(--sh-slate-500);">
+                <p class="mb-2">Môn học này chưa có mục tiêu nào.</p>
+                <button class="btn btn-sm" style="background:#4f46e5; color:#fff; font-weight:600; border-radius:6px; padding:6px 14px;"
+                        type="button"
                         onclick="openAddGoalForSubject(@ladder.UserSubjectId, '@Html.Raw(ladder.SubjectName.Replace("'","\\\'"))')">
-                  <i class="bi bi-plus"></i> Thêm nấc
+                  <i class="bi bi-trophy me-1"></i>Đặt mục tiêu
                 </button>
               </div>
-
-              <!-- Goal Ladder rungs -->
-              <div class="d-flex flex-column gap-2">
-                @foreach (var goal in ladder.Goals.OrderBy(g => g.TargetValue))
+            } else {
+              <div class="d-flex flex-column gap-2 mb-3" id="goal-list-@ladder.UserSubjectId">
+                @for (int gIdx = 0; gIdx < allSubjectGoals.Count; gIdx++)
                 {
-                  var isAchieved = goal.Status == GoalStatus.Achieved;
-                  var isInProgress = goal.Status == GoalStatus.InProgress;
-                  var isCancelled = goal.Status == GoalStatus.Cancelled;
-                  var isFuture = goal.Status == GoalStatus.Future;
-                  var isNoData = goal.Status == GoalStatus.NoData;
+                  var goal = allSubjectGoals[gIdx];
+                  var isBase = goal.IsBaseGoal || (hasBaseGoal && baseGoal != null && goal.Id == baseGoal.Id);
+                  var isDone = goal.GoalLifecycleStatus == "Done";
+                  var isInProgress = goal.GoalLifecycleStatus == "InProgress";
+                  var isToDo = goal.GoalLifecycleStatus == "ToDo";
+                  var acts = goal.Activities ?? new List<GoalActivityDto>();
+                  var completedCount = acts.Count(a => a.IsCompleted);
+                  var totalCount = acts.Count;
+                  var isExpanded = (gIdx == 0);
 
-                  string runColor = isAchieved ? "var(--sh-emerald-600)"
-                      : isInProgress ? "var(--sh-indigo-600)"
-                      : isCancelled ? "var(--sh-slate-300)"
-                      : "var(--sh-slate-400)";
-                  string runBg = isAchieved ? "var(--sh-emerald-50)"
-                      : isInProgress ? "var(--sh-indigo-50)"
-                      : "var(--sh-slate-50)";
-                  string icon = isAchieved ? "✅" : isInProgress ? "🎯" : isCancelled ? "🚫" : "○";
-                  string statusLabel = isAchieved ? "Đã đạt"
-                      : isInProgress ? "Đang hướng tới"
-                      : isCancelled ? "Đã hủy"
-                      : isFuture ? "Mục tiêu tiếp theo"
-                      : "Chưa có điểm";
+                  int progressPct = 0;
+                  string progressText = "Chưa có điểm";
+                  if (currentAvg.HasValue && goal.TargetValue > 0)
+                  {
+                    if (currentAvg.Value >= goal.TargetValue)
+                    {
+                      progressPct = 100;
+                      progressText = "100%";
+                    }
+                    else
+                    {
+                      decimal ratio = (currentAvg.Value / goal.TargetValue) * 100m;
+                      progressPct = (int)Math.Clamp(Math.Round(ratio), 0m, 100m);
+                      progressText = $"{progressPct}%";
+                    }
+                  }
 
-                  var pctGoal = isInProgress || isAchieved
-                      ? GradeCalculator.ComputeProgressPercent(ladder.CurrentAverage10, goal.TargetValue)
-                      : null;
-
-                  <div class="rounded p-3 d-flex justify-content-between align-items-center"
-                       style="background:@runBg; border-left:3px solid @runColor; opacity:@(isCancelled ? "0.5" : "1");">
-                    <div class="d-flex align-items-center gap-3">
-                      <span style="font-size:18px; line-height:1;">@Html.Raw(icon)</span>
-                      <div>
-                        <div class="d-flex align-items-center gap-2">
-                          <span class="fw-bold" style="font-size:15px; color:@runColor;">@goal.TargetValue.ToString("0.0")</span>
-                          <span style="font-size:10px; color:var(--sh-slate-500);">@statusLabel</span>
+                  <div class="goal-card-full">
+                    <!-- Main Goal Header Row -->
+                    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                      <!-- 1. Left: Bullseye Icon + Title + Current Score -->
+                      <div class="d-flex align-items-center gap-3" style="flex: 1 1 30%; min-width: 240px;">
+                        <div class="goal-icon-bullseye flex-shrink-0">
+                          <i class="bi bi-bullseye"></i>
                         </div>
-                        <div style="font-size:11px; color:var(--sh-slate-500);">@goal.Title</div>
-                        @if (isInProgress && pctGoal.HasValue) {
-                          <div class="d-flex align-items-center gap-2 mt-1">
-                            <div class="sh-progress flex-grow-1" style="height:4px; min-width:80px;">
-                              <div class="sh-progress-bar" style="width:@pctGoal%; background:@runColor;"></div>
-                            </div>
-                            <span style="font-size:10px; font-weight:700; color:@runColor;">@pctGoal%</span>
+                        <div class="d-flex flex-column overflow-hidden text-truncate">
+                          <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="fw-bold text-truncate" style="font-size: 15px; color: var(--sh-slate-900);" title="@goal.Title">
+                              @goal.Title
+                            </span>
+                            @if (isBase) {
+                              <span class="badge-base-goal">Mục tiêu gốc</span>
+                            }
                           </div>
+                          <div style="font-size: 12px; color: var(--sh-slate-500); margin-top: 2px;">
+                            Điểm hiện tại:
+                            <span class="goal-current-score-pill @(!currentAvg.HasValue ? "no-score" : "")">
+                              @(currentAvg?.ToString("0.0") ?? "Chưa có điểm")
+                            </span>
+                            / 10
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 2. Middle: Progress Track & Percent -->
+                      <div class="goal-progress-section">
+                        <div class="goal-progress-label">Tiến độ thực hiện</div>
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="goal-progress-track">
+                            <div class="goal-progress-fill" style="width: @progressPct%;"></div>
+                          </div>
+                          <span class="goal-progress-text">@progressText</span>
+                        </div>
+                      </div>
+
+                      <!-- 3. Right: Status Badge & Actions -->
+                      <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                        <!-- Automated Status Pill with Dot -->
+                        @if (isDone) {
+                          <span class="goal-status-pill status-pill-done">
+                            <span class="status-dot dot-done"></span>Đã xong
+                          </span>
+                        } else if (isInProgress) {
+                          <span class="goal-status-pill status-pill-inprogress">
+                            <span class="status-dot dot-inprogress"></span>Đang thực hiện
+                          </span>
+                        } else {
+                          <span class="goal-status-pill status-pill-todo">
+                            <span class="status-dot dot-todo"></span>To do
+                          </span>
                         }
+
+                        <!-- Reorder Buttons (Only for additional rungs) -->
+                        @if (!isBase) {
+                          var addIndex = additionalGoals.IndexOf(goal);
+                          <button type="button" class="btn-icon-subtle" title="Di chuyển lên" @(addIndex <= 0 ? "disabled" : "") onclick="moveGoalOrder(@ladder.UserSubjectId, @goal.Id, -1)">
+                            <i class="bi bi-arrow-up"></i>
+                          </button>
+                          <button type="button" class="btn-icon-subtle" title="Di chuyển xuống" @(addIndex >= additionalGoals.Count - 1 ? "disabled" : "") onclick="moveGoalOrder(@ladder.UserSubjectId, @goal.Id, 1)">
+                            <i class="bi bi-arrow-down"></i>
+                          </button>
+                        }
+
+                        <!-- Edit Button -->
+                        <button type="button" class="btn-icon-subtle" title="Sửa mục tiêu"
+                                onclick="editGoal(@goal.Id, '@Html.Raw(goal.Title.Replace("'","\\\'"))', @goal.TargetValue, @isBase.ToString().ToLower(), @isDone.ToString().ToLower(), '@(goal.EndDate?.ToString("yyyy-MM-dd") ?? "")')">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+
+                        <!-- Delete Button (Only for additional rungs, never for base goal) -->
+                        @if (!isBase) {
+                          <button type="button" class="btn-icon-subtle danger" title="Xóa nấc bổ sung"
+                                  onclick="confirmDeleteAdditionalGoal(@goal.Id, '@goal.TargetValue.ToString("0.0")')">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        }
+
+                        <!-- Collapse Toggle Button -->
+                        <button class="btn-icon-subtle collapse-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#activities-collapse-@goal.Id" aria-expanded="@(isExpanded ? "true" : "false")" aria-controls="activities-collapse-@goal.Id" title="Thu gọn / Mở rộng hoạt động">
+                          <i class="bi bi-chevron-down"></i>
+                        </button>
                       </div>
                     </div>
-                    @if (!isCancelled) {
-                      <div class="d-flex gap-1">
-                        <button type="button" class="btn-icon-sh primary" title="Sửa mục tiêu"
-                                onclick="editGoal(@goal.Id, '@Html.Raw(goal.Title.Replace("'","\\\'"))', '@(goal.EndDate?.ToString("yyyy-MM-dd") ?? "")')">
-                          <i class="bi bi-pencil-square"></i>
+
+                    <!-- Activities Collapsible Section -->
+                    <div class="collapse @(isExpanded ? "show" : "")" id="activities-collapse-@goal.Id">
+                      <div class="goal-activities-box">
+                        <!-- Activities Box Header -->
+                        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                          <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-list-task text-muted fs-5"></i>
+                            <span class="fw-bold" style="font-size:13.5px; color:var(--sh-slate-900);">Hoạt động cần thực hiện</span>
+                          </div>
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold" style="font-size:12px; color:var(--sh-slate-900);" id="activity-progress-@goal.Id">
+                              @completedCount/@totalCount hoàn thành
+                            </span>
+                            <button type="button" class="btn-icon-subtle p-0 text-muted" data-bs-toggle="collapse" data-bs-target="#activities-collapse-@goal.Id" title="Thu gọn">
+                              <i class="bi bi-chevron-up"></i>
+                            </button>
+                          </div>
+                        </div>
+
+                        <!-- History achievement records if any -->
+                        @if (goal.Histories != null && goal.Histories.Any()) {
+                          <div class="mb-3">
+                            <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#history-goal-@goal.Id" style="font-size:11.5px; color:var(--sh-indigo-600); font-weight:600;">
+                              <i class="bi bi-clock-history me-1"></i>Lịch sử thành tích cũ (@goal.Histories.Count lần đạt)
+                              <i class="bi bi-chevron-down ms-1" style="font-size:9px;"></i>
+                            </button>
+                            <div class="collapse mt-1" id="history-goal-@goal.Id">
+                              <div class="p-2 rounded bg-light border" style="font-size:11px;">
+                                @foreach (var hist in goal.Histories) {
+                                  <div class="d-flex justify-content-between py-1 border-bottom border-light">
+                                    <span>Mục tiêu <strong>@hist.TargetValue.ToString("0.0")</strong> — Đã đạt: <strong class="text-success">@hist.AchievedScore.ToString("0.0")</strong></span>
+                                    <span class="text-muted">@hist.AchievedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                  </div>
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        }
+
+                        <!-- Activities List -->
+                        <div class="activities-list d-flex flex-column mb-3" id="activities-list-@goal.Id">
+                          @if (acts.Any()) {
+                            @foreach (var act in acts) {
+                              <div class="activity-row d-flex align-items-center justify-content-between" id="activity-item-@act.Id">
+                                <!-- Left: Clickable Icon + Title + Date -->
+                                <div class="d-flex align-items-center gap-3 overflow-hidden me-2 flex-grow-1">
+                                  @if (act.IsCompleted) {
+                                    <i class="bi bi-check-circle-fill text-success fs-5 cursor-pointer flex-shrink-0"
+                                       title="Nhấn để đổi trạng thái"
+                                       onclick="toggleActivity(@act.Id, @goal.Id, this)"></i>
+                                    <div class="d-flex flex-column overflow-hidden text-truncate">
+                                      <span class="activity-title text-truncate fw-medium text-decoration-line-through text-muted" style="font-size:13px;" title="@act.Title">@act.Title</span>
+                                      <span class="text-muted" style="font-size:11px; margin-top:1px;">@act.StartAtLocal.ToString("dd/MM/yyyy")</span>
+                                    </div>
+                                  } else {
+                                    <i class="bi bi-circle text-muted fs-5 cursor-pointer flex-shrink-0"
+                                       title="Nhấn để đánh dấu hoàn thành"
+                                       onclick="toggleActivity(@act.Id, @goal.Id, this)"></i>
+                                    <div class="d-flex flex-column overflow-hidden text-truncate">
+                                      <span class="activity-title text-truncate fw-medium" style="font-size:13px; color:var(--sh-slate-900);" title="@act.Title">@act.Title</span>
+                                      <span class="text-muted" style="font-size:11px; margin-top:1px;">@act.StartAtLocal.ToString("dd/MM/yyyy")</span>
+                                    </div>
+                                  }
+                                </div>
+
+                                <!-- Right: Status Badge + 3-dots dropdown -->
+                                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                  @if (act.IsCompleted) {
+                                    <span class="badge activity-badge activity-badge-done">Đã xong</span>
+                                  } else {
+                                    <span class="badge activity-badge activity-badge-todo">To do</span>
+                                  }
+
+                                  <div class="dropdown">
+                                    <button class="btn btn-icon-subtle p-0 text-muted" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                      <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border" style="font-size:12px;">
+                                      <li>
+                                        <button class="dropdown-item py-1 px-3" type="button"
+                                                onclick="openEditActivityModal(@act.Id, '@Html.Raw(act.Title.Replace("'","\\\'"))', '@act.StartAtLocal.ToString("yyyy-MM-ddTHH:mm")', '@act.EndAtLocal.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((act.Description ?? "").Replace("'","\\\'"))')">
+                                          <i class="bi bi-pencil me-2 text-primary"></i>Sửa hoạt động
+                                        </button>
+                                      </li>
+                                      <li>
+                                        <button class="dropdown-item py-1 px-3 text-danger" type="button"
+                                                onclick="deleteActivity(@act.Id)">
+                                          <i class="bi bi-trash me-2 text-danger"></i>Xóa hoạt động
+                                        </button>
+                                      </li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              </div>
+                            }
+                          } else {
+                            <div class="text-muted p-3 text-center rounded-2 no-activity-placeholder" style="background:#f8fafc; border:1px dashed #e2e8f0; font-size:12px;">
+                              Chưa có hoạt động nào cho mục tiêu này.
+                            </div>
+                          }
+                        </div>
+
+                        <!-- "+ Thêm hoạt động" button -->
+                        <button type="button" class="btn-add-activity-dashed" onclick="openAddActivityModal(@goal.Id)">
+                          <i class="bi bi-plus-lg me-1"></i>+ Thêm hoạt động
                         </button>
-                        <form asp-action="CancelGoal" method="post" class="d-inline">
-                          <input type="hidden" name="id" value="@goal.Id" />
-                          <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
-                          <button type="submit" class="btn-icon-sh danger" title="Hủy mục tiêu"
-                                  onclick="return confirm('Hủy mục tiêu @goal.TargetValue.ToString("0.0")? Lịch sử vẫn được giữ lại.')">
-                            <i class="bi bi-x-circle"></i>
-                          </button>
-                        </form>
                       </div>
-                    }
+                    </div>
+
                   </div>
                 }
               </div>
-            </div>
+            }
           </div>
-        }
-      </div>
+        </div>
+      }
     }
   </div>
 
@@ -763,36 +1287,71 @@
 <div class="modal fade" id="addGoalModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
     <form asp-action="AddGoal" method="post" class="modal-content">
-      <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
-      <div class="modal-header">
-        <h5 class="modal-title fw-bold" style="font-size:14px;"><i class="bi bi-trophy me-2"></i>Đặt mục tiêu học tập</h5>
+      <input type="hidden" name="currentGradeBookId" id="addGoalCurrentGradeBookId" value="@data.SelectedGradeBookId" />
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" style="font-size:15px;"><i class="bi bi-trophy me-2 text-primary"></i><span id="addGoalModalTitle">Đặt mục tiêu học tập</span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <!-- 1. Bảng điểm năm học -->
         <div class="mb-3">
-          <label class="sh-label">Môn học</label>
-          <select name="UserSubjectId" id="addGoalSubjectId" class="sh-input" required>
-            @foreach(var sd in data.SubjectDetails) {
-              <option value="@sd.UserSubjectId">@sd.SubjectName</option>
+          <label class="sh-label" for="addGoalGradeBookSelect">Bảng điểm năm học</label>
+          <select id="addGoalGradeBookSelect" class="sh-input" onchange="onAddGoalGradeBookChanged(this.value)">
+            @if (!data.GradeBooks.Any()) {
+              <option value="">(Chưa có sổ điểm nào)</option>
+            } else {
+              @foreach (var gb in data.GradeBooks) {
+                if (gb.GradeBookId == data.SelectedGradeBookId) {
+                  <option value="@gb.GradeBookId" selected>@gb.Name</option>
+                } else {
+                  <option value="@gb.GradeBookId">@gb.Name</option>
+                }
+              }
             }
           </select>
         </div>
+
+        <!-- 2. Môn học -->
+        <div class="mb-3">
+          <label class="sh-label" for="addGoalSubjectId">Môn học</label>
+          <select name="UserSubjectId" id="addGoalSubjectId" class="sh-input" required onchange="onAddGoalSubjectChanged()">
+            @if (data.AllSubjects != null && data.AllSubjects.Any()) {
+              var initialGbId = data.SelectedGradeBookId ?? (data.GradeBooks.FirstOrDefault()?.GradeBookId ?? 0);
+              var initialSubs = data.AllSubjects
+                .Where(s => s.GradeBookId == initialGbId)
+                .GroupBy(s => (s.SubjectName ?? string.Empty).Trim().ToLowerInvariant())
+                .Select(g => g.First())
+                .ToList();
+              if (initialSubs.Any()) {
+                @foreach (var s in initialSubs) {
+                  <option value="@s.UserSubjectId">@s.SubjectName</option>
+                }
+              } else {
+                var uniqueAll = data.AllSubjects
+                  .GroupBy(s => (s.SubjectName ?? string.Empty).Trim().ToLowerInvariant())
+                  .Select(g => g.First());
+                @foreach (var s in uniqueAll) {
+                  <option value="@s.UserSubjectId">@s.SubjectName</option>
+                }
+              }
+            }
+          </select>
+        </div>
+
+        <!-- 3. Tên mục tiêu -->
         <div class="mb-3">
           <label class="sh-label" for="goal-title">Tên mục tiêu</label>
-          <input name="Title" id="goal-title" type="text" class="sh-input" placeholder="Ví dụ: Đạt 8.0 môn Java" required />
+          <input name="Title" id="goal-title" type="text" class="sh-input" placeholder="Ví dụ: Đạt 8.0 môn Toán" required />
         </div>
-        <div class="row g-3">
-          <div class="col-6">
-            <label class="sh-label" for="goal-target">Điểm mục tiêu (0–10)</label>
-            <input name="TargetValue" id="goal-target" type="number" min="0.1" max="10" step="0.1" class="sh-input" placeholder="8.0" required />
-          </div>
-          <div class="col-6">
-            <label class="sh-label" for="goal-deadline">Hạn hoàn thành (tùy chọn)</label>
-            <input name="EndDate" id="goal-deadline" type="date" class="sh-input" />
-          </div>
+
+        <!-- 4. Điểm mục tiêu (0–10) -->
+        <div class="mb-3">
+          <label class="sh-label" for="goal-target">Điểm mục tiêu (0–10)</label>
+          <input name="TargetValue" id="goal-target" type="number" min="0.1" max="10" step="0.1" class="sh-input" placeholder="Ví dụ: 8.0" required />
+          <small class="text-muted" id="goal-target-hint" style="font-size:11px;">Thang điểm 0–10</small>
         </div>
       </div>
-      <div class="modal-footer gap-2">
+      <div class="modal-footer gap-2 border-0 pt-0">
         <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
         <button type="submit" class="btn-primary-sh"><i class="bi bi-trophy me-1"></i>Lưu mục tiêu</button>
       </div>
@@ -807,24 +1366,28 @@
       <input type="hidden" name="Id" id="editGoalId" />
       <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
       <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold">Sửa mục tiêu</h5>
+        <h5 class="modal-title fw-bold" style="font-size:15px;"><i class="bi bi-pencil-square me-2 text-primary"></i>Sửa mục tiêu</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div class="alert alert-info" style="font-size:12px;">
-          <i class="bi bi-info-circle me-1"></i>
-          Điểm mục tiêu không thể thay đổi vì đây là mốc lịch sử. Bạn chỉ có thể sửa tên và hạn hoàn thành.
-        </div>
+        <div id="editGoalNotice"></div>
         <div class="mb-3">
           <label class="sh-label" for="edit-goal-title">Tên mục tiêu</label>
           <input name="Title" id="edit-goal-title" type="text" class="sh-input" required />
         </div>
-        <div class="mb-3">
-          <label class="sh-label" for="edit-goal-deadline">Hạn hoàn thành (tùy chọn)</label>
-          <input name="EndDate" id="edit-goal-deadline" type="date" class="sh-input" />
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="sh-label" for="edit-goal-target">Điểm mục tiêu</label>
+            <input name="TargetValue" id="edit-goal-target" type="number" min="0.1" max="10" step="0.1" class="sh-input" required />
+            <small class="text-muted" id="edit-goal-target-hint" style="font-size:10px;"></small>
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="edit-goal-deadline">Hạn hoàn thành (tùy chọn)</label>
+            <input name="EndDate" id="edit-goal-deadline" type="date" class="sh-input" />
+          </div>
         </div>
       </div>
-      <div class="modal-footer gap-2">
+      <div class="modal-footer gap-2 border-0 pt-0">
         <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
         <button type="submit" class="btn-primary-sh"><i class="bi bi-save me-1"></i>Lưu thay đổi</button>
       </div>
@@ -832,11 +1395,87 @@
   </div>
 </div>
 
+<!-- ── Add Goal Activity Modal ── -->
+<div class="modal fade" id="addActivityModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form id="addActivityForm" onsubmit="submitAddActivity(event)" class="modal-content">
+      <input type="hidden" name="GoalId" id="addActivityGoalId" />
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" style="font-size:15px;"><i class="bi bi-calendar-plus me-2 text-primary"></i>Thêm hoạt động rèn luyện</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-muted mb-3" style="font-size:12px;">Hoạt động này sẽ tự động xuất hiện trên Lịch học cá nhân của bạn dưới dạng phiên Tự học.</div>
+        <div class="mb-3">
+          <label class="sh-label" for="add-activity-title">Tên hoạt động</label>
+          <input name="Title" id="add-activity-title" type="text" class="sh-input" placeholder="Ví dụ: Làm bài tập chương 3" required />
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="sh-label" for="add-activity-start">Thời gian bắt đầu</label>
+            <input name="StartAtLocal" id="add-activity-start" type="datetime-local" class="sh-input" required />
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="add-activity-end">Thời gian kết thúc</label>
+            <input name="EndAtLocal" id="add-activity-end" type="datetime-local" class="sh-input" required />
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="sh-label" for="add-activity-desc">Ghi chú / Mô tả (tùy chọn)</label>
+          <textarea name="Description" id="add-activity-desc" rows="2" class="sh-input" placeholder="Nội dung cần ôn tập hoặc ghi chú..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer gap-2 border-0 pt-0">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh"><i class="bi bi-calendar-check me-1"></i>Tạo hoạt động</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Edit Goal Activity Modal ── -->
+<div class="modal fade" id="editActivityModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form id="editActivityForm" onsubmit="submitEditActivity(event)" class="modal-content">
+      <input type="hidden" name="ActivityId" id="editActivityId" />
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" style="font-size:15px;"><i class="bi bi-pencil-square me-2 text-primary"></i>Sửa hoạt động rèn luyện</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="sh-label" for="edit-activity-title">Tên hoạt động</label>
+          <input name="Title" id="edit-activity-title" type="text" class="sh-input" required />
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="sh-label" for="edit-activity-start">Thời gian bắt đầu</label>
+            <input name="StartAtLocal" id="edit-activity-start" type="datetime-local" class="sh-input" required />
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="edit-activity-end">Thời gian kết thúc</label>
+            <input name="EndAtLocal" id="edit-activity-end" type="datetime-local" class="sh-input" required />
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="sh-label" for="edit-activity-desc">Ghi chú / Mô tả (tùy chọn)</label>
+          <textarea name="Description" id="edit-activity-desc" rows="2" class="sh-input"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer gap-2 border-0 pt-0">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh"><i class="bi bi-save me-1"></i>Lưu thay đổi</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
 <!-- ── Delete GradeBook Confirmation Modal ── -->
 <div class="modal fade" id="deleteGradeBookModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
     <form asp-action="DeleteGradeBook" method="post" class="modal-content">
-      <input type="hidden" name="id" value="@gradeBook?.GradeBookId" />
+      <input type="hidden" name="id" value="@(gradeBook?.GradeBookId ?? data.SelectedGradeBookId ?? 0)" />
       <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
       <div class="modal-header border-0 pb-0">
         <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Xóa bảng điểm?</h5>
@@ -849,7 +1488,6 @@
             <li>Các môn học</li>
             <li>Các cột điểm</li>
             <li>Toàn bộ điểm đã nhập</li>
-            <li class="text-danger fw-bold">Các mục tiêu học tập của các môn trong bảng</li>
         </ul>
         <div class="alert alert-danger mb-0" style="font-size:12px;">
           <i class="bi bi-exclamation-circle me-1"></i> Dữ liệu sau khi xóa không thể khôi phục.
@@ -876,21 +1514,16 @@
       <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
         
         <!-- Subject Selection -->
-        <div class="mb-4">
+        <div class="mb-3">
           <label class="sh-label fw-bold mb-1" style="font-size: 13px; color: var(--sh-slate-700);">Chọn môn học</label>
           <select id="modalSubjectSelect" class="form-select sh-input" style="font-size: 14px; font-weight: 600;" onchange="onModalSubjectChanged(this.value)">
             <!-- Populated via JS -->
           </select>
+          <div class="form-text text-muted mt-2" style="font-size: 12px;">
+            <i class="bi bi-info-circle me-1 text-primary"></i>Nhập nhiều điểm phân cách bằng dấu phẩy, ví dụ: 8.0, 9.0
+          </div>
         </div>
 
-        <!-- Realtime Average Preview Badge -->
-        <div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded" style="background: var(--sh-indigo-50, #f0f4ff); border-left: 4px solid var(--sh-indigo-600);">
-          <div>
-            <span class="text-muted" style="font-size: 12px; font-weight: 600;">ĐTB môn dự tính:</span>
-            <span id="modalSubjectAvgPreview" class="fw-black ms-2" style="font-size: 18px; color: var(--sh-indigo-700);">—</span>
-          </div>
-          <div class="text-muted" style="font-size: 11px;">(Tự động tính theo hệ số các cột)</div>
-        </div>
 
         <!-- Grade Columns Grid -->
         <div id="modalColumnsContainer" class="d-flex flex-column gap-3">
@@ -919,9 +1552,27 @@
       b.style.cssText = 'font-size:12px;color:var(--sh-slate-500);border:0;background:transparent;padding:8px 16px;font-weight:600;';
       b.classList.remove('active');
     });
-    btn.style.cssText = 'font-size:12px;font-weight:700;color:var(--sh-indigo-600);border-bottom:2px solid var(--sh-indigo-600);border-top:0;border-left:0;border-right:0;background:transparent;padding:8px 16px;';
-    document.getElementById('grades-tab').style.display = tabId === 'grades-tab' ? 'block' : 'none';
-    document.getElementById('goals-tab').style.display = tabId === 'goals-tab' ? 'block' : 'none';
+    if (btn) {
+      btn.style.cssText = 'font-size:12px;font-weight:700;color:var(--sh-indigo-600);border-bottom:2px solid var(--sh-indigo-600);border-top:0;border-left:0;border-right:0;background:transparent;padding:8px 16px;';
+      btn.classList.add('active');
+    }
+    const gradesTabEl = document.getElementById('grades-tab');
+    const goalsTabEl = document.getElementById('goals-tab');
+    if (gradesTabEl) gradesTabEl.style.display = tabId === 'grades-tab' ? 'block' : 'none';
+    if (goalsTabEl) goalsTabEl.style.display = tabId === 'goals-tab' ? 'block' : 'none';
+
+    try {
+      localStorage.setItem('activeGradeTab', tabId);
+      if (tabId === 'goals-tab') {
+        if (!window.location.hash.includes('goals')) {
+          history.replaceState(null, '', window.location.pathname + window.location.search + '#goals');
+        }
+      } else {
+        if (window.location.hash.includes('goals')) {
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      }
+    } catch(e) {}
   }
 
   // ── Mode Switching ─────────────────────────────────────────
@@ -1007,6 +1658,12 @@
       } else if (editMode === 'score' || editMode === 'true') {
           setUiMode('score');
       }
+
+      if (!editMode && (window.location.hash === '#goals' || localStorage.getItem('activeGradeTab') === 'goals-tab')) {
+          const goalsBtn = document.getElementById('tab-btn-goals');
+          if (goalsBtn) gradeTab(goalsBtn, 'goals-tab');
+      }
+
       const wizardModal = document.getElementById('wizardGradeBookModal');
       if (wizardModal) {
           wizardModal.addEventListener('show.bs.modal', () => {
@@ -1016,12 +1673,26 @@
   });
 
   // ── Wizard Logic ─────────────────────────────────────────────
+  const existingGradeBooks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(data.GradeBooks.Select(gb => new { gb.FromYear, gb.ToYear })));
+
   function wizardGoToStep(step) {
       if (step === 2) {
           // Validate step 1
           const nameInput = document.querySelector('#wizard-step-1 input[name="Name"]');
           if (!nameInput.value.trim()) {
               nameInput.reportValidity();
+              return;
+          }
+
+          const fromYear = parseInt(document.getElementById('wizardFromYear').value) || 0;
+          const toYear = parseInt(document.getElementById('wizardToYear').value) || 0;
+          const exists = existingGradeBooks && existingGradeBooks.some(gb => (gb.fromYear || gb.FromYear) === fromYear && (gb.toYear || gb.ToYear) === toYear);
+          if (exists) {
+              if (window.showToast) {
+                  window.showToast('Sổ điểm này đã tồn tại', 'error');
+              } else {
+                  alert('Sổ điểm này đã tồn tại');
+              }
               return;
           }
           
@@ -1259,16 +1930,344 @@
     document.getElementById('editCreditWeight').value = weight;
     new bootstrap.Modal(document.getElementById('editUserSubjectModal')).show();
   }
+  const goalLaddersData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(data.GoalLadders ?? new List<GoalLadderDto>()));
+  const allSubjectsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(data.AllSubjects ?? new List<GradeSubjectOptionDto>()));
+
+  function onAddGoalGradeBookChanged(gradeBookId) {
+    const gbId = parseInt(gradeBookId);
+    const subSelect = document.getElementById('addGoalSubjectId');
+    if (!subSelect) return;
+    subSelect.innerHTML = '';
+
+    const hiddenGb = document.getElementById('addGoalCurrentGradeBookId');
+    if (hiddenGb) hiddenGb.value = gbId || '';
+
+    const filtered = (allSubjectsData || []).filter(s => (s.gradeBookId || s.GradeBookId) === gbId);
+    if (!filtered || filtered.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = '(Bảng điểm này chưa có môn học nào)';
+      subSelect.appendChild(opt);
+    } else {
+      // Khử trùng lặp tên môn học để chỉ hiển thị 1 mục cho mỗi môn trong bảng điểm
+      const seenNames = new Set();
+      filtered.forEach(s => {
+        const name = (s.subjectName || s.SubjectName || '').trim().toLowerCase();
+        if (!seenNames.has(name)) {
+          seenNames.add(name);
+          const opt = document.createElement('option');
+          opt.value = s.userSubjectId || s.UserSubjectId;
+          opt.textContent = s.subjectName || s.SubjectName;
+          subSelect.appendChild(opt);
+        }
+      });
+    }
+    onAddGoalSubjectChanged();
+  }
+
+  function resetAddGoalModal() {
+    const titleEl = document.getElementById('addGoalModalTitle');
+    if (titleEl) titleEl.innerText = 'Đặt mục tiêu học tập';
+
+    const currentGbId = @(data.SelectedGradeBookId ?? 0);
+    const gbSelect = document.getElementById('addGoalGradeBookSelect');
+    if (gbSelect) {
+      if (currentGbId > 0) gbSelect.value = currentGbId;
+      onAddGoalGradeBookChanged(gbSelect.value);
+    }
+
+    const titleInput = document.getElementById('goal-title');
+    if (titleInput) titleInput.value = '';
+    const targetInput = document.getElementById('goal-target');
+    if (targetInput) targetInput.value = '';
+  }
+
   function openAddGoalForSubject(id, name) {
+    // Tự động chọn đúng bảng điểm của môn học này
+    const sub = (allSubjectsData || []).find(s => (s.userSubjectId || s.UserSubjectId) == id);
+    const gbId = sub ? (sub.gradeBookId || sub.GradeBookId) : (@(data.SelectedGradeBookId ?? 0));
+
+    const gbSelect = document.getElementById('addGoalGradeBookSelect');
+    if (gbSelect && gbId) {
+      gbSelect.value = gbId;
+      onAddGoalGradeBookChanged(gbId);
+    }
+
     const sel = document.getElementById('addGoalSubjectId');
-    if(sel) sel.value = id;
+    if (sel) sel.value = id;
+
+    const titleInput = document.getElementById('goal-title');
+    if (titleInput) titleInput.value = '';
+    const targetInput = document.getElementById('goal-target');
+    if (targetInput) targetInput.value = '';
+
+    onAddGoalSubjectChanged();
     new bootstrap.Modal(document.getElementById('addGoalModal')).show();
   }
-  function editGoal(id, title, deadline) {
+
+  function onAddGoalSubjectChanged() {
+    const subId = parseInt(document.getElementById('addGoalSubjectId')?.value);
+    const selectedSub = (allSubjectsData || []).find(s => (s.userSubjectId || s.UserSubjectId) == subId);
+    const subName = (selectedSub ? (selectedSub.subjectName || selectedSub.SubjectName) : '').trim().toLowerCase();
+    
+    // Tìm ladder theo UserSubjectId hoặc tên môn chuẩn hóa
+    const ladder = (goalLaddersData || []).find(l => 
+      (l.userSubjectId || l.UserSubjectId) == subId || 
+      (subName && (l.subjectName || l.SubjectName || '').trim().toLowerCase() === subName)
+    );
+    
+    const targetHint = document.getElementById('goal-target-hint');
+    const modalTitle = document.getElementById('addGoalModalTitle');
+    const displayName = selectedSub ? (selectedSub.subjectName || selectedSub.SubjectName) : '';
+
+    if (ladder && ladder.hasBaseGoal && ladder.baseGoal) {
+      const baseTarget = ladder.baseGoal.targetValue || ladder.baseGoal.TargetValue;
+      if (modalTitle && displayName) {
+        modalTitle.innerText = `Thêm nấc mục tiêu cho môn ${displayName}`;
+      }
+      if (targetHint && baseTarget) {
+        targetHint.innerText = `Phải lớn hơn mục tiêu gốc (${Number(baseTarget).toFixed(1)}) và ≤ 10.0`;
+        targetHint.className = 'text-primary fw-semibold';
+      }
+    } else {
+      if (modalTitle && displayName) {
+        modalTitle.innerText = `Đặt mục tiêu cho môn ${displayName}`;
+      }
+      if (targetHint) {
+        targetHint.innerText = 'Mục tiêu đầu tiên sẽ tự động làm Mục tiêu gốc (0.1–10.0)';
+        targetHint.className = 'text-muted';
+      }
+    }
+  }
+
+  function editGoal(id, title, targetVal, isBase, isDone, deadline) {
     document.getElementById('editGoalId').value = id;
     document.getElementById('edit-goal-title').value = title;
-    if(deadline) document.getElementById('edit-goal-deadline').value = deadline;
+    const targetInput = document.getElementById('edit-goal-target');
+    const targetHint = document.getElementById('edit-goal-target-hint');
+    const noticeEl = document.getElementById('editGoalNotice');
+
+    targetInput.value = targetVal;
+    
+    if (isBase) {
+      targetInput.disabled = true;
+      targetHint.innerText = 'Mục tiêu gốc là cố định, không thể sửa điểm';
+      noticeEl.innerHTML = `
+        <div class="alert alert-primary py-2 px-3 mb-3" style="font-size:12px;">
+          <i class="bi bi-shield-lock me-1"></i><strong>Mục tiêu gốc (Cố định):</strong> Bạn có thể sửa tên hoặc hạn hoàn thành nhưng không thể sửa điểm mục tiêu.
+        </div>`;
+    } else {
+      targetInput.disabled = false;
+      targetHint.innerText = 'Điểm mục tiêu (phải lớn hơn mục tiêu gốc)';
+      if (isDone) {
+        noticeEl.innerHTML = `
+          <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:12px;">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i><strong>Nấc đã hoàn thành:</strong> Khi bạn sửa điểm mục tiêu mới, thành tích cũ sẽ được tự động lưu vào Lịch sử thành tích và nấc mục tiêu sẽ chuyển về trạng thái Đang thực hiện.
+          </div>`;
+      } else {
+        noticeEl.innerHTML = `
+          <div class="alert alert-info py-2 px-3 mb-3" style="font-size:12px;">
+            <i class="bi bi-info-circle me-1"></i>Điểm của nấc bổ sung phải lớn hơn điểm mục tiêu gốc và nằm trong khoảng (0, 10].
+          </div>`;
+      }
+    }
+
+    document.getElementById('edit-goal-deadline').value = deadline || '';
     new bootstrap.Modal(document.getElementById('editGoalModal')).show();
+  }
+
+  async function confirmDeleteAdditionalGoal(goalId, targetVal) {
+    if (!confirm(`Xác nhận xóa nấc mục tiêu ${targetVal}?\n\nLưu ý: Các hoạt động đã hoàn thành sẽ được giữ lại trên Lịch học cá nhân để bảo tồn lịch sử học tập.`)) return;
+    try {
+      const resp = await fetch('/Grades/DeleteGoal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrfToken },
+        body: JSON.stringify({ GoalId: goalId })
+      });
+      const res = await resp.json();
+      if (res.ok) window.location.reload();
+      else alert("Lỗi khi xóa: " + res.error);
+    } catch (e) {
+      alert("Lỗi kết nối khi xóa nấc mục tiêu.");
+    }
+  }
+
+  async function moveGoalOrder(userSubjectId, goalId, dir) {
+    const listEl = document.getElementById('goal-list-' + userSubjectId);
+    if (!listEl) return;
+    const ladder = (goalLaddersData || []).find(l => (l.userSubjectId || l.UserSubjectId) == userSubjectId);
+    if (!ladder || !ladder.additionalGoals) return;
+
+    const goals = [...ladder.additionalGoals];
+    const idx = goals.findIndex(g => (g.id || g.Id) == goalId);
+    if (idx < 0) return;
+    if (dir === -1 && idx === 0) return;
+    if (dir === 1 && idx === goals.length - 1) return;
+
+    const targetIdx = idx + dir;
+    const temp = goals[idx];
+    goals[idx] = goals[targetIdx];
+    goals[targetIdx] = temp;
+
+    const items = goals.map((g, i) => ({
+      GoalId: g.id || g.Id,
+      NewDisplayOrder: i + 1
+    }));
+
+    try {
+      const resp = await fetch('/Grades/ReorderGoals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrfToken },
+        body: JSON.stringify(items)
+      });
+      const res = await resp.json();
+      if (res.ok) window.location.reload();
+      else alert(res.error);
+    } catch (e) {
+      alert("Lỗi kết nối");
+    }
+  }
+
+  // ── Goal Activity AJAX ───────────────────────────────────────
+  function openAddActivityModal(goalId) {
+    document.getElementById('addActivityGoalId').value = goalId;
+    document.getElementById('add-activity-title').value = '';
+    const now = new Date();
+    const pad = n => n < 10 ? '0' + n : n;
+    const startStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours()+1)}:00`;
+    const endStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours()+2)}:00`;
+    document.getElementById('add-activity-start').value = startStr;
+    document.getElementById('add-activity-end').value = endStr;
+    document.getElementById('add-activity-desc').value = '';
+    new bootstrap.Modal(document.getElementById('addActivityModal')).show();
+  }
+
+  async function submitAddActivity(e) {
+    e.preventDefault();
+    const goalId = parseInt(document.getElementById('addActivityGoalId').value);
+    const title = document.getElementById('add-activity-title').value.trim();
+    const start = document.getElementById('add-activity-start').value;
+    const end = document.getElementById('add-activity-end').value;
+    const desc = document.getElementById('add-activity-desc').value.trim();
+
+    try {
+      const resp = await fetch('/Grades/AddGoalActivity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrfToken },
+        body: JSON.stringify({ GoalId: goalId, Title: title, StartAtLocal: start, EndAtLocal: end, Description: desc })
+      });
+      const res = await resp.json();
+      if (res.ok) window.location.reload();
+      else alert("Lỗi: " + res.error);
+    } catch (err) {
+      alert("Lỗi kết nối khi tạo hoạt động.");
+    }
+  }
+
+  function openEditActivityModal(id, title, start, end, desc) {
+    document.getElementById('editActivityId').value = id;
+    document.getElementById('edit-activity-title').value = title;
+    document.getElementById('edit-activity-start').value = start;
+    document.getElementById('edit-activity-end').value = end;
+    document.getElementById('edit-activity-desc').value = desc || '';
+    new bootstrap.Modal(document.getElementById('editActivityModal')).show();
+  }
+
+  async function submitEditActivity(e) {
+    e.preventDefault();
+    const id = parseInt(document.getElementById('editActivityId').value);
+    const title = document.getElementById('edit-activity-title').value.trim();
+    const start = document.getElementById('edit-activity-start').value;
+    const end = document.getElementById('edit-activity-end').value;
+    const desc = document.getElementById('edit-activity-desc').value.trim();
+
+    try {
+      const resp = await fetch('/Grades/UpdateGoalActivity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrfToken },
+        body: JSON.stringify({ ActivityId: id, Title: title, StartAtLocal: start, EndAtLocal: end, Description: desc })
+      });
+      const res = await resp.json();
+      if (res.ok) window.location.reload();
+      else alert("Lỗi: " + res.error);
+    } catch (err) {
+      alert("Lỗi kết nối khi sửa hoạt động.");
+    }
+  }
+
+  async function deleteActivity(id) {
+    if (!confirm("Bạn có chắc chắn muốn xóa hoạt động này? Hoạt động cũng sẽ được gỡ khỏi Lịch học cá nhân.")) return;
+    try {
+      const resp = await fetch('/Grades/DeleteGoalActivity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrfToken },
+        body: JSON.stringify({ ActivityId: id })
+      });
+      const res = await resp.json();
+      if (res.ok) window.location.reload();
+      else alert("Lỗi: " + res.error);
+    } catch (err) {
+      alert("Lỗi kết nối khi xóa hoạt động.");
+    }
+  }
+
+  async function toggleActivity(id, goalId, iconEl) {
+    try {
+      const resp = await fetch('/Grades/ToggleGoalActivity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrfToken },
+        body: JSON.stringify({ ActivityId: id })
+      });
+      const res = await resp.json();
+      if (res.ok) {
+        const row = iconEl ? iconEl.closest('.activity-row') : document.getElementById('activity-item-' + id);
+        if (row) {
+          const titleSpan = row.querySelector('.activity-title');
+          const badgeSpan = row.querySelector('.activity-badge');
+          if (res.isCompleted) {
+            if (iconEl) {
+              iconEl.className = 'bi bi-check-circle-fill text-success fs-5 cursor-pointer flex-shrink-0';
+              iconEl.title = 'Nhấn để đổi trạng thái';
+            }
+            if (titleSpan) {
+              titleSpan.className = 'text-truncate text-decoration-line-through text-muted activity-title';
+              titleSpan.style.color = '';
+            }
+            if (badgeSpan) {
+              badgeSpan.className = 'badge activity-badge activity-badge-done';
+              badgeSpan.textContent = 'Đã xong';
+            }
+          } else {
+            if (iconEl) {
+              iconEl.className = 'bi bi-circle text-muted fs-5 cursor-pointer flex-shrink-0';
+              iconEl.title = 'Nhấn để đánh dấu hoàn thành';
+            }
+            if (titleSpan) {
+              titleSpan.className = 'text-truncate fw-medium activity-title';
+              titleSpan.style.color = 'var(--sh-slate-800)';
+            }
+            if (badgeSpan) {
+              badgeSpan.className = 'badge activity-badge activity-badge-todo';
+              badgeSpan.textContent = 'To do';
+            }
+          }
+        }
+        // Cập nhật bộ đếm tiến độ hoàn thành dạng 1/3 hoàn thành
+        if (goalId) {
+          const list = document.getElementById('activities-list-' + goalId);
+          const progressEl = document.getElementById('activity-progress-' + goalId);
+          if (list && progressEl) {
+            const allRows = list.querySelectorAll('.activity-row');
+            const doneRows = list.querySelectorAll('.activity-row .bi-check-circle-fill');
+            progressEl.textContent = `${doneRows.length}/${allRows.length} hoàn thành`;
+          }
+        }
+      } else {
+        alert("Lỗi: " + (res.error || res.message || "Không thể cập nhật"));
+      }
+    } catch (err) {
+      alert("Lỗi kết nối khi cập nhật hoạt động.");
+    }
   }
 
   // Common Date Validation for GradeBooks
@@ -1306,7 +2305,6 @@
 
   let modalCurrentSubjectId = null;
   let modalScores = [];
-  let modalTempIdCounter = 1;
 
   function openEnterGradesModal(targetSubjectId) {
       const modalEl = document.getElementById('enterGradesModal');
@@ -1319,7 +2317,6 @@
       if (!subjectData || subjectData.length === 0) {
           selectEl.innerHTML = '<option value="">(Chưa có môn học nào)</option>';
           document.getElementById('modalColumnsContainer').innerHTML = '<div class="alert alert-info" style="font-size:13px;"><i class="bi bi-info-circle me-1"></i>Vui lòng thêm môn học vào bảng điểm trước khi nhập điểm.</div>';
-          document.getElementById('modalSubjectAvgPreview').textContent = '—';
           bsModal.show();
           return;
       }
@@ -1350,7 +2347,6 @@
       modalCurrentSubjectId = parseInt(subjectId);
       if (!modalCurrentSubjectId) {
           document.getElementById('modalColumnsContainer').innerHTML = '';
-          document.getElementById('modalSubjectAvgPreview').textContent = '—';
           return;
       }
 
@@ -1361,7 +2357,6 @@
       const entries = subject.entries || subject.Entries || [];
       entries.forEach(e => {
           modalScores.push({
-              tempId: 'temp_' + (modalTempIdCounter++),
               id: e.id || e.Id || null,
               gradeColumnId: e.gradeColumnId || e.GradeColumnId,
               score: e.score !== undefined ? e.score : (e.Score !== undefined ? e.Score : 0)
@@ -1377,7 +2372,6 @@
 
       if (!columnData || columnData.length === 0) {
           container.innerHTML = '<div class="alert alert-warning" style="font-size:13px;"><i class="bi bi-exclamation-triangle me-2"></i>Sổ điểm này chưa có cột đánh giá nào. Vui lòng thêm cột ở mục "Chỉnh sửa bảng".</div>';
-          updateModalAvgPreview();
           return;
       }
 
@@ -1387,98 +2381,38 @@
           const colWeight = col.weight || col.Weight;
 
           const colScores = modalScores.filter(s => s.gradeColumnId == colId);
+          const scoresStr = colScores.map(s => s.score).join(', ');
+
+          // Tô màu badge hệ số theo mức độ quan trọng:
+          // hệ số 1 màu xám, hệ số 2 màu xanh dương, hệ số 3 màu cam, hệ số cao hơn màu đỏ
+          const w = parseFloat(colWeight) || 1;
+          let badgeClass = 'text-white';
+          let badgeStyle = '';
+          if (w <= 1) {
+              badgeClass = 'bg-secondary text-white';
+          } else if (w <= 2) {
+              badgeClass = 'bg-primary text-white';
+          } else if (w <= 3) {
+              badgeClass = 'text-white';
+              badgeStyle = 'background-color: #f97316;';
+          } else {
+              badgeClass = 'bg-danger text-white';
+          }
 
           const card = document.createElement('div');
           card.className = 'card border rounded-3 p-3 bg-white shadow-sm';
-
-          let scoresHtml = '';
-          if (colScores.length === 0) {
-              scoresHtml = `<span class="text-muted fst-italic" style="font-size: 12px;">Chưa có điểm. Bấm [+ Thêm điểm] để nhập.</span>`;
-          } else {
-              scoresHtml = colScores.map(s => `
-                  <div class="input-group input-group-sm" style="width: 110px;" id="score-item-${s.tempId}">
-                      <input type="number" min="0" max="10" step="0.1" class="form-control text-center fw-bold" 
-                             style="color: var(--sh-indigo-600); font-size: 14px;"
-                             value="${s.score}" 
-                             onchange="updateModalScore('${s.tempId}', this.value)" 
-                             onkeyup="updateModalScore('${s.tempId}', this.value)" />
-                      <button class="btn btn-outline-danger px-2" type="button" onclick="removeModalScore('${s.tempId}')" title="Xóa điểm">
-                          <i class="bi bi-x-lg"></i>
-                      </button>
-                  </div>
-              `).join('');
-          }
-
           card.innerHTML = `
               <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                  <div class="d-flex align-items-center gap-2">
-                      <span class="fw-bold" style="font-size: 14px; color: var(--sh-slate-800);">${escapeHtml(colName)}</span>
-                      <span class="badge bg-secondary" style="font-size: 11px;">Hệ số ${colWeight}</span>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary" style="font-size: 12px; padding: 2px 10px;" onclick="addScoreToColumn(${colId})">
-                      <i class="bi bi-plus-lg me-1"></i>Thêm điểm
-                  </button>
+                  <span class="fw-bold" style="font-size: 14px; color: var(--sh-slate-800);">${escapeHtml(colName)}</span>
+                  <span class="badge ${badgeClass}" style="font-size: 11px; ${badgeStyle}">Hệ số ${colWeight}</span>
               </div>
-              <div class="d-flex flex-wrap gap-2 align-items-center" id="scores-container-${colId}">
-                  ${scoresHtml}
-              </div>
+              <input type="text" class="form-control sh-input" 
+                     id="col-input-${colId}" 
+                     value="${scoresStr}" 
+                     style="font-size: 14px;">
           `;
           container.appendChild(card);
       });
-
-      updateModalAvgPreview();
-  }
-
-  function addScoreToColumn(columnId) {
-      const newTempId = 'temp_' + (modalTempIdCounter++);
-      modalScores.push({
-          tempId: newTempId,
-          id: null,
-          gradeColumnId: columnId,
-          score: 10
-      });
-      renderModalColumns();
-  }
-
-  function updateModalScore(tempId, val) {
-      const num = parseFloat(val);
-      const item = modalScores.find(s => s.tempId === tempId);
-      if (item) {
-          item.score = isNaN(num) ? 0 : Math.min(10, Math.max(0, num));
-      }
-      updateModalAvgPreview();
-  }
-
-  function removeModalScore(tempId) {
-      modalScores = modalScores.filter(s => s.tempId !== tempId);
-      renderModalColumns();
-  }
-
-  function updateModalAvgPreview() {
-      let weightedSum = 0;
-      let totalWeight = 0;
-
-      modalScores.forEach(s => {
-          const col = columnData.find(c => (c.gradeColumnId || c.GradeColumnId) == s.gradeColumnId);
-          if (col) {
-              const weight = parseFloat(col.weight || col.Weight || 1);
-              const score = parseFloat(s.score);
-              if (!isNaN(score) && score >= 0 && score <= 10) {
-                  weightedSum += score * weight;
-                  totalWeight += weight;
-              }
-          }
-      });
-
-      const previewEl = document.getElementById('modalSubjectAvgPreview');
-      if (previewEl) {
-          if (totalWeight > 0) {
-              const avg = (weightedSum / totalWeight).toFixed(2);
-              previewEl.textContent = avg;
-          } else {
-              previewEl.textContent = '—';
-          }
-      }
   }
 
   async function saveModalGrades() {
@@ -1490,13 +2424,42 @@
       const btn = document.getElementById('btnSaveModalGrades');
       if (btn) btn.disabled = true;
 
+      const entries = [];
+
+      for (const col of (columnData || [])) {
+          const colId = col.gradeColumnId || col.GradeColumnId;
+          const colName = col.name || col.Name;
+          const inputEl = document.getElementById('col-input-' + colId);
+          if (!inputEl) continue;
+
+          const rawVal = inputEl.value.trim();
+          if (!rawVal) continue;
+
+          const tokens = rawVal.split(',').map(t => t.trim()).filter(t => t.length > 0);
+          const existingColEntries = modalScores.filter(s => s.gradeColumnId == colId);
+
+          for (let i = 0; i < tokens.length; i++) {
+              const token = tokens[i];
+              const scoreNum = parseFloat(token);
+              if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 10) {
+                  alert(`Điểm "${token}" ở nhóm "${colName}" không hợp lệ. Điểm phải là số từ 0 đến 10.`);
+                  if (btn) btn.disabled = false;
+                  inputEl.focus();
+                  return;
+              }
+
+              const existingEntry = existingColEntries[i];
+              entries.push({
+                  GradeEntryId: (existingEntry && existingEntry.id) ? existingEntry.id : null,
+                  GradeColumnId: colId,
+                  Score: scoreNum
+              });
+          }
+      }
+
       const payload = {
           UserSubjectId: modalCurrentSubjectId,
-          Entries: modalScores.map(s => ({
-              GradeEntryId: s.id && s.id > 0 ? s.id : null,
-              GradeColumnId: s.gradeColumnId,
-              Score: parseFloat(s.score) || 0
-          }))
+          Entries: entries
       };
 
       try {

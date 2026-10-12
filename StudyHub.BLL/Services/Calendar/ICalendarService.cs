@@ -12,4 +12,5 @@ public interface ICalendarService
     Task<List<ScheduleEventDto>> GetActiveRemindersAsync(long userId);
     Task<List<int>> GetReminderMinutesAsync(long userId, long eventId);
     Task ToggleEventCompletionAsync(long userId, long eventId, bool isCompleted);
+    Task<bool> ToggleEventCompletionAsync(long userId, long id);
 }

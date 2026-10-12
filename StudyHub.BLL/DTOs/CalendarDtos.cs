@@ -11,7 +11,8 @@ public sealed record ScheduleEventDto(
     DateOnly? RepeatUntilDate,
     string? Location,
     string? Description,
-    bool IsCompleted);
+    long? GoalId = null,
+    bool IsCompleted = false);
 
 public sealed record DeadlineDto(long Id, string Title, DateTime DueAtUtc, byte Priority, string Status);
 public sealed record ReminderInputDto(int Minutes, string Channel);

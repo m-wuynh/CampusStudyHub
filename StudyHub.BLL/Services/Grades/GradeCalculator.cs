@@ -1,4 +1,6 @@
 using StudyHub.BLL.DTOs;
+using StudyHub.DAL.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,6 +8,31 @@ namespace StudyHub.BLL.Services.Grades;
 
 public static class GradeCalculator
 {
+    /// <summary>
+    /// Computes weighted average on scale 0–10 from entity collections.
+    /// Formula: SUM(Score × Weight) / SUM(Weight)
+    /// Returns null if there are no valid entries.
+    /// </summary>
+    public static decimal? CalculateSubjectAverage(
+        IEnumerable<GradeEntry> entries,
+        IEnumerable<GradeColumn> allColumns)
+    {
+        var activeColumnWeights = allColumns
+            .ToDictionary(c => c.GradeColumnId, c => c.Weight);
+
+        var validEntries = entries
+            .Where(e => activeColumnWeights.ContainsKey(e.GradeColumnId))
+            .Select(e => (Score: e.Score, Weight: activeColumnWeights[e.GradeColumnId]))
+            .ToList();
+
+        if (!validEntries.Any()) return null;
+
+        var totalWeight = validEntries.Sum(e => e.Weight);
+        if (totalWeight == 0) return null;
+
+        var weightedSum = validEntries.Sum(e => e.Score * e.Weight);
+        return Math.Round(weightedSum / totalWeight, 2, MidpointRounding.AwayFromZero);
+    }
     /// <summary>
     /// Computes weighted average on scale 0–10.
     /// Formula: SUM(Score × Weight) / SUM(Weight)
