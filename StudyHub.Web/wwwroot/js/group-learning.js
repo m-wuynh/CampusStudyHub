@@ -30,26 +30,65 @@
   const submissionStatus = value => ({ Submitted: 'Đã nộp', Completed: 'Hoàn thành', NeedsRevision: 'Cần sửa' }[value] || value);
 
   async function api(path = '', method = 'GET', body) {
-    const response = await fetch(base + path, {
-      method, credentials: 'same-origin',
-      headers: { Accept: 'application/json', ...(method !== 'GET' ? { 'Content-Type': 'application/json', RequestVerificationToken: token } : {}) },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) })
-    });
-    const result = await response.json().catch(() => null);
-    if (!response.ok || response.redirected || result === null) {
-      const validation = result?.errors && Object.values(result.errors).flat().join(' ');
-      throw new Error(result?.message || validation || 'Không tải được dữ liệu. Hãy kiểm tra đăng nhập và thử lại.');
+    const controller = method === 'GET' ? new AbortController() : null;
+    const timeout = controller ? setTimeout(() => controller.abort(), 15000) : null;
+    try {
+      const response = await fetch(base + path, {
+        method, credentials: 'same-origin', signal: controller?.signal,
+        headers: { Accept: 'application/json', ...(method !== 'GET' ? { 'Content-Type': 'application/json', RequestVerificationToken: token } : {}) },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) })
+      });
+      const result = await response.json().catch(error => {
+        if (controller?.signal.aborted) throw error;
+        return null;
+      });
+      if (!response.ok || response.redirected || result === null) {
+        const validation = result?.errors && Object.values(result.errors).flat().join(' ');
+        throw new Error(result?.message || validation || 'Không tải được dữ liệu. Hãy kiểm tra đăng nhập và thử lại.');
+      }
+      return result;
+    } catch (error) {
+      if (controller?.signal.aborted) throw new Error('Tải dữ liệu quá lâu. Vui lòng thử lại.');
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
-    return result;
   }
 
+  const panelRenderers = {
+    sessions: renderSessions, assignments: renderAssignments, questions: renderQuestions,
+    resources: renderResources, progress: renderProgress
+  };
+  function renderLoadError(panel, message) {
+    panel.innerHTML = empty(message) + button('refresh', 'Thử lại');
+  }
   async function load() {
     const sequence = ++loadSequence;
-    const data = await api(weekInput.value ? `?week=${encodeURIComponent(weekInput.value)}` : '');
-    if (sequence !== loadSequence) return;
-    state = data;
-    weekInput.value = state.progress.weekStart;
-    renderSessions(); renderAssignments(); renderQuestions(); renderResources(); renderProgress();
+    try {
+      const data = await api(weekInput.value ? `?week=${encodeURIComponent(weekInput.value)}` : '');
+      if (sequence !== loadSequence) return;
+      state = data;
+      // Each tab must finish loading even if another tab cannot render.
+      for (const [id, render] of Object.entries(panelRenderers)) {
+        const panel = document.getElementById(`gl-${id}`);
+        if (!panel) {
+          console.error(`Study Group: missing gl-${id}`);
+          continue;
+        }
+        try { render(); }
+        catch (error) {
+          console.error(`Study Group: cannot render ${id}`, error);
+          renderLoadError(panel, 'Không hiển thị được dữ liệu. Vui lòng thử lại.');
+        }
+      }
+    } catch (error) {
+      if (sequence !== loadSequence) return;
+      for (const id of Object.keys(panelRenderers)) {
+        const panel = document.getElementById(`gl-${id}`);
+        if (panel) renderLoadError(panel, error.message);
+      }
+      throw error;
+    }
   }
   function showError(error) { window.showToast?.(error.message, 'error'); }
   function openForm(title, fields, onSave, label = 'Lưu') {
@@ -155,6 +194,7 @@
 
   function renderProgress() {
     const p = state.progress, goal = p.goal;
+    weekInput.value = p.weekStart;
     const rate = p.assigned ? Math.round(p.completed * 100 / p.assigned) : 0;
     const metric = (value, label) => `<div class="gl-metric"><strong>${value}</strong><span>${label}</span></div>`;
     document.getElementById('gl-progress').innerHTML = `${state.canManage ? button('goal', goal ? 'Sửa mục tiêu tuần' : '+ Đặt mục tiêu tuần', '', '', true) : ''}
@@ -264,8 +304,5 @@
   });
   document.getElementById('gl-question-search').addEventListener('input', () => { if (state) renderQuestions(); });
   weekInput.addEventListener('change', () => load().catch(showError));
-  load().catch(error => {
-    for (const id of ['sessions', 'assignments', 'questions', 'resources', 'progress'])
-      document.getElementById(`gl-${id}`).innerHTML = empty(error.message) + button('refresh', 'Thử lại');
-  });
+  load().catch(showError);
 })();

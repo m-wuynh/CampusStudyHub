@@ -1,0 +1,45 @@
+flowchart LR
+    subgraph User["LÀN 1 — NGƯỜI MUỐN THAM GIA"]
+      direction TB
+      A([Bắt đầu]) --> B["Chọn tham gia nhóm<br/>hoặc chấp nhận link mời"]
+      P["Thấy trạng thái Pending<br/>Có thể rút yêu cầu"]
+      R["Xem kết quả: Active<br/>Mở nội dung nhóm"] --> Z([Kết thúc])
+      F["Xem lý do từ chối / lỗi"]
+    end
+    subgraph System["LÀN 2 — HỆ THỐNG STUDY HUB"]
+      direction TB
+      C["Kiểm tra đăng nhập, nhóm còn hoạt động,<br/>trạng thái thành viên và điều kiện tham gia"]
+      D{"Hợp lệ, không Banned,<br/>còn chỗ?"}
+      E{"Cách tham gia?"}
+      K["Kiểm tra lại quyền quản lý,<br/>trạng thái Pending và sức chứa khi duyệt"]
+      L{"Quyết định xử lý?"}
+      W["Báo lỗi hoặc trạng thái hiện có<br/>Không tạo membership trùng"]
+    end
+    subgraph Manager["LÀN 3 — OWNER / MODERATOR"]
+      direction TB
+      J["Mở tab Thành viên<br/>Duyệt hoặc từ chối yêu cầu"]
+    end
+    subgraph Data["LÀN 4 — DATABASE"]
+      direction TB
+      H["Ghi membership = Active<br/>Ghi thời điểm tham gia<br/>Tăng lượt dùng nếu nhận lời mời"]
+      I["Ghi membership = Pending"]
+      M["Đổi Pending thành Active"]
+      N["Đổi Pending thành Rejected"]
+      X["Đổi Pending thành Left"]
+    end
+    B --> C --> D
+    D -->|Không| W --> F
+    D -->|Có| E
+    E -->|Public + Open hoặc lời mời hợp lệ| H --> R
+    E -->|Public + Approval| I --> P
+    P -. "Quản lý mở danh sách yêu cầu" .-> J
+    P -->|Rút yêu cầu; hệ thống kiểm tra| X --> F
+    J --> K --> L
+    L -->|Duyệt; còn chỗ| M --> R
+    L -->|Từ chối| N --> F
+    L -->|Đủ chỗ / trạng thái đã đổi / không có quyền| W
+    F --> Z
+    style User fill:#eff6ff,stroke:#60a5fa
+    style System fill:#f5f3ff,stroke:#a78bfa
+    style Manager fill:#fff7ed,stroke:#fb923c
+    style Data fill:#f0fdf4,stroke:#4ade80

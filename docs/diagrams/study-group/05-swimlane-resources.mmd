@@ -1,0 +1,45 @@
+flowchart LR
+    subgraph Author["LÀN 1 — CHỦ SỞ HỮU TÀI NGUYÊN"]
+      direction TB
+      A([Bắt đầu]) --> B["Chọn ghi chú / PDF / link / flashcard<br/>Nhấn Chia sẻ trong nhóm"]
+      U["Gỡ chia sẻ hoặc rời nhóm"]
+    end
+    subgraph System["LÀN 2 — HỆ THỐNG STUDY HUB"]
+      direction TB
+      C["Kiểm tra thành viên Active,<br/>quyền sở hữu và tài nguyên hợp lệ"]
+      D{"Chưa thuộc nhóm khác?"}
+      E["Thông báo lỗi<br/>Không thay đổi tài nguyên"]
+      K["Kiểm tra quyền đọc tại mỗi request:<br/>Active + đúng nhóm + Visibility Group"]
+      L{"Được đọc?"}
+      M["Trả nội dung chỉ đọc<br/>PDF kiểm tra quyền qua endpoint riêng"]
+      N["Từ chối truy cập"]
+      V["Kiểm tra quyền gỡ / quyền quản lý<br/>và trạng thái thành viên"]
+    end
+    subgraph Members["LÀN 3 — THÀNH VIÊN / NGƯỜI QUẢN LÝ"]
+      direction TB
+      H["Thành viên chọn tài nguyên<br/>trong tab Tài nguyên"]
+      I["Đọc ghi chú, PDF<br/>hoặc lật đáp án flashcard"]
+      J["Quản lý gỡ chia sẻ<br/>hoặc kick / ban chủ sở hữu"]
+      Z([Kết thúc])
+    end
+    subgraph Data["LÀN 4 — DATABASE"]
+      direction TB
+      F["Lưu StudyGroupId = nhóm hiện tại<br/>Visibility = Group"]
+      W["Đổi tài nguyên về Private<br/>StudyGroupId = null<br/>Giữ nội dung và chủ sở hữu"]
+    end
+    B --> C --> D
+    D -->|Không| E --> Z
+    D -->|Có| F --> H --> K --> L
+    L -->|Có| M --> I --> Z
+    L -->|Không| N --> Z
+    F -. "Sau khi đã chia sẻ" .-> U
+    F -. "Quản lý thực hiện thao tác" .-> J
+    U --> V
+    J --> V
+    V -->|Hợp lệ| W
+    V -->|Không hợp lệ| E
+    W -. "Những request đọc tiếp theo" .-> K
+    style Author fill:#eff6ff,stroke:#60a5fa
+    style System fill:#f5f3ff,stroke:#a78bfa
+    style Members fill:#fff7ed,stroke:#fb923c
+    style Data fill:#f0fdf4,stroke:#4ade80
