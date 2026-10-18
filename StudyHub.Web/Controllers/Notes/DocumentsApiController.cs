@@ -1,11 +1,14 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using StudyHub.BLL.Services.Auth;
 using StudyHub.DAL.Entities;
 using StudyHub.DAL.Persistence;
 using StudyHub.Web.Services.Notes;
+using StudyHub.Web.Hubs;
 
 namespace StudyHub.Web.Controllers.Notes;
 
@@ -15,7 +18,9 @@ namespace StudyHub.Web.Controllers.Notes;
 public sealed class DocumentsApiController(
     StudyHubDbContext db,
     ICurrentUser currentUser,
-    IPdfStorage storage) : ControllerBase
+    IPdfStorage storage,
+    IHubContext<NotesHub> notesHub,
+    ILogger<DocumentsApiController> logger) : ControllerBase
 {
     private const long MaxPdfBytes = 25 * 1024 * 1024;
     private const int MaxAnnotations = 5000;
@@ -37,6 +42,7 @@ public sealed class DocumentsApiController(
                 d.UpdatedAtUtc,
                 d.IsArchived,
                 IsPinned = d.DocumentBookmarks.Any(b => b.UserId == userId),
+                ShareCount = db.GroupDocumentShares.Count(share => share.DocumentId == d.DocumentId && share.IsActive),
                 VersionId = db.DocumentVersions.Where(v => v.DocumentId == d.DocumentId)
                     .OrderByDescending(v => v.DocumentVersionId).Select(v => (long?)v.DocumentVersionId).FirstOrDefault()
             })
@@ -46,7 +52,7 @@ public sealed class DocumentsApiController(
 
         return Ok(documents.Select(d => new DocumentListItem(
             d.DocumentId, d.Title, d.OriginalFileName ?? d.Title, d.FileSizeBytes ?? 0,
-            d.CreatedAtUtc, d.UpdatedAtUtc, d.IsArchived, d.IsPinned, d.VersionId)));
+            d.CreatedAtUtc, d.UpdatedAtUtc, d.IsArchived, d.IsPinned, d.VersionId, d.ShareCount)));
     }
 
     [HttpPost]
@@ -67,9 +73,18 @@ public sealed class DocumentsApiController(
 
         await using (var stream = file.OpenReadStream())
         {
-            var header = new byte[Math.Min(1024, (int)file.Length)];
-            var read = await stream.ReadAsync(header, cancellationToken);
-            if (!System.Text.Encoding.ASCII.GetString(header, 0, read).Contains("%PDF-", StringComparison.Ordinal))
+            var header = new byte[8];
+            var read = 0;
+            while (read < header.Length)
+            {
+                var count = await stream.ReadAsync(header.AsMemory(read), cancellationToken);
+                if (count == 0) break;
+                read += count;
+            }
+            if (read != header.Length ||
+                !header.AsSpan(0, 5).SequenceEqual("%PDF-"u8) ||
+                header[5] is not (>= (byte)'1' and <= (byte)'2') ||
+                header[6] != (byte)'.' || header[7] is not (>= (byte)'0' and <= (byte)'9'))
                 return BadRequest(new { message = "Nội dung file không phải PDF hợp lệ." });
         }
 
@@ -114,6 +129,9 @@ public sealed class DocumentsApiController(
                 CreatedAtUtc = now
             };
             db.DocumentVersions.Add(version);
+            await db.SaveChangesAsync(cancellationToken);
+            db.AuditLogs.Add(CreateDocumentAudit("Pdf.Uploaded", document.DocumentId,
+                $"version={version.DocumentVersionId}; bytes={file.Length}"));
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
@@ -185,6 +203,7 @@ public sealed class DocumentsApiController(
             .Where(a => a.DocumentVersionId == version.DocumentVersionId && a.OwnerUserId == currentUser.UserId)
             .OrderBy(a => a.PageIndex).ThenBy(a => a.AnnotationKey)
             .Select(a => a.PayloadJson).ToListAsync(cancellationToken);
+        Response.Headers.ETag = $"\"{Convert.ToBase64String(document.RowVersion)}\"";
         return Content($"[{string.Join(",", rows)}]", "application/json");
     }
 
@@ -200,6 +219,18 @@ public sealed class DocumentsApiController(
         var document = await GetOwnedDocument(id, cancellationToken);
         if (document is null) return NotFound();
         if (document.IsArchived) return Conflict(new { message = "Tài liệu đã lưu trữ, annotation chỉ đọc." });
+        var ifMatch = Request.Headers.IfMatch.ToString();
+        if (string.IsNullOrWhiteSpace(ifMatch))
+            return StatusCode(StatusCodes.Status428PreconditionRequired,
+                new { message = "Cần tải lại annotation để lấy phiên bản trước khi lưu." });
+        if (!ifMatch.StartsWith('"') || !ifMatch.EndsWith('"') || ifMatch.Length < 3)
+            return BadRequest(new { message = "If-Match không hợp lệ." });
+        byte[] expectedVersion;
+        try { expectedVersion = Convert.FromBase64String(ifMatch[1..^1]); }
+        catch (FormatException) { return BadRequest(new { message = "If-Match không hợp lệ." }); }
+        if (expectedVersion.Length != document.RowVersion.Length ||
+            !CryptographicOperations.FixedTimeEquals(expectedVersion, document.RowVersion))
+            return Conflict(new { message = "Annotation đã thay đổi ở nơi khác. Hãy tải lại trước khi lưu." });
         if (annotations.ValueKind != JsonValueKind.Array || annotations.GetArrayLength() > MaxAnnotations)
             return BadRequest(new { message = "Danh sách annotation không hợp lệ hoặc vượt quá giới hạn." });
         if (System.Text.Encoding.UTF8.GetByteCount(annotations.GetRawText()) > MaxAnnotationPayloadBytes)
@@ -233,14 +264,27 @@ public sealed class DocumentsApiController(
             return BadRequest(new { message = "Danh sách annotation có id trùng nhau." });
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        var existing = db.DocumentAnnotations.Where(a => a.DocumentVersionId == version.DocumentVersionId &&
-            a.OwnerUserId == currentUser.UserId);
-        db.DocumentAnnotations.RemoveRange(existing);
-        await db.SaveChangesAsync(cancellationToken);
-        db.DocumentAnnotations.AddRange(replacements);
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return Ok(new { count = replacements.Count, savedAtUtc = DateTime.UtcNow });
+        try
+        {
+            document.UpdatedAtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            var existing = db.DocumentAnnotations.Where(a => a.DocumentVersionId == version.DocumentVersionId &&
+                a.OwnerUserId == currentUser.UserId);
+            db.DocumentAnnotations.RemoveRange(existing);
+            await db.SaveChangesAsync(cancellationToken);
+            db.DocumentAnnotations.AddRange(replacements);
+            db.AuditLogs.Add(CreateDocumentAudit("PdfAnnotation.Saved", id,
+                $"version={version.DocumentVersionId}; count={replacements.Count}"));
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            Response.Headers.ETag = $"\"{Convert.ToBase64String(document.RowVersion)}\"";
+            return Ok(new { count = replacements.Count, savedAtUtc = DateTime.UtcNow });
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return Conflict(new { message = "Annotation đã thay đổi ở nơi khác. Hãy tải lại trước khi lưu." });
+        }
     }
 
     [HttpPut("{id:long}/page-count")]
@@ -271,6 +315,7 @@ public sealed class DocumentsApiController(
             return BadRequest(new { message = "Tên tài liệu phải có từ 1 đến 200 ký tự." });
         document.Title = title;
         document.UpdatedAtUtc = DateTime.UtcNow;
+        db.AuditLogs.Add(CreateDocumentAudit("Pdf.Renamed", id, null));
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -306,8 +351,11 @@ public sealed class DocumentsApiController(
         if (document is null) return NotFound();
         document.IsDeleted = true;
         document.UpdatedAtUtc = DateTime.UtcNow;
-        await DeactivateGroupSharesAsync(id, cancellationToken);
+        var revokedGroups = await DeactivateGroupSharesAsync(id, cancellationToken);
+        var revokesQueued = await StageRevokedEventsAsync(id, revokedGroups, cancellationToken);
+        db.AuditLogs.Add(CreateDocumentAudit("Pdf.Deleted", id, $"revokedGroups={revokedGroups.Length}"));
         await db.SaveChangesAsync(cancellationToken);
+        if (!revokesQueued) await NotifyRevokedGroupsAsync(id, revokedGroups, cancellationToken);
         return NoContent();
     }
 
@@ -319,12 +367,16 @@ public sealed class DocumentsApiController(
         document.Visibility = "Private";
         document.StudyGroupId = null;
         document.UpdatedAtUtc = DateTime.UtcNow;
-        if (!archived) await DeactivateGroupSharesAsync(id, cancellationToken);
+        var revokedGroups = archived ? await DeactivateGroupSharesAsync(id, cancellationToken) : [];
+        var revokesQueued = await StageRevokedEventsAsync(id, revokedGroups, cancellationToken);
+        db.AuditLogs.Add(CreateDocumentAudit(archived ? "Pdf.Archived" : "Pdf.Restored", id,
+            $"revokedGroups={revokedGroups.Length}"));
         await db.SaveChangesAsync(cancellationToken);
+        if (!revokesQueued) await NotifyRevokedGroupsAsync(id, revokedGroups, cancellationToken);
         return NoContent();
     }
 
-    private async Task DeactivateGroupSharesAsync(long documentId, CancellationToken cancellationToken)
+    private async Task<long[]> DeactivateGroupSharesAsync(long documentId, CancellationToken cancellationToken)
     {
         var shares = await db.GroupDocumentShares.Where(item => item.DocumentId == documentId && item.IsActive)
             .ToListAsync(cancellationToken);
@@ -334,10 +386,56 @@ public sealed class DocumentsApiController(
             share.IsActive = false;
             share.UnsharedAtUtc = now;
         }
+        return shares.Select(share => share.StudyGroupId).Distinct().ToArray();
+    }
+
+    private async Task<bool> StageRevokedEventsAsync(long documentId, long[] groupIds, CancellationToken ct)
+    {
+        if (groupIds.Length == 0) return false;
+        var installed = await db.Database.SqlQueryRaw<int>(
+            "SELECT CASE WHEN OBJECT_ID(N'dbo.NotesOutboxEvents', N'U') IS NULL THEN 0 ELSE 1 END AS [Value]")
+            .SingleAsync(ct) == 1;
+        if (!installed) return false;
+        var payload = JsonSerializer.Serialize(new { documentId });
+        db.NotesOutboxEvents.AddRange(groupIds.Select(groupId => new NotesOutboxEvent
+        {
+            StudyGroupId = groupId,
+            EventName = "PdfShareChanged",
+            PayloadJson = payload,
+            CreatedAtUtc = DateTime.UtcNow
+        }));
+        return true;
+    }
+
+    private async Task NotifyRevokedGroupsAsync(long documentId, long[] groupIds, CancellationToken cancellationToken)
+    {
+        foreach (var groupId in groupIds)
+        {
+            try
+            {
+                using var payload = JsonDocument.Parse(JsonSerializer.Serialize(new { documentId }));
+                await NotesEventDelivery.SendToActiveMembersAsync(db, notesHub, groupId,
+                    "PdfShareChanged", payload.RootElement, cancellationToken);
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "PDF revoke notification failed for group {GroupId}", groupId);
+            }
+        }
     }
 
     private Task<Document?> GetOwnedDocument(long id, CancellationToken cancellationToken) => db.Documents
         .FirstOrDefaultAsync(d => d.DocumentId == id && d.OwnerUserId == currentUser.UserId && !d.IsDeleted, cancellationToken);
+
+    private AuditLog CreateDocumentAudit(string action, long documentId, string? summary) => new()
+    {
+        ActorUserId = currentUser.UserId,
+        ActionCode = action,
+        EntityType = "Document",
+        EntityKey = documentId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        Summary = summary,
+        CreatedAtUtc = DateTime.UtcNow
+    };
 
     private Task<DocumentVersion?> LatestVersion(long documentId, CancellationToken cancellationToken) => db.DocumentVersions
         .Where(v => v.DocumentId == documentId)
@@ -351,7 +449,7 @@ public sealed class DocumentsApiController(
 }
 
 public sealed record DocumentListItem(long Id, string Title, string FileName, long SizeBytes,
-    DateTime CreatedAtUtc, DateTime UpdatedAtUtc, bool IsArchived, bool IsPinned, long? VersionId);
+    DateTime CreatedAtUtc, DateTime UpdatedAtUtc, bool IsArchived, bool IsPinned, long? VersionId, int ShareCount = 0);
 public sealed record DocumentDetails(long Id, string Title, long VersionId, string FileName, long SizeBytes, bool IsArchived);
 public sealed record RenameDocumentRequest(string? Title);
 public sealed record UpdatePageCountRequest(int PageCount);
