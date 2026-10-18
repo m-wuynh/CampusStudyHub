@@ -12,7 +12,7 @@ namespace StudyHub.BLL.Services.Grades;
 
 public interface IGradeService
 {
-    Task<GradesPageDto> GetGradePageAsync(long userId, long? gradeBookId, CancellationToken cancellationToken = default);
+    Task<GradesPageDto> GetGradePageAsync(long userId, long? gradeBookId, CancellationToken cancellationToken = default, bool includeSubjectOptions = true);
 
     // ── Grade Entries ────────────────────────────────────────────
     Task AddGradeEntryAsync(long userId, CreateGradeEntryDto dto, CancellationToken cancellationToken = default);
@@ -34,7 +34,7 @@ public interface IGradeService
 
 public sealed class GradeService(IRepository repository) : IGradeService
 {
-    public async Task<GradesPageDto> GetGradePageAsync(long userId, long? gradeBookId, CancellationToken cancellationToken = default)
+    public async Task<GradesPageDto> GetGradePageAsync(long userId, long? gradeBookId, CancellationToken cancellationToken = default, bool includeSubjectOptions = true)
     {
         var gradeBooks = await repository.Query<GradeBook>()
             .Where(gb => gb.UserId == userId)
@@ -295,15 +295,17 @@ public sealed class GradeService(IRepository repository) : IGradeService
         var goalLadders = BuildGoalLadders(goalSubjectSources, allGoals);
 
         // ── 5. Load All Active Subjects for GradeBook dropdown lookup in Goal modals ──
-        var allSubjects = await repository.Query<UserSubject>()
-            .Include(us => us.Subject)
-            .Where(us => us.UserId == userId && !us.IsArchived)
-            .OrderBy(us => us.CustomSubjectName ?? us.Subject!.SubjectName)
-            .Select(us => new GradeSubjectOptionDto(
-                us.UserSubjectId,
-                us.GradeBookId,
-                us.CustomSubjectName ?? us.Subject!.SubjectName ?? "Môn học"))
-            .ToListAsync(cancellationToken);
+        var allSubjects = includeSubjectOptions
+            ? await repository.Query<UserSubject>()
+                .Include(us => us.Subject)
+                .Where(us => us.UserId == userId && !us.IsArchived)
+                .OrderBy(us => us.CustomSubjectName ?? us.Subject!.SubjectName)
+                .Select(us => new GradeSubjectOptionDto(
+                    us.UserSubjectId,
+                    us.GradeBookId,
+                    us.CustomSubjectName ?? us.Subject!.SubjectName ?? "Môn học"))
+                .ToListAsync(cancellationToken)
+            : new List<GradeSubjectOptionDto>();
 
         return new GradesPageDto(gradeBooks, selectedGradeBookId, gradeBookDto, columns, yearSummary, subjectDetails, goalLadders, allSubjects);
     }
