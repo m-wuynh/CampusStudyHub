@@ -13,6 +13,10 @@ public sealed class GroupNotesApiController(GroupNotesService service) : Control
     [HttpGet("eligible-groups")]
     public Task<IActionResult> EligibleGroups(CancellationToken ct) => Run(async () => Ok(await service.GetEligibleGroupsAsync(ct)));
 
+    [HttpGet("documents/{documentId:long}/shares")]
+    public Task<IActionResult> DocumentShares(long documentId, CancellationToken ct) =>
+        Run(async () => Ok(await service.GetDocumentSharesAsync(documentId, ct)));
+
     [HttpPost("documents/{documentId:long}/shares")]
     [ValidateAntiForgeryToken]
     public Task<IActionResult> ShareDocument(long documentId, [FromBody] ShareToGroupRequest request, CancellationToken ct) =>
@@ -89,8 +93,8 @@ public sealed class GroupNotesApiController(GroupNotesService service) : Control
         [FromBody] SaveGroupAnnotationsRequest request, CancellationToken ct) =>
         Run(async () =>
         {
-            var token = await service.SaveOwnerAnnotationsAsync(groupId, documentId, versionId,
-                request.Payload, request.VersionToken, ct);
+            var token = await service.SaveGroupAnnotationsAsync(groupId, documentId, versionId,
+                request.ShareId, request.Payload, request.VersionToken, ct);
             return Ok(new { versionToken = token, savedAtUtc = DateTime.UtcNow });
         });
 
@@ -98,16 +102,12 @@ public sealed class GroupNotesApiController(GroupNotesService service) : Control
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(18 * 1024 * 1024)]
     public Task<IActionResult> SubmitChange(long groupId, [FromBody] GroupChangeRequestInput request, CancellationToken ct) =>
-        Run(async () => Accepted(await service.SubmitChangeAsync(groupId, request, ct)));
+        Task.FromResult<IActionResult>(StatusCode(410, new { message = "Đề xuất chỉnh sửa đã ngừng sử dụng. Thành viên Active sửa trực tiếp." }));
 
     [HttpPost("groups/{groupId:long}/requests/{requestId:long}/decision")]
     [ValidateAntiForgeryToken]
     public Task<IActionResult> DecideChange(long groupId, long requestId, [FromBody] DecideChangeRequest request, CancellationToken ct) =>
-        Run(async () =>
-        {
-            var result = await service.DecideChangeAsync(groupId, requestId, request.Approve, request.ResolutionNote, ct);
-            return result.Status == "Conflict" ? Conflict(new { message = "Phiên bản chính thức đã thay đổi. Đề xuất được đánh dấu Conflict." }) : Ok(result);
-        });
+        Task.FromResult<IActionResult>(StatusCode(410, new { message = "Duyệt đề xuất đã ngừng sử dụng. Dữ liệu cũ được giữ để đối chiếu." }));
 
     [HttpPost("groups/{groupId:long}/notes")]
     [ValidateAntiForgeryToken]
@@ -130,18 +130,41 @@ public sealed class GroupNotesApiController(GroupNotesService service) : Control
             return result.Applied ? Ok(result) : Accepted(result);
         });
 
+    [HttpPost("groups/{groupId:long}/notes/{noteId:long}/copy-personal")]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> CopyGroupNoteToPersonal(long groupId, long noteId, CancellationToken ct) =>
+        Run(async () => Ok(new { id = await service.CopyGroupNoteToPersonalAsync(groupId, noteId, ct) }));
+
+    [HttpPost("groups/{groupId:long}/notes/{noteId:long}/restore-copy")]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> RestoreDeletedGroupNoteAsCopy(long groupId, long noteId,
+        [FromBody] RestoreGroupNoteCopyRequest request, CancellationToken ct) =>
+        Run(async () => Ok(await service.RestoreDeletedNoteAsCopyAsync(groupId, noteId, request.VersionToken, ct)));
+
+    [HttpGet("groups/{groupId:long}/notes/{noteId:long}/revisions")]
+    public Task<IActionResult> NoteRevisions(long groupId, long noteId, CancellationToken ct) =>
+        Run(async () => Ok(await service.GetNoteRevisionsAsync(groupId, noteId, ct)));
+
+    [HttpPost("groups/{groupId:long}/notes/{noteId:long}/revisions/{revisionId:long}/restore-copy")]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> RestoreNoteRevisionAsCopy(long groupId, long noteId, long revisionId, CancellationToken ct) =>
+        Run(async () => Ok(await service.RestoreRevisionAsCopyAsync(groupId, noteId, revisionId, ct)));
+
     [HttpPost("groups/{groupId:long}/notes/{noteId:long}/archive")]
     [ValidateAntiForgeryToken]
-    public Task<IActionResult> ArchiveGroupNote(long groupId, long noteId, CancellationToken ct) =>
-        SetGroupNoteArchive(groupId, noteId, true, ct);
+    public Task<IActionResult> ArchiveGroupNote(long groupId, long noteId,
+        [FromBody] GroupNoteVersionRequest request, CancellationToken ct) =>
+        SetGroupNoteArchive(groupId, noteId, true, request.VersionToken, ct);
 
     [HttpPost("groups/{groupId:long}/notes/{noteId:long}/restore")]
     [ValidateAntiForgeryToken]
-    public Task<IActionResult> RestoreGroupNote(long groupId, long noteId, CancellationToken ct) =>
-        SetGroupNoteArchive(groupId, noteId, false, ct);
+    public Task<IActionResult> RestoreGroupNote(long groupId, long noteId,
+        [FromBody] GroupNoteVersionRequest request, CancellationToken ct) =>
+        SetGroupNoteArchive(groupId, noteId, false, request.VersionToken, ct);
 
-    private Task<IActionResult> SetGroupNoteArchive(long groupId, long noteId, bool archived, CancellationToken ct) =>
-        Run(async () => await service.SetGroupNoteArchiveAsync(groupId, noteId, archived, ct)
+    private Task<IActionResult> SetGroupNoteArchive(
+        long groupId, long noteId, bool archived, string? versionToken, CancellationToken ct) =>
+        Run(async () => await service.SetGroupNoteArchiveAsync(groupId, noteId, archived, versionToken, ct)
             ? NoContent() : NotFound());
 
     private async Task<IActionResult> Run(Func<Task<IActionResult>> action)
@@ -155,5 +178,7 @@ public sealed class GroupNotesApiController(GroupNotesService service) : Control
 }
 
 public sealed record ShareToGroupRequest(long GroupId);
-public sealed record SaveGroupAnnotationsRequest(JsonElement Payload, string? VersionToken);
+public sealed record SaveGroupAnnotationsRequest(long ShareId, JsonElement Payload, string? VersionToken);
 public sealed record DecideChangeRequest(bool Approve, string? ResolutionNote);
+public sealed record RestoreGroupNoteCopyRequest(string? VersionToken);
+public sealed record GroupNoteVersionRequest(string? VersionToken);

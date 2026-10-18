@@ -83,6 +83,7 @@ builder.Services.AddScoped<IGoogleAuthRepository, GoogleAuthRepository>();
 builder.Services.AddScoped<IRepository, EfRepository>();
 builder.Services.AddSingleton<IPdfStorage, LocalPdfStorage>();
 builder.Services.AddScoped<GroupNotesService>();
+builder.Services.AddHostedService<NotesOutboxWorker>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<IStudyGroupService, StudyGroupService>();
@@ -150,6 +151,7 @@ app.UseAuthorization();
 app.MapStaticAssets().AllowAnonymous();
 app.MapControllers();
 app.MapHub<StudyGroupHub>("/hubs/study-groups");
+app.MapHub<NotesHub>("/hubs/notes");
 
 if (app.Environment.IsDevelopment())
 {
