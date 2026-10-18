@@ -11,4 +11,5 @@ public sealed record CalendarUpdateViewModel(
     TimeOnly EndTime,
     string? Location,
     string? Description,
-    List<int>? ReminderMinutes = null);
+    List<int>? ReminderMinutes = null,
+    List<ReminderInputDto>? Reminders = null);

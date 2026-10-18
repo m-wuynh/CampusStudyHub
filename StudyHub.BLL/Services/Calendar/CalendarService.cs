@@ -55,10 +55,10 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         )).ToList();
     }
 
-    public async Task<List<int>> GetReminderMinutesAsync(long userId, long eventId)
+    public async Task<List<ReminderInputDto>> GetEventRemindersAsync(long userId, long eventId)
     {
         var reminders = await repository.ListAsync<Reminder>(r => r.UserId == userId && r.ScheduleEventId == eventId);
-        var result = new List<int>();
+        var result = new List<ReminderInputDto>();
         var ev = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == eventId);
         if (ev == null) return result;
 
@@ -66,9 +66,18 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         {
             var diff = ev.StartAtLocal - r.RemindAtUtc.ToLocalTime();
             var minutes = (int)Math.Round(diff.TotalMinutes);
-            if (minutes > 0) result.Add(minutes);
+            if (minutes > 0)
+            {
+                result.Add(new ReminderInputDto(minutes, r.Channel));
+            }
         }
         return result;
+    }
+
+    public async Task<List<int>> GetReminderMinutesAsync(long userId, long eventId)
+    {
+        var list = await GetEventRemindersAsync(userId, eventId);
+        return list.Select(r => r.Minutes).ToList();
     }
 
     public async Task<ScheduleEventDto> CreateEventAsync(long userId, CreateEventDto request)

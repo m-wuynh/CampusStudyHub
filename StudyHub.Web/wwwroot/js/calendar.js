@@ -241,14 +241,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 fetch('/Calendar/GetEventReminders/' + info.event.id)
                     .then(r => r.json())
-                    .then(minutes => {
-                        if (minutes && minutes.length > 0) {
-                            remList.innerHTML = minutes.map(m => {
-                                if (m % 10080 === 0) return (m / 10080) + ' tuần trước';
-                                if (m % 1440 === 0) return (m / 1440) + ' ngày trước';
-                                if (m % 60 === 0) return (m / 60) + ' giờ trước';
-                                return m + ' phút trước';
-                            }).join('<br/>');
+                    .then(reminders => {
+                        if (reminders && reminders.length > 0) {
+                            remList.innerHTML = reminders.map(item => {
+                                var m = typeof item === 'object' ? item.minutes : item;
+                                var ch = typeof item === 'object' ? (item.channel || '').toLowerCase() : '';
+                                var text = '';
+                                if (m % 10080 === 0) text = (m / 10080) + ' tuần trước';
+                                else if (m % 1440 === 0) text = (m / 1440) + ' ngày trước';
+                                else if (m % 60 === 0) text = (m / 60) + ' giờ trước';
+                                else text = m + ' phút trước';
+
+                                if (ch === 'email' || ch === 'gmail') {
+                                    text += ' ( gmail )';
+                                }
+                                return '<div>' + text + '</div>';
+                            }).join('');
                             remRow.style.setProperty('display', 'flex', 'important');
                         }
                     })
