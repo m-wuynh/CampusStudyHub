@@ -205,18 +205,20 @@
             <h2 class="group-section-title mb-0"><i class="bi bi-folder2-open"></i>Tài nguyên nhóm</h2>
             <a href="/Notes/Groups/@Model.Group.Id" class="btn-primary-sh"><i class="bi bi-journal-richtext"></i>Notes &amp; PDF workspace</a>
           </div>
-          <div class="row g-3">
-            @foreach (var resource in Model.Group.Resources)
-            {
-              <div class="col-md-6">
-                <a href="@(resource.Url ?? "#")" class="group-resource-card @(resource.Url is null ? "disabled" : "")">
-                  <i class="bi @(resource.ResourceType == "Note" ? "bi-journal-text" : resource.ResourceType == "Flashcard" ? "bi-layers" : "bi-file-earmark-text")"></i>
-                  <div><strong>@resource.Title</strong><span>@resource.ResourceType</span></div>
-                </a>
-              </div>
-            }
+          <div id="gl-resources" aria-live="polite">
+            <div class="row g-3">
+              @foreach (var resource in Model.Group.Resources)
+              {
+                <div class="col-md-6">
+                  <a href="@(resource.Url ?? "#")" class="group-resource-card @(resource.Url is null ? "disabled" : "")">
+                    <i class="bi @(resource.ResourceType == "Note" ? "bi-journal-text" : resource.ResourceType == "Flashcard" ? "bi-layers" : "bi-file-earmark-text")"></i>
+                    <div><strong>@resource.Title</strong><span>@resource.ResourceType</span></div>
+                  </a>
+                </div>
+              }
+            </div>
+            @if (Model.Group.Resources.Count == 0) { <div class="group-empty-state"><i class="bi bi-folder2-open"></i><p>Chưa có ghi chú, tài liệu hoặc flashcard được chia sẻ cho nhóm.</p></div> }
           </div>
-          @if (Model.Group.Resources.Count == 0) { <div class="group-empty-state"><i class="bi bi-folder2-open"></i><p>Chưa có ghi chú, tài liệu hoặc flashcard được chia sẻ cho nhóm.</p></div> }
         </section>
 
         <section class="group-panel" data-panel-content="members" hidden>

@@ -192,3 +192,6 @@ static async Task<GatewayCheck> Check(
 }
 
 public sealed record GatewayCheck(string Name, bool ExpectedAllowed, bool ActualAllowed, bool Passed);
+
+// Expose the entry point to WebApplicationFactory integration tests.
+public partial class Program { }
