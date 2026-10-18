@@ -7,38 +7,51 @@
 
 <div id="notes-library" class="notes-module" data-api="/api/notes/documents">
     @Html.AntiForgeryToken()
-    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-3 mb-4">
+    <div class="notes-library-intro mb-3">
         <div>
             <h2 class="fw-bold mb-1" style="font-size:20px;color:var(--sh-slate-900)">Thư viện tài liệu</h2>
-            <p class="mb-0" style="font-size:12px;color:var(--sh-slate-500)">PDF được lưu riêng tư trong tài khoản của bạn.</p>
+            <p class="mb-0 text-secondary">Đọc PDF, ghi chú và chia sẻ vào nhóm học tập từ một nơi.</p>
         </div>
-        <form id="pdf-upload-form" class="notes-upload d-flex flex-column flex-sm-row align-items-sm-end gap-2">
-            <div>
-                <label class="form-label mb-1" for="pdf-title">Tên tài liệu</label>
+    </div>
+    <div class="notes-library-layout">
+    <div class="notes-library-sticky">
+    <nav class="notes-library-nav sh-card" aria-label="Các mục thư viện">
+        <span class="notes-nav-caption">THƯ VIỆN CỦA TÔI</span>
+        <button type="button" class="active" data-filter="all"><i class="bi bi-grid"></i> Tất cả</button>
+        <button type="button" data-filter="pdf"><i class="bi bi-file-earmark-pdf"></i> Tài liệu PDF</button>
+        <button type="button" data-filter="notes"><i class="bi bi-journal-text"></i> Ghi chú</button>
+        <button type="button" data-filter="archived"><i class="bi bi-archive"></i> Đã lưu trữ</button>
+    </nav>
+    <div class="notes-library-actions">
+        <form id="pdf-upload-form" class="notes-upload sh-card" aria-label="Tải PDF lên thư viện">
+            <div class="notes-action-icon" aria-hidden="true"><i class="bi bi-file-earmark-pdf"></i></div>
+            <div class="notes-upload-fields">
+                <strong>Tải PDF lên</strong>
+                <span class="small text-secondary">Tài liệu riêng tư; tối đa 25 MB.</span>
+                <label class="form-label mt-2 mb-1" for="pdf-title">Tên hiển thị (không bắt buộc)</label>
                 <input id="pdf-title" class="form-control" maxlength="200" placeholder="Để trống để dùng tên file">
             </div>
-            <label class="btn-primary-sh mb-0" for="pdf-upload-file"><i class="bi bi-upload"></i> Chọn PDF
-                <input id="pdf-upload-file" type="file" accept="application/pdf,.pdf" hidden>
-            </label>
-            <button id="pdf-upload-submit" class="btn-primary-sh" type="submit" disabled><i class="bi bi-cloud-arrow-up"></i> Tải lên</button>
+            <div class="notes-upload-buttons">
+                <label class="btn btn-outline-primary mb-0" for="pdf-upload-file"><i class="bi bi-folder2-open"></i> Chọn file
+                    <input id="pdf-upload-file" type="file" accept="application/pdf,.pdf" hidden>
+                </label>
+                <button id="pdf-upload-submit" class="btn-primary-sh" type="submit" disabled><i class="bi bi-cloud-arrow-up"></i> Tải lên</button>
+            </div>
         </form>
-        <button id="note-create" class="btn btn-outline-primary" type="button"><i class="bi bi-journal-plus"></i> Tạo ghi chú</button>
-        @if (ViewData["ShowNotesDevelopmentRoles"] is true)
-        {
-            <a class="btn btn-outline-secondary" asp-controller="NotesDevelopmentRoles" asp-action="Index">Kiểm thử Owner/Member</a>
-        }
+        <div class="notes-create-card sh-card">
+            <div class="notes-action-icon" aria-hidden="true"><i class="bi bi-journal-text"></i></div>
+            <div><strong>Ghi chú cá nhân</strong><p class="small text-secondary mb-0">Viết bằng Quill và mở cạnh PDF khi cần.</p></div>
+            <button id="note-create" class="btn btn-outline-primary" type="button"><i class="bi bi-journal-plus"></i> Tạo ghi chú</button>
+        </div>
     </div>
-    <progress id="pdf-upload-progress" class="notes-upload-progress mb-3 d-none" max="100" value="0" aria-label="Tiến độ tải PDF"></progress>
+    <progress id="pdf-upload-progress" class="notes-upload-progress d-none" max="100" value="0" aria-label="Tiến độ tải PDF"></progress>
+    </div>
+    <div class="notes-library-main">
 
     <div class="sh-card p-3 p-lg-4">
-        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between mb-3">
-            <div class="btn-group notes-filter" role="group" aria-label="Lọc thư viện">
-                <button type="button" class="btn btn-outline-secondary active" data-filter="all">Tất cả</button>
-                <button type="button" class="btn btn-outline-secondary" data-filter="pdf">PDF</button>
-                <button type="button" class="btn btn-outline-secondary" data-filter="notes">Ghi chú</button>
-                <button type="button" class="btn btn-outline-secondary" data-filter="archived">Đã lưu trữ</button>
-            </div>
-            <div class="d-flex gap-2">
+        <div class="notes-library-filters d-flex flex-column flex-lg-row gap-3 justify-content-between mb-3">
+            <h3 class="h6 fw-bold mb-0">Tệp và ghi chú</h3>
+            <div class="notes-search-sort d-flex gap-2">
                 <input id="library-search" class="form-control" type="search" placeholder="Tìm tài liệu..." aria-label="Tìm tài liệu">
                 <select id="library-sort" class="form-select" aria-label="Sắp xếp">
                     <option value="recent">Mới cập nhật</option>
@@ -59,11 +72,17 @@
             </table>
         </div>
     </div>
+    </div>
+    </div>
 </div>
 
 <div class="modal fade" id="notes-share-modal" tabindex="-1" aria-labelledby="notes-share-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
+            <div class="px-3 pt-3 notes-share-summary">
+                <strong id="notes-share-document" class="d-block text-break"></strong>
+                <p id="notes-share-impact" class="small text-secondary mt-2 mb-0"></p>
+            </div>
             <div class="modal-header"><h2 id="notes-share-title" class="modal-title fs-6 fw-bold">Chia sẻ vào StudyGroup</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
             <div class="modal-body"><label for="notes-share-group" class="form-label">Nhóm bạn đang là thành viên</label><select id="notes-share-group" class="form-select"></select><p id="notes-share-status" class="small text-secondary mt-2 mb-0" role="status"></p></div>
             <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button><button id="notes-share-confirm" type="button" class="btn-primary-sh">Chia sẻ</button></div>
