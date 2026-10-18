@@ -202,7 +202,9 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == id && e.UserId == userId && !e.IsDeleted);
         if (entity == null) throw new Exception("Event not found");
         
-        repository.Remove(entity);
+        entity.IsDeleted = true;
+        entity.UpdatedAtUtc = DateTime.UtcNow;
+        repository.Update(entity);
         await repository.SaveChangesAsync();
     }
 
