@@ -247,7 +247,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 var m = typeof item === 'object' ? item.minutes : item;
                                 var ch = typeof item === 'object' ? (item.channel || '').toLowerCase() : '';
                                 var text = '';
-                                if (m % 10080 === 0) text = (m / 10080) + ' tuần trước';
+                                if (m === 0) text = 'Vào lúc bắt đầu sự kiện';
+                                else if (m % 10080 === 0) text = (m / 10080) + ' tuần trước';
                                 else if (m % 1440 === 0) text = (m / 1440) + ' ngày trước';
                                 else if (m % 60 === 0) text = (m / 60) + ' giờ trước';
                                 else text = m + ' phút trước';

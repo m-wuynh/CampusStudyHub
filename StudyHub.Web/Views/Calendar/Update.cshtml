@@ -23,7 +23,7 @@
         <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <label class="sh-label" for="event-date">Ngày</label>
-                <input id='event-date' type='date' class='sh-input' value='@Model.Date.ToString("yyyy-MM-dd")' min='@todayStr' />
+                <input id='event-date' type='date' class='sh-input' value='@Model.Date.ToString("yyyy-MM-dd")' />
             </div>
             <div class="col-md-3 col-6">
                 <label class="sh-label" for="event-start">Bắt đầu</label>
@@ -104,7 +104,7 @@
                     <option value="notification" ${channel === 'notification' ? 'selected' : ''}>Thông báo</option>
                     <option value="email" ${channel === 'email' ? 'selected' : ''}>Email</option>
                 </select>
-                <input type="number" class="form-control form-control-sm border-0 bg-light text-center" value="${val}" style="width: 50px;">
+                <input type="number" min="0" class="form-control form-control-sm border-0 bg-light text-center" value="${val}" style="width: 50px;">
                 <select class="form-select form-select-sm border-0 bg-light" style="width: auto; cursor: pointer;">
                     <option value="minutes" ${unit === 'minutes' ? 'selected' : ''}>phút</option>
                     <option value="hours" ${unit === 'hours' ? 'selected' : ''}>giờ</option>
@@ -126,10 +126,12 @@
                     <text>
                     {
                         let totalMinutes = @rem.Minutes;
-                        let ch = '@(rem.Channel == "Email" ? "email" : "notification")';
+                        let ch = '@(string.Equals(rem.Channel, "Email", StringComparison.OrdinalIgnoreCase) || string.Equals(rem.Channel, "gmail", StringComparison.OrdinalIgnoreCase) ? "email" : "notification")';
                         let val = totalMinutes;
                         let unit = 'minutes';
-                        if (val % 10080 === 0) { val /= 10080; unit = 'weeks'; }
+                        if (val === 0) {
+                            unit = 'minutes';
+                        } else if (val % 10080 === 0) { val /= 10080; unit = 'weeks'; }
                         else if (val % 1440 === 0) { val /= 1440; unit = 'days'; }
                         else if (val % 60 === 0) { val /= 60; unit = 'hours'; }
                         addNotification(val, unit, ch);
@@ -146,7 +148,9 @@
                         let totalMinutes = @min;
                         let val = totalMinutes;
                         let unit = 'minutes';
-                        if (val % 10080 === 0) { val /= 10080; unit = 'weeks'; }
+                        if (val === 0) {
+                            unit = 'minutes';
+                        } else if (val % 10080 === 0) { val /= 10080; unit = 'weeks'; }
                         else if (val % 1440 === 0) { val /= 1440; unit = 'days'; }
                         else if (val % 60 === 0) { val /= 60; unit = 'hours'; }
                         addNotification(val, unit);
@@ -165,8 +169,13 @@
             const loc = document.getElementById('event-location').value;
             const desc = document.getElementById('event-description').value;
 
-            if (!title || !date || !start || !end || !category) {
+            if (!title || !title.trim() || !date || !start || !end || !category) {
                 showToast('Vui lòng điền đủ thông tin bắt buộc', 'error');
+                return;
+            }
+
+            if (end <= start) {
+                showToast('Giờ kết thúc phải sau giờ bắt đầu', 'error');
                 return;
             }
 
@@ -181,17 +190,19 @@
                     const channel = inputs[0].value;
                     let val = parseInt(inputs[1].value);
                     const unit = inputs[2].value;
-                    if (!isNaN(val) && val > 0) {
-                        if (unit === 'hours') val *= 60;
-                        else if (unit === 'days') val *= 1440;
-                        else if (unit === 'weeks') val *= 10080;
+                    if (!isNaN(val) && val >= 0) {
+                        if (val > 0) {
+                            if (unit === 'hours') val *= 60;
+                            else if (unit === 'days') val *= 1440;
+                            else if (unit === 'weeks') val *= 10080;
+                        }
                         reminders.push({ Channel: channel, Minutes: val });
                     }
                 }
             });
 
             const data = {
-                Title: title,
+                Title: title.trim(),
                 Date: date,
                 StartTime: start,
                 EndTime: end,
@@ -212,9 +223,9 @@
                     // Navigate back to calendar view
                     setTimeout(() => window.location.href = '/Calendar', 1000);
                 } else {
-                    const errorText = await res.text();
-                    console.error('Lỗi Backend:', errorText);
-                    showToast('Lỗi khi cập nhật sự kiện', 'error');
+                    const errData = await res.json().catch(() => null);
+                    const msg = (errData && errData.error) ? errData.error : 'Lỗi khi cập nhật sự kiện';
+                    showToast(msg, 'error');
                 }
             } catch (err) {
                 console.error('Lỗi mạng:', err);
