@@ -24,7 +24,9 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             e.RepeatMode,
             e.RepeatUntilDate,
             e.Location,
-            e.Description
+            e.Description,
+            e.GoalId,
+            e.IsCompleted
         )).ToList();
     }
 
@@ -47,14 +49,16 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             e.RepeatMode,
             e.RepeatUntilDate,
             e.Location,
-            e.Description
+            e.Description,
+            e.GoalId,
+            e.IsCompleted
         )).ToList();
     }
 
-    public async Task<List<int>> GetReminderMinutesAsync(long userId, long eventId)
+    public async Task<List<ReminderInputDto>> GetEventRemindersAsync(long userId, long eventId)
     {
         var reminders = await repository.ListAsync<Reminder>(r => r.UserId == userId && r.ScheduleEventId == eventId);
-        var result = new List<int>();
+        var result = new List<ReminderInputDto>();
         var ev = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == eventId);
         if (ev == null) return result;
 
@@ -62,9 +66,18 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         {
             var diff = ev.StartAtLocal - r.RemindAtUtc.ToLocalTime();
             var minutes = (int)Math.Round(diff.TotalMinutes);
-            if (minutes > 0) result.Add(minutes);
+            if (minutes >= 0)
+            {
+                result.Add(new ReminderInputDto(minutes, r.Channel));
+            }
         }
         return result;
+    }
+
+    public async Task<List<int>> GetReminderMinutesAsync(long userId, long eventId)
+    {
+        var list = await GetEventRemindersAsync(userId, eventId);
+        return list.Select(r => r.Minutes).ToList();
     }
 
     public async Task<ScheduleEventDto> CreateEventAsync(long userId, CreateEventDto request)
@@ -74,7 +87,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
 
         if (endLocal <= startLocal)
         {
-            endLocal = endLocal.AddDays(1);
+            throw new ArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
         }
 
         var entity = new ScheduleEvent
@@ -96,7 +109,19 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
 
         if (request.Reminders != null && request.Reminders.Any())
         {
-            foreach (var rem in request.Reminders)
+            var distinctReminders = request.Reminders
+                .Where(rem => rem.Minutes >= 0)
+                .Select(rem =>
+                {
+                    var isEmail = string.Equals(rem.Channel, "email", StringComparison.OrdinalIgnoreCase) 
+                               || string.Equals(rem.Channel, "gmail", StringComparison.OrdinalIgnoreCase);
+                    return new ReminderInputDto(rem.Minutes, isEmail ? "Email" : "InApp");
+                })
+                .GroupBy(rem => new { rem.Minutes, rem.Channel })
+                .Select(g => g.First())
+                .ToList();
+
+            foreach (var rem in distinctReminders)
             {
                 var remindAt = startLocal.AddMinutes(-rem.Minutes).ToUniversalTime();
                 var reminder = new Reminder
@@ -104,7 +129,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
                     UserId = userId,
                     ScheduleEventId = entity.ScheduleEventId,
                     OccurrenceDate = request.Date,
-                    Channel = rem.Channel == "email" ? "Email" : "InApp",
+                    Channel = rem.Channel,
                     RemindAtUtc = remindAt,
                     Status = "Pending",
                     SentAtUtc = null
@@ -124,7 +149,9 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             entity.RepeatMode,
             entity.RepeatUntilDate,
             entity.Location,
-            entity.Description
+            entity.Description,
+            entity.GoalId,
+            entity.IsCompleted
         );
     }
 
@@ -142,21 +169,27 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             entity.RepeatMode,
             entity.RepeatUntilDate,
             entity.Location,
-            entity.Description);
+            entity.Description,
+            entity.GoalId,
+            entity.IsCompleted);
     }
 
     public async Task UpdateEventAsync(long userId, UpdateEventDto request)
     {
         var startDateTime = request.Date.ToDateTime(request.StartTime);
-        if (startDateTime < DateTime.Now)
-            throw new Exception("Không thể đặt lịch trong quá khứ");
+        var endDateTime = request.Date.ToDateTime(request.EndTime);
+
+        if (endDateTime <= startDateTime)
+        {
+            throw new ArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
+        }
 
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == request.Id && e.UserId == userId && !e.IsDeleted);
-        if (entity == null) throw new Exception("Event not found");
+        if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
         entity.Title = request.Title;
         entity.EventType = request.EventType;
-        entity.StartAtLocal = request.Date.ToDateTime(request.StartTime);
-        entity.EndAtLocal = request.Date.ToDateTime(request.EndTime);
+        entity.StartAtLocal = startDateTime;
+        entity.EndAtLocal = endDateTime;
         entity.Location = request.Location;
         entity.Description = request.Description;
         entity.UpdatedAtUtc = DateTime.UtcNow;
@@ -171,7 +204,19 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         
         if (request.Reminders != null && request.Reminders.Any())
         {
-            foreach (var rem in request.Reminders)
+            var distinctReminders = request.Reminders
+                .Where(rem => rem.Minutes >= 0)
+                .Select(rem =>
+                {
+                    var isEmail = string.Equals(rem.Channel, "email", StringComparison.OrdinalIgnoreCase) 
+                               || string.Equals(rem.Channel, "gmail", StringComparison.OrdinalIgnoreCase);
+                    return new ReminderInputDto(rem.Minutes, isEmail ? "Email" : "InApp");
+                })
+                .GroupBy(rem => new { rem.Minutes, rem.Channel })
+                .Select(g => g.First())
+                .ToList();
+
+            foreach (var rem in distinctReminders)
             {
                 var remindAt = startDateTime.AddMinutes(-rem.Minutes).ToUniversalTime();
                 var reminder = new Reminder
@@ -179,7 +224,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
                     UserId = userId,
                     ScheduleEventId = entity.ScheduleEventId,
                     OccurrenceDate = request.Date,
-                    Channel = rem.Channel == "email" ? "Email" : "InApp",
+                    Channel = rem.Channel,
                     RemindAtUtc = remindAt,
                     Status = "Pending"
                 };
@@ -193,9 +238,43 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
     {
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == id && e.UserId == userId && !e.IsDeleted);
         if (entity == null) throw new Exception("Event not found");
+        
         entity.IsDeleted = true;
         entity.UpdatedAtUtc = DateTime.UtcNow;
         repository.Update(entity);
         await repository.SaveChangesAsync();
+    }
+
+    public async Task ToggleEventCompletionAsync(long userId, long eventId, bool isCompleted)
+    {
+        var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == eventId && e.UserId == userId && !e.IsDeleted);
+        if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
+
+        if (isCompleted && entity.EndAtLocal < DateTime.Now)
+        {
+            throw new InvalidOperationException("Ca học đã quá hạn và được tính là Bỏ lỡ (Missed), không thể cập nhật.");
+        }
+
+        entity.IsCompleted = isCompleted;
+        entity.UpdatedAtUtc = DateTime.UtcNow;
+        repository.Update(entity);
+        await repository.SaveChangesAsync();
+    }
+
+    public async Task<bool> ToggleEventCompletionAsync(long userId, long id)
+    {
+        var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == id && e.UserId == userId && !e.IsDeleted);
+        if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
+
+        if (!entity.IsCompleted && entity.EndAtLocal < DateTime.Now)
+        {
+            throw new InvalidOperationException("Ca học đã quá hạn và được tính là Bỏ lỡ (Missed), không thể cập nhật.");
+        }
+
+        entity.IsCompleted = !entity.IsCompleted;
+        entity.UpdatedAtUtc = DateTime.UtcNow;
+        repository.Update(entity);
+        await repository.SaveChangesAsync();
+        return entity.IsCompleted;
     }
 }

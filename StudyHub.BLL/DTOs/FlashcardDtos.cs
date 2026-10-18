@@ -48,3 +48,22 @@ public sealed record UpdateFlashcardRequestDto(
     string? FrontText,
     string? BackText,
     int SortOrder);
+
+//learn mode
+
+public sealed record FlashcardLearnOptionDto(string Text);
+
+public sealed record FlashcardLearnQuestionDto(
+    long QuestionCardId,
+    string QuestionText,
+    IReadOnlyList<FlashcardLearnOptionDto> Options);
+
+public sealed record SubmitFlashcardLearnAnswerRequestDto(
+    long QuestionCardId,
+    string? SelectedAnswer);
+
+public sealed record FlashcardLearnAnswerResultDto(
+    long QuestionCardId,
+    string SelectedAnswer,
+    string CorrectAnswer,
+    bool IsCorrect);

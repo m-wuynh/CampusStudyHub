@@ -13,68 +13,74 @@ public partial class AddDiscordStudyGroupFlow : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.Sql(
-            """
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'Goal') IS NULL
-                ALTER TABLE dbo.StudyGroups ADD Goal nvarchar(500) NULL;
+                ALTER TABLE dbo.StudyGroups ADD Goal nvarchar(500) NULL;");
 
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'MeetingFormat') IS NULL
                 ALTER TABLE dbo.StudyGroups ADD MeetingFormat varchar(10) NOT NULL
-                    CONSTRAINT DF_StudyGroups_MeetingFormat DEFAULT ('Online');
+                    CONSTRAINT DF_StudyGroups_MeetingFormat DEFAULT ('Online');");
 
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'MeetingSchedule') IS NULL
-                ALTER TABLE dbo.StudyGroups ADD MeetingSchedule nvarchar(250) NULL;
+                ALTER TABLE dbo.StudyGroups ADD MeetingSchedule nvarchar(250) NULL;");
 
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'ContactUrl') IS NULL
-                ALTER TABLE dbo.StudyGroups ADD ContactUrl nvarchar(2048) NULL;
+                ALTER TABLE dbo.StudyGroups ADD ContactUrl nvarchar(2048) NULL;");
 
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'Rules') IS NULL
-                ALTER TABLE dbo.StudyGroups ADD Rules nvarchar(2000) NULL;
+                ALTER TABLE dbo.StudyGroups ADD Rules nvarchar(2000) NULL;");
 
-            DECLARE @JoinModeAdded bit = 0;
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'JoinMode') IS NULL
             BEGIN
                 ALTER TABLE dbo.StudyGroups ADD JoinMode varchar(15) NOT NULL
                     CONSTRAINT DF_StudyGroups_JoinMode DEFAULT ('Approval');
-                SET @JoinModeAdded = 1;
-            END;
-
+            END;");        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'UpdatedAtUtc') IS NULL
                 ALTER TABLE dbo.StudyGroups ADD UpdatedAtUtc datetime2(3) NOT NULL
-                    CONSTRAINT DF_StudyGroups_Updated DEFAULT (SYSUTCDATETIME());
+                    CONSTRAINT DF_StudyGroups_Updated DEFAULT (SYSUTCDATETIME());");
 
+        migrationBuilder.Sql(@"
             IF NOT EXISTS (
                 SELECT 1 FROM sys.check_constraints
                 WHERE name = 'CK_StudyGroups_JoinMode'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
                 EXEC(N'ALTER TABLE dbo.StudyGroups ADD CONSTRAINT CK_StudyGroups_JoinMode
-                    CHECK (JoinMode IN (''Open'', ''Approval'', ''InviteOnly''));');
+                    CHECK (JoinMode IN (''Open'', ''Approval'', ''InviteOnly''))');");
 
+        migrationBuilder.Sql(@"
             IF NOT EXISTS (
                 SELECT 1 FROM sys.check_constraints
                 WHERE name = 'CK_StudyGroups_MeetingFormat'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
                 EXEC(N'ALTER TABLE dbo.StudyGroups ADD CONSTRAINT CK_StudyGroups_MeetingFormat
-                    CHECK (MeetingFormat IN (''Online'', ''Offline'', ''Hybrid''));');
+                    CHECK (MeetingFormat IN (''Online'', ''Offline'', ''Hybrid''))');");
 
-            IF @JoinModeAdded = 1
-                EXEC(N'UPDATE dbo.StudyGroups
-                    SET JoinMode = CASE
-                        WHEN Visibility = ''Private'' THEN ''InviteOnly''
-                        ELSE ''Approval''
-                    END;');
-
+        migrationBuilder.Sql(@"
+            UPDATE dbo.StudyGroups
+            SET JoinMode = CASE
+                WHEN Visibility = 'Private' THEN 'InviteOnly'
+                ELSE 'Approval'
+            END
+            WHERE JoinMode = 'Approval' AND Visibility = 'Private';");
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.GroupPosts', 'PostType') IS NULL
                 ALTER TABLE dbo.GroupPosts ADD PostType varchar(15) NOT NULL
-                    CONSTRAINT DF_GroupPosts_PostType DEFAULT ('Message');
+                    CONSTRAINT DF_GroupPosts_PostType DEFAULT ('Message');");
 
+        migrationBuilder.Sql(@"
             IF NOT EXISTS (
                 SELECT 1 FROM sys.check_constraints
                 WHERE name = 'CK_GroupPosts_Type'
                   AND parent_object_id = OBJECT_ID('dbo.GroupPosts'))
                 EXEC(N'ALTER TABLE dbo.GroupPosts ADD CONSTRAINT CK_GroupPosts_Type
-                    CHECK (PostType IN (''Message'', ''Announcement''));');
+                    CHECK (PostType IN (''Message'', ''Announcement''))');");
 
+        migrationBuilder.Sql(@"
             IF OBJECT_ID('dbo.GroupInvites', 'U') IS NULL
             BEGIN
                 CREATE TABLE dbo.GroupInvites (
@@ -98,79 +104,101 @@ public partial class AddDiscordStudyGroupFlow : Migration
                     CONSTRAINT CK_GroupInvites_Uses
                         CHECK (MaxUses BETWEEN 1 AND 1000 AND UseCount BETWEEN 0 AND MaxUses)
                 );
+            END;");
 
+        migrationBuilder.Sql(@"
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_GroupInvites_Group' AND object_id = OBJECT_ID('dbo.GroupInvites'))
+            BEGIN
                 CREATE INDEX IX_GroupInvites_Group
                     ON dbo.GroupInvites(StudyGroupId, IsRevoked, ExpiresAtUtc);
-            END;
-            """);
+            END;");
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.Sql(
-            """
+        migrationBuilder.Sql(@"
             IF OBJECT_ID('dbo.GroupInvites', 'U') IS NOT NULL
-                DROP TABLE dbo.GroupInvites;
+                DROP TABLE dbo.GroupInvites;");
 
+        migrationBuilder.Sql(@"
             IF EXISTS (
                 SELECT 1 FROM sys.check_constraints
                 WHERE name = 'CK_GroupPosts_Type'
                   AND parent_object_id = OBJECT_ID('dbo.GroupPosts'))
-                ALTER TABLE dbo.GroupPosts DROP CONSTRAINT CK_GroupPosts_Type;
+                ALTER TABLE dbo.GroupPosts DROP CONSTRAINT CK_GroupPosts_Type;");
 
+        migrationBuilder.Sql(@"
             IF EXISTS (
                 SELECT 1 FROM sys.default_constraints
                 WHERE name = 'DF_GroupPosts_PostType'
                   AND parent_object_id = OBJECT_ID('dbo.GroupPosts'))
-                ALTER TABLE dbo.GroupPosts DROP CONSTRAINT DF_GroupPosts_PostType;
+                ALTER TABLE dbo.GroupPosts DROP CONSTRAINT DF_GroupPosts_PostType;");
 
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.GroupPosts', 'PostType') IS NOT NULL
-                ALTER TABLE dbo.GroupPosts DROP COLUMN PostType;
+                ALTER TABLE dbo.GroupPosts DROP COLUMN PostType;");
 
+        migrationBuilder.Sql(@"
             IF EXISTS (
                 SELECT 1 FROM sys.check_constraints
                 WHERE name = 'CK_StudyGroups_JoinMode'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
-                ALTER TABLE dbo.StudyGroups DROP CONSTRAINT CK_StudyGroups_JoinMode;
+                ALTER TABLE dbo.StudyGroups DROP CONSTRAINT CK_StudyGroups_JoinMode;");
 
+        migrationBuilder.Sql(@"
             IF EXISTS (
                 SELECT 1 FROM sys.check_constraints
                 WHERE name = 'CK_StudyGroups_MeetingFormat'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
-                ALTER TABLE dbo.StudyGroups DROP CONSTRAINT CK_StudyGroups_MeetingFormat;
+                ALTER TABLE dbo.StudyGroups DROP CONSTRAINT CK_StudyGroups_MeetingFormat;");
 
+        migrationBuilder.Sql(@"
             IF EXISTS (
                 SELECT 1 FROM sys.default_constraints
                 WHERE name = 'DF_StudyGroups_JoinMode'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
-                ALTER TABLE dbo.StudyGroups DROP CONSTRAINT DF_StudyGroups_JoinMode;
+                ALTER TABLE dbo.StudyGroups DROP CONSTRAINT DF_StudyGroups_JoinMode;");
 
+        migrationBuilder.Sql(@"
             IF EXISTS (
                 SELECT 1 FROM sys.default_constraints
                 WHERE name = 'DF_StudyGroups_MeetingFormat'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
-                ALTER TABLE dbo.StudyGroups DROP CONSTRAINT DF_StudyGroups_MeetingFormat;
+                ALTER TABLE dbo.StudyGroups DROP CONSTRAINT DF_StudyGroups_MeetingFormat;");
 
+        migrationBuilder.Sql(@"
             IF EXISTS (
                 SELECT 1 FROM sys.default_constraints
                 WHERE name = 'DF_StudyGroups_Updated'
                   AND parent_object_id = OBJECT_ID('dbo.StudyGroups'))
-                ALTER TABLE dbo.StudyGroups DROP CONSTRAINT DF_StudyGroups_Updated;
+                ALTER TABLE dbo.StudyGroups DROP CONSTRAINT DF_StudyGroups_Updated;");
 
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'Goal') IS NOT NULL
-                ALTER TABLE dbo.StudyGroups DROP COLUMN Goal;
+                ALTER TABLE dbo.StudyGroups DROP COLUMN Goal;");
+
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'MeetingFormat') IS NOT NULL
-                ALTER TABLE dbo.StudyGroups DROP COLUMN MeetingFormat;
+                ALTER TABLE dbo.StudyGroups DROP COLUMN MeetingFormat;");
+
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'MeetingSchedule') IS NOT NULL
-                ALTER TABLE dbo.StudyGroups DROP COLUMN MeetingSchedule;
+                ALTER TABLE dbo.StudyGroups DROP COLUMN MeetingSchedule;");
+
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'ContactUrl') IS NOT NULL
-                ALTER TABLE dbo.StudyGroups DROP COLUMN ContactUrl;
+                ALTER TABLE dbo.StudyGroups DROP COLUMN ContactUrl;");
+
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'Rules') IS NOT NULL
-                ALTER TABLE dbo.StudyGroups DROP COLUMN Rules;
+                ALTER TABLE dbo.StudyGroups DROP COLUMN Rules;");
+
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'JoinMode') IS NOT NULL
-                ALTER TABLE dbo.StudyGroups DROP COLUMN JoinMode;
+                ALTER TABLE dbo.StudyGroups DROP COLUMN JoinMode;");
+
+        migrationBuilder.Sql(@"
             IF COL_LENGTH('dbo.StudyGroups', 'UpdatedAtUtc') IS NOT NULL
-                ALTER TABLE dbo.StudyGroups DROP COLUMN UpdatedAtUtc;
-            """);
+                ALTER TABLE dbo.StudyGroups DROP COLUMN UpdatedAtUtc;");
     }
 }

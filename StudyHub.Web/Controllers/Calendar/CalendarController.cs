@@ -50,12 +50,28 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
                     extendedProps = new { 
                         type = ev.EventType,
                         location = ev.Location,
-                        description = ev.Description
+                        description = ev.Description,
+                        goalId = ev.GoalId,
+                        isCompleted = ev.IsCompleted
                     }
                 });
             }
         }
         return Json(result);
+    }
+
+    [HttpPost("ToggleCompletion/{id}")]
+    public async Task<IActionResult> ToggleCompletion(long id)
+    {
+        try
+        {
+            var isCompleted = await calendarService.ToggleEventCompletionAsync(CurrentUserId, id);
+            return Ok(new { ok = true, isCompleted });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { ok = false, error = ex.Message });
+        }
     }
 
     [HttpGet("Create")]
@@ -90,7 +106,7 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
     {
         var ev = await calendarService.GetEventAsync(CurrentUserId, id);
         if (ev == null) return NotFound();
-        var reminderMinutes = await calendarService.GetReminderMinutesAsync(CurrentUserId, id);
+        var reminders = await calendarService.GetEventRemindersAsync(CurrentUserId, id);
         var model = new CalendarUpdateViewModel(
             ev.Id,
             ev.Title,
@@ -100,7 +116,8 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
             TimeOnly.FromDateTime(ev.EndAtLocal),
             ev.Location,
             ev.Description,
-            reminderMinutes);
+            reminders.Select(r => r.Minutes).ToList(),
+            reminders);
         return View(model);
     }
 
@@ -124,8 +141,22 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
     [HttpGet("GetEventReminders/{id}")]
     public async Task<IActionResult> GetEventReminders(long id)
     {
-        var minutes = await calendarService.GetReminderMinutesAsync(CurrentUserId, id);
-        return Json(minutes);
+        var reminders = await calendarService.GetEventRemindersAsync(CurrentUserId, id);
+        return Json(reminders);
+    }
+
+    [HttpPost("ToggleEventCompletion/{id}")]
+    public async Task<IActionResult> ToggleEventCompletion(long id, [FromBody] bool isCompleted)
+    {
+        try
+        {
+            await calendarService.ToggleEventCompletionAsync(CurrentUserId, id, isCompleted);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpGet("GetUpcomingNotifications")]

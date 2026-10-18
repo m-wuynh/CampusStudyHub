@@ -1,0 +1,28 @@
+<section class="group-panel gl-panel" data-panel-content="sessions" hidden>
+    <div class="gl-heading"><div><h2 class="group-section-title">Buổi học nhóm</h2><p>Chuẩn bị, học cùng nhau và ghi lại kết quả. Thời gian hiển thị theo giờ Việt Nam.</p></div><button type="button" class="btn-secondary-sh" data-gl-action="refresh">Làm mới</button></div>
+    <div id="gl-sessions" aria-live="polite"><p>Đang tải buổi học…</p></div>
+</section>
+<section class="group-panel gl-panel" data-panel-content="assignments" hidden>
+    <div class="gl-heading"><div><h2 class="group-section-title">Bài tập nhóm</h2><p>Theo dõi hạn nộp, lịch sử bài làm và phản hồi.</p></div><button type="button" class="btn-secondary-sh" data-gl-action="refresh">Làm mới</button></div>
+    <div id="gl-assignments" aria-live="polite"><p>Đang tải bài tập…</p></div>
+</section>
+<section class="group-panel gl-panel" data-panel-content="questions" hidden>
+    <div class="gl-heading"><div><h2 class="group-section-title">Hỏi đáp theo chủ đề</h2><p>Lưu lại câu hỏi và lời giải để cả nhóm cùng học.</p></div><button type="button" class="btn-secondary-sh" data-gl-action="refresh">Làm mới</button></div>
+    <label class="sh-label" for="gl-question-search">Tìm theo tiêu đề, nội dung hoặc môn học</label>
+    <input id="gl-question-search" class="sh-input mb-3" type="search" placeholder="Ví dụ: đạo hàm, Toán…" />
+    <div id="gl-questions" aria-live="polite"><p>Đang tải câu hỏi…</p></div>
+</section>
+<section class="group-panel gl-panel" data-panel-content="progress" hidden>
+    <div class="gl-heading"><div><h2 class="group-section-title">Tiến độ học tập</h2><p>Thống kê theo buổi học và hạn nộp trong tuần (giờ Việt Nam).</p></div><button type="button" class="btn-secondary-sh" data-gl-action="refresh">Làm mới</button></div>
+    <label class="sh-label" for="gl-week">Chọn một ngày trong tuần cần xem</label>
+    <input id="gl-week" type="date" class="sh-input mb-3" style="max-width:220px" />
+    <div id="gl-progress" aria-live="polite"><p>Đang tải tiến độ…</p></div>
+</section>
+<dialog id="gl-dialog" aria-labelledby="gl-dialog-title">
+    <form id="gl-form">
+        <div class="gl-heading"><h2 id="gl-dialog-title" class="h5 mb-0"></h2><button type="button" class="btn-secondary-sh" id="gl-dialog-close" aria-label="Đóng">✕</button></div>
+        <div id="gl-form-fields" class="gl-fields"></div>
+        <p id="gl-form-error" class="text-danger mt-3" role="alert" hidden></p>
+        <div class="d-flex gap-2 justify-content-end mt-4"><button type="button" class="btn-secondary-sh" id="gl-dialog-cancel">Hủy</button><button type="submit" class="btn-primary-sh" id="gl-dialog-save">Lưu</button></div>
+    </form>
+</dialog>

@@ -17,13 +17,27 @@
 
         @if (Model.Cards.Count > 0)
         {
-            <a asp-controller="Flashcards"
-               asp-action="Study"
-               asp-route-deckId="@Model.Deck.DeckId"
-               class="btn btn-success">
-                <i class="bi bi-play-fill"></i>
-                Bắt đầu học
-            </a>
+            <div class="d-flex flex-wrap gap-2">
+
+                <a asp-controller="Flashcards"
+                   asp-action="Study"
+                   asp-route-deckId="@Model.Deck.DeckId"
+                   class="btn btn-outline-primary">
+
+                    <i class="bi bi-card-text"></i>
+                    Xem thẻ
+                </a>
+
+                <a asp-controller="Flashcards"
+                   asp-action="Learn"
+                   asp-route-deckId="@Model.Deck.DeckId"
+                   class="btn btn-primary">
+
+                    <i class="bi bi-mortarboard"></i>
+                    Learn
+                </a>
+
+            </div>
         }
 
         <button class="btn btn-primary"

@@ -100,7 +100,8 @@ BEGIN TRY
         UserSubjectId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_UserSubjects PRIMARY KEY,
         UserId bigint NOT NULL,
         AcademicTermId bigint NOT NULL,
-        SubjectId int NOT NULL,
+        SubjectId int NULL,
+        CustomSubjectName nvarchar(150) NULL,
         TeacherName nvarchar(100) NULL,
         ClassCode nvarchar(50) NULL,
         CreditWeight decimal(5,2) NOT NULL CONSTRAINT DF_UserSubjects_Credits DEFAULT (1),
@@ -108,42 +109,66 @@ BEGIN TRY
         ColorHex char(7) NOT NULL CONSTRAINT DF_UserSubjects_Color DEFAULT ('#5138EE'),
         IsArchived bit NOT NULL CONSTRAINT DF_UserSubjects_Archived DEFAULT (0),
         CONSTRAINT UQ_UserSubjects_Owner UNIQUE (UserSubjectId, UserId),
-        CONSTRAINT UQ_UserSubjects_Enrollment UNIQUE (UserId, AcademicTermId, SubjectId),
         CONSTRAINT FK_UserSubjects_User FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId),
         CONSTRAINT FK_UserSubjects_TermOwner FOREIGN KEY (AcademicTermId, UserId) REFERENCES dbo.AcademicTerms(AcademicTermId, UserId),
         CONSTRAINT FK_UserSubjects_Subject FOREIGN KEY (SubjectId) REFERENCES dbo.Subjects(SubjectId),
+        CONSTRAINT CK_UserSubjects_SubjectOrCustom CHECK (
+            (SubjectId IS NOT NULL AND CustomSubjectName IS NULL)
+            OR (SubjectId IS NULL AND CustomSubjectName IS NOT NULL)),
         CONSTRAINT CK_UserSubjects_Credits CHECK (CreditWeight > 0),
         CONSTRAINT CK_UserSubjects_Target CHECK (TargetScore10 BETWEEN 0 AND 10),
         CONSTRAINT CK_UserSubjects_Color CHECK (ColorHex COLLATE Latin1_General_100_BIN2 LIKE '#[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]')
     );
+    CREATE UNIQUE INDEX UQ_UserSubjects_CatalogEnrollment
+        ON dbo.UserSubjects(UserId, AcademicTermId, SubjectId)
+        WHERE SubjectId IS NOT NULL AND IsArchived = 0;
+    CREATE UNIQUE INDEX UQ_UserSubjects_CustomEnrollment
+        ON dbo.UserSubjects(UserId, AcademicTermId, CustomSubjectName)
+        WHERE CustomSubjectName IS NOT NULL AND IsArchived = 0;
 
     -- 3. STUDY GROUPS. OwnerUserId is the sole source of owner authority.
     CREATE TABLE dbo.StudyGroups (
         StudyGroupId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_StudyGroups PRIMARY KEY,
         OwnerUserId bigint NOT NULL,
-        SubjectId int NULL,
         GroupName nvarchar(150) NOT NULL,
         Description nvarchar(2000) NULL,
         Goal nvarchar(500) NULL,
         MeetingFormat varchar(10) NOT NULL CONSTRAINT DF_StudyGroups_MeetingFormat DEFAULT ('Online'),
         MeetingSchedule nvarchar(250) NULL,
-        ContactUrl nvarchar(2048) NULL,
         Rules nvarchar(2000) NULL,
         Visibility varchar(10) NOT NULL CONSTRAINT DF_StudyGroups_Visibility DEFAULT ('Private'),
         JoinMode varchar(15) NOT NULL CONSTRAINT DF_StudyGroups_JoinMode DEFAULT ('Approval'),
-        MaxMembers smallint NOT NULL CONSTRAINT DF_StudyGroups_Max DEFAULT (20),
+        MaxMembers smallint NULL,
         IsArchived bit NOT NULL CONSTRAINT DF_StudyGroups_Archived DEFAULT (0),
         CreatedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_StudyGroups_Created DEFAULT (SYSUTCDATETIME()),
         UpdatedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_StudyGroups_Updated DEFAULT (SYSUTCDATETIME()),
         RowVersion rowversion NOT NULL,
         CONSTRAINT FK_StudyGroups_Owner FOREIGN KEY (OwnerUserId) REFERENCES dbo.Users(UserId),
-        CONSTRAINT FK_StudyGroups_Subject FOREIGN KEY (SubjectId) REFERENCES dbo.Subjects(SubjectId),
         CONSTRAINT CK_StudyGroups_Visibility CHECK (Visibility IN ('Public','Private')),
         CONSTRAINT CK_StudyGroups_JoinMode CHECK (JoinMode IN ('Open','Approval','InviteOnly')),
         CONSTRAINT CK_StudyGroups_MeetingFormat CHECK (MeetingFormat IN ('Online','Offline','Hybrid')),
-        CONSTRAINT CK_StudyGroups_Max CHECK (MaxMembers BETWEEN 2 AND 500),
+        CONSTRAINT CK_StudyGroups_Max CHECK (MaxMembers IS NULL OR MaxMembers BETWEEN 2 AND 500),
         CONSTRAINT CK_StudyGroups_Name CHECK (LEN(LTRIM(RTRIM(GroupName))) > 0)
     );
+
+    CREATE TABLE dbo.StudyGroupSubjects (
+        StudyGroupSubjectId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_StudyGroupSubjects PRIMARY KEY,
+        StudyGroupId bigint NOT NULL,
+        SubjectId int NULL,
+        CustomSubjectName nvarchar(150) NULL,
+        AddedByUserId bigint NOT NULL,
+        CreatedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_StudyGroupSubjects_Created DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT FK_StudyGroupSubjects_Group FOREIGN KEY (StudyGroupId) REFERENCES dbo.StudyGroups(StudyGroupId) ON DELETE CASCADE,
+        CONSTRAINT FK_StudyGroupSubjects_Subject FOREIGN KEY (SubjectId) REFERENCES dbo.Subjects(SubjectId),
+        CONSTRAINT FK_StudyGroupSubjects_AddedBy FOREIGN KEY (AddedByUserId) REFERENCES dbo.Users(UserId),
+        CONSTRAINT CK_StudyGroupSubjects_Choice CHECK (
+            (SubjectId IS NOT NULL AND CustomSubjectName IS NULL)
+            OR (SubjectId IS NULL AND CustomSubjectName IS NOT NULL))
+    );
+    CREATE UNIQUE INDEX UX_StudyGroupSubjects_Catalog
+        ON dbo.StudyGroupSubjects(StudyGroupId, SubjectId) WHERE SubjectId IS NOT NULL;
+    CREATE UNIQUE INDEX UX_StudyGroupSubjects_Custom
+        ON dbo.StudyGroupSubjects(StudyGroupId, CustomSubjectName) WHERE CustomSubjectName IS NOT NULL;
 
     CREATE TABLE dbo.GroupMembers (
         StudyGroupId bigint NOT NULL,
@@ -152,6 +177,8 @@ BEGIN TRY
         Status varchar(15) NOT NULL CONSTRAINT DF_GroupMembers_Status DEFAULT ('Pending'),
         RequestedAtUtc datetime2(3) NOT NULL CONSTRAINT DF_GroupMembers_Requested DEFAULT (SYSUTCDATETIME()),
         JoinedAtUtc datetime2(3) NULL,
+        BannedByUserId bigint NULL,
+        UnbanRequestedAtUtc datetime2(3) NULL,
         CONSTRAINT PK_GroupMembers PRIMARY KEY (StudyGroupId, UserId),
         CONSTRAINT FK_GroupMembers_Group FOREIGN KEY (StudyGroupId) REFERENCES dbo.StudyGroups(StudyGroupId),
         CONSTRAINT FK_GroupMembers_User FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId),
@@ -551,15 +578,16 @@ BEGIN TRY
     -- Dynamic batches allow views/procedures to be created within this transaction.
     EXEC(N'CREATE VIEW dbo.vw_SubjectGradeSummary AS
         SELECT us.UserSubjectId, us.UserId, us.AcademicTermId, us.SubjectId,
-               s.SubjectName, us.CreditWeight, us.TargetScore10,
+               COALESCE(us.CustomSubjectName, s.SubjectName) AS SubjectName,
+               us.CreditWeight, us.TargetScore10,
                COUNT(g.GradeEntryId) AS EnteredAssessmentCount,
                CAST(SUM((g.Score / NULLIF(g.MaxScore, 0)) * 10.0 * g.Weight)
                     / NULLIF(SUM(g.Weight), 0) AS decimal(5,2)) AS CurrentAverage10
         FROM dbo.UserSubjects AS us
-        JOIN dbo.Subjects AS s ON s.SubjectId = us.SubjectId
+        LEFT JOIN dbo.Subjects AS s ON s.SubjectId = us.SubjectId
         LEFT JOIN dbo.GradeEntries AS g ON g.UserSubjectId = us.UserSubjectId AND g.IsDeleted = 0
         GROUP BY us.UserSubjectId, us.UserId, us.AcademicTermId, us.SubjectId,
-                 s.SubjectName, us.CreditWeight, us.TargetScore10;');
+                 us.CustomSubjectName, s.SubjectName, us.CreditWeight, us.TargetScore10;');
 
     EXEC(N'CREATE VIEW dbo.vw_TermGradeSummary AS
         SELECT UserId, AcademicTermId,
@@ -634,7 +662,7 @@ BEGIN TRY
 
     EXEC(N'CREATE PROCEDURE dbo.usp_CreateStudyGroup
         @OwnerUserId bigint, @GroupName nvarchar(150), @SubjectId int = NULL,
-        @Visibility varchar(10) = ''Private'', @MaxMembers smallint = 20,
+        @Visibility varchar(10) = ''Private'', @MaxMembers smallint = NULL,
         @StudyGroupId bigint = NULL OUTPUT
     AS
     BEGIN
@@ -645,11 +673,14 @@ BEGIN TRY
             IF @OwnTransaction = 1 BEGIN TRANSACTION;
             IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE UserId = @OwnerUserId AND Status = ''Active'')
                 THROW 51020, N''Active owner not found.'', 1;
-            INSERT dbo.StudyGroups(OwnerUserId, SubjectId, GroupName, Visibility, JoinMode, MaxMembers)
-            VALUES (@OwnerUserId, @SubjectId, @GroupName, @Visibility,
+            INSERT dbo.StudyGroups(OwnerUserId, GroupName, Visibility, JoinMode, MaxMembers)
+            VALUES (@OwnerUserId, @GroupName, @Visibility,
                 CASE WHEN @Visibility = ''Private'' THEN ''InviteOnly'' ELSE ''Approval'' END,
                 @MaxMembers);
             SET @StudyGroupId = CONVERT(bigint, SCOPE_IDENTITY());
+            IF @SubjectId IS NOT NULL
+                INSERT dbo.StudyGroupSubjects(StudyGroupId, SubjectId, AddedByUserId)
+                VALUES (@StudyGroupId, @SubjectId, @OwnerUserId);
             INSERT dbo.GroupMembers(StudyGroupId, UserId, MemberRole, Status, JoinedAtUtc)
             VALUES (@StudyGroupId, @OwnerUserId, ''Moderator'', ''Active'', SYSUTCDATETIME());
             IF @OwnTransaction = 1 COMMIT TRANSACTION;

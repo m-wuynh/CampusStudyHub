@@ -34,7 +34,19 @@ namespace StudyHub.BLL.Services.Flashcards.Interfaces
         Task<IReadOnlyList<FlashcardDto>> GetStudyCardsAsync(
             long deckId,
             long currentUserId,
-            CancellationToken cancellationToken = default);  
+            CancellationToken cancellationToken = default);
+
+        Task<FlashcardLearnQuestionDto?> GetLearnQuestionAsync(
+            long deckId,
+            long currentUserId,
+            long? questionCardId = null,
+            CancellationToken cancellationToken = default);
+
+        Task<FlashcardLearnAnswerResultDto?> SubmitLearnAnswerAsync(
+            long deckId,
+            long currentuserId,
+            SubmitFlashcardLearnAnswerRequestDto request,
+            CancellationToken cancellationToken = default);
 
     }
 }

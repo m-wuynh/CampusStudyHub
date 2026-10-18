@@ -71,4 +71,7 @@ public sealed class EfRepository(
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
         context.SaveChangesAsync(cancellationToken);
+
+    public Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default) =>
+        context.Database.BeginTransactionAsync(cancellationToken);
 }

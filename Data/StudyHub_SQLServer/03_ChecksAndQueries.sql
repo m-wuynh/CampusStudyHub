@@ -29,7 +29,8 @@ WHERE m.UserId IS NULL OR m.Status <> 'Active';
 SELECT g.StudyGroupId, g.MaxMembers, COUNT(*) AS ActiveMemberCount
 FROM dbo.StudyGroups AS g
 JOIN dbo.GroupMembers AS m ON m.StudyGroupId = g.StudyGroupId AND m.Status = 'Active'
-GROUP BY g.StudyGroupId, g.MaxMembers HAVING COUNT(*) > g.MaxMembers;
+GROUP BY g.StudyGroupId, g.MaxMembers
+HAVING g.MaxMembers IS NOT NULL AND COUNT(*) > g.MaxMembers;
 SELECT s.UserId AS InvalidUserTimeZone, s.TimeZoneId
 FROM dbo.UserSettings AS s
 WHERE NOT EXISTS (SELECT 1 FROM sys.time_zone_info AS z WHERE z.name = s.TimeZoneId);

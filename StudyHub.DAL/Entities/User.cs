@@ -65,6 +65,8 @@ public partial class User
 
     public virtual ICollection<StudyGroup> StudyGroups { get; set; } = new List<StudyGroup>();
 
+    public virtual ICollection<StudyGroupSubject> AddedStudyGroupSubjects { get; set; } = new List<StudyGroupSubject>();
+
     public virtual StudySession? StudySession { get; set; }
 
     public virtual ICollection<SystemSetting> SystemSettings { get; set; } = new List<SystemSetting>();
