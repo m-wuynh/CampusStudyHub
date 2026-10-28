@@ -125,9 +125,12 @@ document.addEventListener('DOMContentLoaded', function() {
             var toggleIcon = document.getElementById('popover-complete-icon');
             var toggleText = document.getElementById('popover-complete-text');
             var chkComplete = document.getElementById('popover-is-completed');
+            var chkRow = document.getElementById('popover-completion-row') || (chkComplete ? chkComplete.closest('.px-3') : null);
+
+            var isPast = endTime && (new Date(endTime) < new Date());
 
             function updateCompletionUI(completed) {
-                var curMissed = !completed && endTime && (new Date(endTime) < new Date());
+                var curMissed = !completed && isPast;
                 var curColor = completed ? '#1e8e3e' : (curMissed ? '#d93025' : '#1a73e8');
                 if (colorBox) colorBox.style.backgroundColor = curColor;
                 if (titleEl) {
@@ -135,17 +138,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     titleEl.style.color = completed ? '#70757a' : '#3c4043';
                 }
 
+                // Nếu quá hạn: ẩn đi ô tick hoàn thành ở dưới
+                if (chkRow) {
+                    if (isPast) {
+                        chkRow.style.setProperty('display', 'none', 'important');
+                    } else {
+                        chkRow.style.removeProperty('display');
+                    }
+                }
+
                 if (chkComplete) {
                     chkComplete.checked = completed;
-                    if (curMissed) {
-                        chkComplete.disabled = true;
-                        chkComplete.parentElement.style.opacity = '0.5';
-                        chkComplete.parentElement.title = 'Đã quá hạn, không thể đánh dấu hoàn thành';
-                    } else {
-                        chkComplete.disabled = false;
-                        chkComplete.parentElement.style.opacity = '1';
-                        chkComplete.parentElement.title = '';
-                    }
+                    chkComplete.disabled = isPast;
                 }
 
                 if (toggleBtn && toggleIcon && toggleText) {
@@ -153,18 +157,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         toggleBtn.className = "btn btn-sm btn-success text-white border-0 py-1 px-2 d-flex align-items-center gap-1 me-auto";
                         toggleIcon.className = "bi bi-check-circle-fill";
                         toggleText.innerText = "Đã hoàn thành";
-                        toggleBtn.disabled = false;
-                        toggleBtn.style.opacity = '1';
-                        toggleBtn.style.cursor = 'pointer';
-                        toggleBtn.title = 'Nhấn để hủy hoàn thành';
+                        if (isPast) {
+                            toggleBtn.disabled = true;
+                            toggleBtn.style.opacity = '1';
+                            toggleBtn.style.cursor = 'default';
+                            toggleBtn.title = 'Ca học đã kết thúc, giữ nguyên trạng thái hoàn thành';
+                        } else {
+                            toggleBtn.disabled = false;
+                            toggleBtn.style.opacity = '1';
+                            toggleBtn.style.cursor = 'pointer';
+                            toggleBtn.title = 'Nhấn để hủy hoàn thành';
+                        }
                     } else if (curMissed) {
                         toggleBtn.className = "btn btn-sm btn-outline-danger border py-1 px-2 d-flex align-items-center gap-1 me-auto";
                         toggleIcon.className = "bi bi-exclamation-triangle-fill";
                         toggleText.innerText = "Bỏ lỡ (Missed)";
                         toggleBtn.disabled = true;
-                        toggleBtn.style.opacity = '0.65';
+                        toggleBtn.style.opacity = '0.75';
                         toggleBtn.style.cursor = 'not-allowed';
-                        toggleBtn.title = 'Đã quá hạn, không thể đánh dấu hoàn thành';
+                        toggleBtn.title = 'Ca học đã quá hạn, không thể đánh dấu hoàn thành';
                     } else {
                         toggleBtn.className = "btn btn-sm btn-outline-secondary border py-1 px-2 d-flex align-items-center gap-1 me-auto";
                         toggleIcon.className = "bi bi-circle";
@@ -180,9 +191,8 @@ document.addEventListener('DOMContentLoaded', function() {
             updateCompletionUI(isCompleted);
 
             function doToggle() {
-                var curMissed = !info.event.extendedProps.isCompleted && endTime && (new Date(endTime) < new Date());
-                if (curMissed) {
-                    alert('Ca học đã quá hạn và được tính là Bỏ lỡ (Missed), không thể cập nhật.');
+                if (isPast) {
+                    alert('Ca học đã kết thúc, không thể thay đổi trạng thái.');
                     return;
                 }
                 fetch('/Calendar/ToggleCompletion/' + info.event.id, { method: 'POST' })
@@ -200,20 +210,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (toggleBtn) {
-                toggleBtn.onclick = function(e) {
-                    e.preventDefault();
-                    doToggle();
-                };
+                if (isPast) {
+                    toggleBtn.onclick = function(e) { e.preventDefault(); };
+                } else {
+                    toggleBtn.onclick = function(e) {
+                        e.preventDefault();
+                        doToggle();
+                    };
+                }
             }
 
             if (chkComplete) {
                 var newChk = chkComplete.cloneNode(true);
                 chkComplete.parentNode.replaceChild(newChk, chkComplete);
                 chkComplete = newChk;
-                chkComplete.onclick = function(e) {
-                    e.preventDefault();
-                    doToggle();
-                };
+                if (isPast) {
+                    chkComplete.onclick = function(e) { e.preventDefault(); };
+                } else {
+                    chkComplete.onclick = function(e) {
+                        e.preventDefault();
+                        doToggle();
+                    };
+                }
             }
 
             // Position popover

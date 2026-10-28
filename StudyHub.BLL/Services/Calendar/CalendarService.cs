@@ -250,9 +250,9 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == eventId && e.UserId == userId && !e.IsDeleted);
         if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
 
-        if (isCompleted && entity.EndAtLocal < DateTime.Now)
+        if (entity.EndAtLocal < DateTime.Now)
         {
-            throw new InvalidOperationException("Ca học đã quá hạn và được tính là Bỏ lỡ (Missed), không thể cập nhật.");
+            throw new InvalidOperationException("Ca học đã kết thúc, không thể thay đổi trạng thái.");
         }
 
         entity.IsCompleted = isCompleted;
@@ -266,9 +266,9 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == id && e.UserId == userId && !e.IsDeleted);
         if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
 
-        if (!entity.IsCompleted && entity.EndAtLocal < DateTime.Now)
+        if (entity.EndAtLocal < DateTime.Now)
         {
-            throw new InvalidOperationException("Ca học đã quá hạn và được tính là Bỏ lỡ (Missed), không thể cập nhật.");
+            throw new InvalidOperationException("Ca học đã kết thúc, không thể thay đổi trạng thái.");
         }
 
         entity.IsCompleted = !entity.IsCompleted;
