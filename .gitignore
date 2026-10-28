@@ -24,3 +24,7 @@ StudyHub.Web/App_Data/*.tmp
 
 # Local application configuration
 StudyHub.Web/appsettings.json
+
+# Local-only folders
+StudyHub.Tests/
+docs/
