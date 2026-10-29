@@ -200,26 +200,26 @@
         </section>
 
         <partial name="_LearningPanels" />
-        <section class="group-panel" data-panel-content="resources" hidden>
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-            <h2 class="group-section-title mb-0"><i class="bi bi-folder2-open"></i>Tài nguyên nhóm</h2>
-            <a href="/Notes/Groups/@Model.Group.Id" class="btn-primary-sh"><i class="bi bi-journal-richtext"></i>Notes &amp; PDF workspace</a>
-          </div>
-          <div id="gl-resources" aria-live="polite">
-            <div class="row g-3">
-              @foreach (var resource in Model.Group.Resources)
-              {
-                <div class="col-md-6">
-                  <a href="@(resource.Url ?? "#")" class="group-resource-card @(resource.Url is null ? "disabled" : "")">
-                    <i class="bi @(resource.ResourceType == "Note" ? "bi-journal-text" : resource.ResourceType == "Flashcard" ? "bi-layers" : "bi-file-earmark-text")"></i>
-                    <div><strong>@resource.Title</strong><span>@resource.ResourceType</span></div>
-                  </a>
-                </div>
-              }
-            </div>
-            @if (Model.Group.Resources.Count == 0) { <div class="group-empty-state"><i class="bi bi-folder2-open"></i><p>Chưa có ghi chú, tài liệu hoặc flashcard được chia sẻ cho nhóm.</p></div> }
-          </div>
-        </section>
+        <section class="group-panel"
+         data-panel-content="resources"
+         data-notesv3
+         data-notesv3-group-resources
+         data-app-root="@Url.Content("~/")"
+         hidden>
+
+    @Html.AntiForgeryToken()
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h2 class="group-section-title mb-0">
+            <i class="bi bi-folder2-open"></i>
+            Tài nguyên nhóm
+        </h2>
+    </div>
+
+    <div id="gl-resources" aria-live="polite">
+        <p>Đang tải tài nguyên…</p>
+    </div>
+</section>
 
         <section class="group-panel" data-panel-content="members" hidden>
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -366,6 +366,7 @@
 }
 
 @section Scripts {
+  @await Html.PartialAsync("~/Views/NotesV3/_EditorImports.cshtml")
   <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@9.0.6/dist/browser/signalr.min.js"></script>
   <script src="~/js/subject-multiselect.js" asp-append-version="true"></script>
   <script src="~/js/group-details.js" asp-append-version="true"></script>

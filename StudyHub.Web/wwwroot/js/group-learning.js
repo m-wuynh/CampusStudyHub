@@ -10,6 +10,58 @@
   const errorBox = document.getElementById('gl-form-error');
   const weekInput = document.getElementById('gl-week');
   let state, saveForm, busy = false, loadSequence = 0;
+  //c
+  const notesHost = document.querySelector(
+  '[data-notesv3-group-resources]'
+);
+
+let notesResources = {
+  pdfs: [],
+  notebooks: []
+};
+
+let notesResourcesError = '';
+let notesApiModule;
+
+function notesUrl(path) {
+  const prefix = notesHost?.dataset.appRoot || '/';
+  return prefix + path.replace(/^\/+/, '');
+}
+
+async function notesApi(path, options) {
+  if (!notesHost) {
+    throw new Error('Không tìm thấy vùng tài nguyên NotesV3.');
+  }
+
+  notesApiModule ??= import(
+    notesUrl('js/notesv3/notes-ui.js')
+  );
+
+  const module = await notesApiModule;
+  return module.api(path, options);
+}
+
+async function refreshNotesResources() {
+  if (!notesHost) return;
+
+  try {
+    notesResources = await notesApi(
+      `groups/${encodeURIComponent(page.dataset.groupId)}/resources`
+    );
+
+    notesResourcesError = '';
+  } catch (error) {
+    notesResources = {
+      pdfs: [],
+      notebooks: []
+    };
+
+    notesResourcesError = error.message;
+  }
+
+  renderResources();
+}
+  //end
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const date = value => new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'medium', timeStyle: 'short' });
   const localInput = value => new Date(new Date(value).getTime() + 7 * 3600000).toISOString().slice(0, 16);
@@ -59,9 +111,22 @@
     sessions: renderSessions, assignments: renderAssignments, questions: renderQuestions,
     resources: renderResources, progress: renderProgress
   };
+  // function renderLoadError(panel, message) {
+  //   panel.innerHTML = empty(message) + button('refresh', 'Thử lại');
+  // }
+
+  //c
   function renderLoadError(panel, message) {
-    panel.innerHTML = empty(message) + button('refresh', 'Thử lại');
+  if (panel.id === 'gl-resources' && notesHost) {
+    renderResources();
+    return;
   }
+
+  panel.innerHTML =
+    empty(message) +
+    button('refresh', 'Thử lại');
+}
+  //end
   async function load() {
     const sequence = ++loadSequence;
     try {
@@ -168,13 +233,137 @@
   }
 
   function renderResources() {
-    document.getElementById('gl-resource-count').textContent = state.resources.length;
-    document.getElementById('gl-resources').innerHTML = `<div class="gl-actions">${button('resource-share', '+ Chia sẻ tài nguyên', '', '', true)}${button('refresh', 'Làm mới')}</div>` +
-      (state.resources.length ? `<div class="gl-list">${state.resources.map(r => `<article class="gl-card"><h3>${esc(r.title)}</h3>
-        <div class="gl-meta">${esc(r.kind)} · ${esc(r.ownerName)}</div><div class="gl-actions">
-        <a class="btn-primary-sh" href="/Groups/${encodeURIComponent(page.dataset.groupId)}/Resources/${encodeURIComponent(r.kind)}/${r.id}">Mở tài nguyên</a>
-        ${state.canManage || r.ownerUserId === state.currentUserId ? button('resource-unshare', 'Gỡ chia sẻ', r.id, `data-kind="${r.kind}"`) : ''}</div></article>`).join('')}</div>` : empty('Chưa có tài nguyên chung. Bạn có thể chia sẻ ghi chú, PDF hoặc flashcard đã tạo.'));
-  }
+  const container = document.getElementById('gl-resources');
+  if (!container) return;
+
+  // Giữ tài nguyên flashcard từ module Group hiện có.
+  // Notes/PDF cũ không còn được render tại đây.
+  const flashcards = (state?.resources || [])
+    .filter(resource => resource.kind === 'Flashcard');
+
+  const pdfs = notesResources.pdfs || [];
+  const notebooks = notesResources.notebooks || [];
+
+  const total = flashcards.length + pdfs.length + notebooks.length;
+
+  const counter = document.getElementById('gl-resource-count');
+  if (counter) counter.textContent = String(total);
+
+  const toolbar = `
+    <div class="gl-actions">
+      ${button('resource-share', '+ Thêm tài nguyên', '', '', true)}
+      ${button('notes-resources-refresh', 'Làm mới')}
+    </div>
+  `;
+
+  const pdfCards = pdfs.map(pdf => `
+    <article class="gl-card">
+      <h3>${esc(pdf.title)}</h3>
+
+      <div class="gl-meta">
+        PDF · ${esc(pdf.fileName)}
+        ${pdf.pageCount ? ` · ${esc(pdf.pageCount)} trang` : ''}
+      </div>
+
+      <div class="gl-actions">
+        <a class="btn-primary-sh"
+           href="${esc(notesUrl(
+             `NotesV3/Pdf/${pdf.documentId}?shareId=${pdf.shareId}`
+           ))}">
+          Mở PDF
+        </a>
+
+        <a class="btn-secondary-sh"
+           href="${esc(notesUrl(
+             `NotesV3/Book/${pdf.documentId}?shareId=${pdf.shareId}`
+           ))}">
+          Notes Book
+        </a>
+
+        ${pdf.canUnshare
+          ? button(
+              'notes-pdf-unshare',
+              'Gỡ chia sẻ',
+              pdf.shareId
+            )
+          : ''}
+      </div>
+    </article>
+  `).join('');
+
+  const notebookCards = notebooks.map(notebook => `
+    <article class="gl-card">
+      <h3>${esc(notebook.title)}</h3>
+
+      <div class="gl-meta">
+        Notebook nhóm · Thành viên cùng chỉnh sửa
+      </div>
+
+      <div class="gl-actions">
+        <a class="btn-primary-sh"
+           href="${esc(notesUrl(
+             `NotesV3/Notebook/${notebook.id}`
+           ))}">
+          Mở notebook
+        </a>
+
+        ${button(
+          'notes-notebook-delete',
+          'Xóa notebook nhóm',
+          notebook.id
+        )}
+      </div>
+    </article>
+  `).join('');
+
+  const flashcardCards = flashcards.map(resource => `
+    <article class="gl-card">
+      <h3>${esc(resource.title)}</h3>
+
+      <div class="gl-meta">
+        Flashcard · ${esc(resource.ownerName)}
+      </div>
+
+      <div class="gl-actions">
+        <a class="btn-primary-sh"
+           href="${esc(notesUrl(
+             `Groups/${page.dataset.groupId}` +
+             `/Resources/Flashcard/${resource.id}`
+           ))}">
+          Mở flashcard
+        </a>
+
+        ${state?.canManage ||
+          resource.ownerUserId === state?.currentUserId
+          ? button(
+              'resource-unshare',
+              'Gỡ chia sẻ',
+              resource.id,
+              'data-kind="Flashcard"'
+            )
+          : ''}
+      </div>
+    </article>
+  `).join('');
+
+  const warning = notesResourcesError
+    ? `<p class="text-danger" role="alert">
+         ${esc(notesResourcesError)}
+       </p>`
+    : '';
+
+  const content = total > 0
+    ? `<div class="gl-list">
+         ${pdfCards}
+         ${notebookCards}
+         ${flashcardCards}
+       </div>`
+    : empty(
+        'Chưa có tài nguyên. Chọn “Thêm tài nguyên” để bắt đầu.'
+      );
+
+  container.innerHTML = toolbar + warning + content;
+}
 
   function renderQuestions() {
     const term = document.getElementById('gl-question-search').value.trim().toLocaleLowerCase('vi');
@@ -231,10 +420,355 @@
         allowLateSubmission: data.has('late'), assigneeIds: data.getAll('assignee').map(Number), revision: assignment?.revision || 0
       }));
   }
+  //c
+  async function openNotesResourceForm() {
+  const [pdfs, notebooks] = await Promise.all([
+    notesApi('pdfs'),
+    notesApi('notebooks')
+  ]);
+
+  const flashcards = (state?.availableResources || [])
+    .filter(resource => resource.kind === 'Flashcard');
+
+  const resourceOptions = [
+    option('', 'Chọn loại hoặc tài nguyên'),
+    option('new-notebook', 'Tạo notebook nhóm mới'),
+    option('upload-pdf', 'Tải PDF mới và chia sẻ vào nhóm'),
+
+    ...pdfs.map(pdf => option(
+      `pdf/${pdf.documentId}`,
+      `PDF: ${pdf.title}`
+    )),
+
+    ...notebooks.map(notebook => option(
+      `notebook/${notebook.id}`,
+      `Chép notebook cá nhân: ${notebook.title}`
+    )),
+
+    ...flashcards.map(deck => option(
+      `flashcard/${deck.id}`,
+      `Flashcard: ${deck.title}`
+    ))
+  ].join('');
+
+  let uploadedDocumentId = null;
+
+  const fields =
+    select('resource', 'Tài nguyên', resourceOptions) +
+
+    `<div data-notes-title-field hidden>
+       ${input(
+         'notesTitle',
+         'Tên hiển thị',
+         '',
+         'text',
+         200
+       )}
+     </div>` +
+
+    `<div data-notes-file-field hidden>
+       <label>
+         PDF tối đa 25 MiB
+         <input class="sh-input"
+                name="notesPdf"
+                type="file"
+                accept=".pdf,application/pdf">
+       </label>
+     </div>` +
+
+    `<p class="gl-meta" data-notes-resource-help>
+       PDF được chia sẻ bằng quyền truy cập.
+       Notebook cá nhân được chép thành bản riêng của nhóm.
+     </p>`;
+
+  openForm(
+    'Thêm tài nguyên vào nhóm',
+    fields,
+    async data => {
+      const selected = String(data.get('resource') || '');
+
+      if (!selected) {
+        throw new Error('Hãy chọn tài nguyên.');
+      }
+
+      const groupId = page.dataset.groupId;
+
+      if (selected === 'new-notebook') {
+        const title = String(
+          data.get('notesTitle') || ''
+        ).trim();
+
+        if (!title) {
+          throw new Error('Hãy nhập tên notebook nhóm.');
+        }
+
+        await notesApi('notebooks', {
+          method: 'POST',
+          body: {
+            title,
+            groupId: Number(groupId)
+          }
+        });
+      } else if (selected === 'upload-pdf') {
+        if (!uploadedDocumentId) {
+          const file = data.get('notesPdf');
+
+          if (!(file instanceof File) || file.size === 0) {
+            throw new Error('Hãy chọn một file PDF.');
+          }
+
+          if (file.size > 25 * 1024 * 1024) {
+            throw new Error('PDF tối đa 25 MiB.');
+          }
+
+          const upload = new FormData();
+          upload.append('File', file);
+
+          const title = String(
+            data.get('notesTitle') || ''
+          ).trim();
+
+          if (title) {
+            upload.append('Title', title);
+          }
+
+          const result = await notesApi('pdfs', {
+            method: 'POST',
+            body: upload
+          });
+
+          uploadedDocumentId = result.documentId;
+        }
+
+        try {
+          await notesApi(
+            `groups/${groupId}/pdf-shares`,
+            {
+              method: 'POST',
+              body: {
+                documentId: uploadedDocumentId
+              }
+            }
+          );
+        } catch (error) {
+          throw new Error(
+            'PDF đã được tải vào thư viện cá nhân, ' +
+            'nhưng chưa chia sẻ được vào nhóm. ' +
+            'Bạn có thể thử lưu lại. ' +
+            error.message
+          );
+        }
+      } else {
+        const [kind, rawId] = selected.split('/');
+        const id = Number(rawId);
+
+        if (!Number.isSafeInteger(id) || id <= 0) {
+          throw new Error('Tài nguyên không hợp lệ.');
+        }
+
+        if (kind === 'pdf') {
+          await notesApi(
+            `groups/${groupId}/pdf-shares`,
+            {
+              method: 'POST',
+              body: { documentId: id }
+            }
+          );
+        } else if (kind === 'notebook') {
+          await copyNotebookResource(id, groupId);
+        } else if (kind === 'flashcard') {
+          // Giữ API flashcard hiện có.
+          await api(
+            `/resources/Flashcard/${id}`,
+            'PUT'
+          );
+        } else {
+          throw new Error('Loại tài nguyên không hợp lệ.');
+        }
+      }
+
+      await refreshNotesResources();
+    },
+    'Thêm tài nguyên'
+  );
+
+  const resourcePicker = form.elements.namedItem('resource');
+  const titleField = form.querySelector('[data-notes-title-field]');
+  const fileField = form.querySelector('[data-notes-file-field]');
+  const titleInput = form.elements.namedItem('notesTitle');
+  const fileInput = form.elements.namedItem('notesPdf');
+  const help = form.querySelector('[data-notes-resource-help]');
+
+  function updateFields() {
+    const selected = resourcePicker.value;
+
+    titleField.hidden = ![
+      'new-notebook',
+      'upload-pdf'
+    ].includes(selected);
+
+    fileField.hidden = selected !== 'upload-pdf';
+
+    titleInput.required = selected === 'new-notebook';
+
+    fileInput.required =
+      selected === 'upload-pdf' &&
+      !uploadedDocumentId;
+
+    if (selected.startsWith('notebook/')) {
+      help.textContent =
+        'Tạo một bản notebook riêng cho nhóm. ' +
+        'Các chỉnh sửa sau này không ảnh hưởng bản cá nhân.';
+    } else if (
+      selected === 'upload-pdf' ||
+      selected.startsWith('pdf/')
+    ) {
+      help.textContent =
+        'Nhóm dùng chung file PDF gốc. ' +
+        'Ghi chú nhóm và ghi chú cá nhân được tách riêng.';
+    } else if (selected.startsWith('flashcard/')) {
+      help.textContent =
+        'Flashcard sử dụng cơ chế chia sẻ hiện có của nhóm.';
+    } else {
+      help.textContent =
+        'Notebook nhóm cho phép các thành viên đang hoạt động ' +
+        'cùng chỉnh sửa.';
+    }
+  }
+
+  resourcePicker.addEventListener('change', updateFields);
+
+  fileInput.addEventListener('change', () => {
+    uploadedDocumentId = null;
+    updateFields();
+  });
+
+  updateFields();
+}
+
+async function copyNotebookResource(
+  sourceNotebookId,
+  groupId
+) {
+  const source = await notesApi(
+    `notebooks/${sourceNotebookId}`
+  );
+
+  const { createNotebookSeed } = await import(
+    notesUrl('js/notesv3/collab-yjs.js')
+  );
+
+  const seeds = [];
+
+  for (const item of source.pages) {
+    const sourcePage = await notesApi(
+      `pages/${item.id}`
+    );
+
+    seeds.push({
+      sourcePageId: sourcePage.id,
+      sourceVersionToken: sourcePage.versionToken,
+      initialUpdate: createNotebookSeed(
+        sourcePage.deltaJson
+      )
+    });
+  }
+
+  await notesApi(
+    `groups/${groupId}/notebook-copies`,
+    {
+      method: 'POST',
+      body: {
+        sourceNotebookId,
+        seeds
+      }
+    }
+  );
+}
+
+function confirmUnshareNotesPdf(shareId) {
+  const pdf = notesResources.pdfs.find(
+    item => item.shareId === shareId
+  );
+
+  if (!pdf) {
+    throw new Error('Hãy làm mới danh sách tài nguyên.');
+  }
+
+  return openForm(
+    'Gỡ chia sẻ PDF',
+    '<p>Nhóm sẽ không còn truy cập PDF và ghi chú ' +
+    'thuộc lượt chia sẻ này. PDF cá nhân vẫn được giữ.</p>',
+    async () => {
+      await notesApi(
+        `pdf-shares/${shareId}`,
+        {
+          method: 'DELETE',
+          body: {
+            versionToken: pdf.shareVersionToken
+          }
+        }
+      );
+
+      await refreshNotesResources();
+    },
+    'Gỡ chia sẻ'
+  );
+}
+
+function confirmDeleteGroupNotebook(notebookId) {
+  return openForm(
+    'Xóa notebook nhóm',
+    '<p>Notebook và các trang bên trong sẽ bị ẩn khỏi nhóm. ' +
+    'Bản notebook cá nhân ban đầu không bị ảnh hưởng.</p>',
+    async () => {
+      await notesApi(
+        `notebooks/${notebookId}`,
+        { method: 'DELETE' }
+      );
+
+      await refreshNotesResources();
+    },
+    'Xóa notebook'
+  );
+}
+  //end
   async function dispatch(b) {
-    const action = b.dataset.glAction, id = Number(b.dataset.id);
-    if (action === 'refresh') return load();
-    if (!state) throw new Error('Hãy chờ dữ liệu tải xong.');
+    const action = b.dataset.glAction;
+const id = Number(b.dataset.id);
+
+if (action === 'notes-resources-refresh') {
+  await refreshNotesResources();
+
+  // Flashcard vẫn được tải qua cơ chế Group hiện có.
+  try {
+    await load();
+  } catch (error) {
+    showError(error);
+  }
+
+  return;
+}
+
+if (action === 'resource-share') {
+  return openNotesResourceForm();
+}
+
+if (action === 'notes-pdf-unshare') {
+  return confirmUnshareNotesPdf(id);
+}
+
+if (action === 'notes-notebook-delete') {
+  return confirmDeleteGroupNotebook(id);
+}
+
+if (action === 'refresh') {
+  return load();
+}
+
+if (!state) {
+  throw new Error('Hãy chờ dữ liệu tải xong.');
+}
     const session = state.sessions.find(x => x.id === id);
     const assignment = state.assignments.find(x => x.id === id);
     const question = state.questions.find(x => x.id === id);
@@ -271,11 +805,11 @@
           area('feedback', 'Nhận xét (bắt buộc khi yêu cầu sửa)', submission.feedback),
           data => api(`/assignments/${id}/submissions/${submission.id}/review`, 'PUT', { status: data.get('status'), feedback: data.get('feedback') }));
       }
-      case 'resource-share':
-        if (!state.availableResources.length) throw new Error('Bạn chưa có tài nguyên chưa chia sẻ. Hãy tạo ghi chú, tải PDF hoặc tạo bộ flashcard trước.');
-        return openForm('Chia sẻ tài nguyên của bạn', select('resource', 'Chọn tài nguyên', state.availableResources.map(r => option(`${r.kind}/${r.id}`, `${r.title} (${r.kind})`)).join('')) +
-          '<p class="gl-meta">Thành viên nhóm được đọc tài nguyên. Bạn vẫn giữ quyền chỉnh sửa; gỡ chia sẻ hoặc rời nhóm sẽ đưa tài nguyên về riêng tư.</p>',
-          data => api(`/resources/${data.get('resource')}`, 'PUT'), 'Chia sẻ');
+      // case 'resource-share':
+      //   if (!state.availableResources.length) throw new Error('Bạn chưa có tài nguyên chưa chia sẻ. Hãy tạo ghi chú, tải PDF hoặc tạo bộ flashcard trước.');
+      //   return openForm('Chia sẻ tài nguyên của bạn', select('resource', 'Chọn tài nguyên', state.availableResources.map(r => option(`${r.kind}/${r.id}`, `${r.title} (${r.kind})`)).join('')) +
+      //     '<p class="gl-meta">Thành viên nhóm được đọc tài nguyên. Bạn vẫn giữ quyền chỉnh sửa; gỡ chia sẻ hoặc rời nhóm sẽ đưa tài nguyên về riêng tư.</p>',
+      //     data => api(`/resources/${data.get('resource')}`, 'PUT'), 'Chia sẻ');
       case 'resource-unshare':
         return openForm('Gỡ chia sẻ tài nguyên', '<p>Tài nguyên trở về riêng tư của chủ sở hữu và không còn được nhóm truy cập.</p>',
           () => api(`/resources/${b.dataset.kind}/${id}`, 'DELETE'), 'Gỡ chia sẻ');
@@ -305,4 +839,7 @@
   document.getElementById('gl-question-search').addEventListener('input', () => { if (state) renderQuestions(); });
   weekInput.addEventListener('change', () => load().catch(showError));
   load().catch(showError);
+  //c
+  refreshNotesResources().catch(showError);
+  //end
 })();
