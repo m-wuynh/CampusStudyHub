@@ -98,5 +98,6 @@ public partial class StudyHubDbContext
             e.Property(x => x.Revision).IsConcurrencyToken();
             e.HasOne<StudyGroup>().WithMany().HasForeignKey(x => x.StudyGroupId).OnDelete(DeleteBehavior.NoAction);
         });
+        ConfigureNotesV3(modelBuilder);
     }
 }
