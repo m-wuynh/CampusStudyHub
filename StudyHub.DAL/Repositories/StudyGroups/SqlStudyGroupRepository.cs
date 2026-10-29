@@ -116,23 +116,23 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .OrderBy(post => post.CreatedAtUtc)
             .Select(ToPost));
 
-        var documents = await context.Documents.AsNoTracking()
-            .Where(item => item.StudyGroupId == groupId && item.Visibility == "Group" && !item.IsDeleted)
-            .OrderByDescending(item => item.CreatedAtUtc)
-            .Take(20)
-            .Select(item => new GroupResourceData(
-                $"document-{item.DocumentId}", item.Title, "Document", $"/Groups/{groupId}/Resources/Document/{item.DocumentId}"))
-            .ToListAsync(cancellationToken);
-        result.Resources.AddRange(documents);
+        // var documents = await context.Documents.AsNoTracking()
+        //     .Where(item => item.StudyGroupId == groupId && item.Visibility == "Group" && !item.IsDeleted)
+        //     .OrderByDescending(item => item.CreatedAtUtc)
+        //     .Take(20)
+        //     .Select(item => new GroupResourceData(
+        //         $"document-{item.DocumentId}", item.Title, "Document", $"/Groups/{groupId}/Resources/Document/{item.DocumentId}"))
+        //     .ToListAsync(cancellationToken);
+        // result.Resources.AddRange(documents);
 
-        var notes = await context.Notes.AsNoTracking()
-            .Where(item => item.StudyGroupId == groupId && item.Visibility == "Group" && !item.IsDeleted)
-            .OrderByDescending(item => item.UpdatedAtUtc)
-            .Take(20)
-            .Select(item => new GroupResourceData(
-                $"note-{item.NoteId}", item.Title, "Note", $"/Groups/{groupId}/Resources/Note/{item.NoteId}"))
-            .ToListAsync(cancellationToken);
-        result.Resources.AddRange(notes);
+        // var notes = await context.Notes.AsNoTracking()
+        //     .Where(item => item.StudyGroupId == groupId && item.Visibility == "Group" && !item.IsDeleted)
+        //     .OrderByDescending(item => item.UpdatedAtUtc)
+        //     .Take(20)
+        //     .Select(item => new GroupResourceData(
+        //         $"note-{item.NoteId}", item.Title, "Note", $"/Groups/{groupId}/Resources/Note/{item.NoteId}"))
+        //     .ToListAsync(cancellationToken);
+        // result.Resources.AddRange(notes);
 
         var decks = await context.FlashcardDecks.AsNoTracking()
             .Where(item => item.StudyGroupId == groupId && item.Visibility == "Group" && !item.IsDeleted)
@@ -614,22 +614,51 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             item => item.StudyGroupId == groupId && item.UserId == userId && item.Status == "Active" && !item.StudyGroup.IsArchived,
             cancellationToken);
 
-    private async Task RestorePrivateResourcesAsync(long groupId, long userId, CancellationToken ct)
-    {
-        await context.Notes.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
-                .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
-        await context.Documents.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
-                .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
-        await context.FlashcardDecks.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
-                .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
-        // Registration for future sessions no longer applies after leaving; historical attendance is retained.
-        var now = DateTimeOffset.UtcNow;
-        await context.GroupSessionAttendances.Where(x => x.UserId == userId && x.Session.StudyGroupId == groupId &&
-            x.Session.Status == "Scheduled" && x.Session.StartsAtUtc > now).ExecuteDeleteAsync(ct);
-    }
+    // private async Task RestorePrivateResourcesAsync(long groupId, long userId, CancellationToken ct)
+    // {
+    //     await context.Notes.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
+    //         .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
+    //             .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
+    //     await context.Documents.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
+    //         .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
+    //             .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
+    //     await context.FlashcardDecks.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
+    //         .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
+    //             .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
+    //     // Registration for future sessions no longer applies after leaving; historical attendance is retained.
+    //     var now = DateTimeOffset.UtcNow;
+    //     await context.GroupSessionAttendances.Where(x => x.UserId == userId && x.Session.StudyGroupId == groupId &&
+    //         x.Session.Status == "Scheduled" && x.Session.StartsAtUtc > now).ExecuteDeleteAsync(ct);
+    // }
+
+    private async Task RestorePrivateResourcesAsync(
+    long groupId,
+    long userId,
+    CancellationToken ct)
+{
+    // Giữ nguyên cơ chế flashcard hiện có.
+    await context.FlashcardDecks
+        .Where(x =>
+            x.StudyGroupId == groupId &&
+            x.OwnerUserId == userId)
+        .ExecuteUpdateAsync(
+            setters => setters
+                .SetProperty(x => x.StudyGroupId, (long?)null)
+                .SetProperty(x => x.Visibility, "Private")
+                .SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow),
+            ct);
+
+    // Giữ nguyên xử lý đăng ký buổi học tương lai.
+    var now = DateTimeOffset.UtcNow;
+
+    await context.GroupSessionAttendances
+        .Where(x =>
+            x.UserId == userId &&
+            x.Session.StudyGroupId == groupId &&
+            x.Session.Status == "Scheduled" &&
+            x.Session.StartsAtUtc > now)
+        .ExecuteDeleteAsync(ct);
+}
 
     private static StudyGroupData ToDomain(StudyGroup group, long currentUserId)
     {
