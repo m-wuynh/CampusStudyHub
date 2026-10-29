@@ -318,12 +318,5 @@ app.Run();
 // Expose the entry point to integration tests.
 public partial class Program
 {
-    var exists = await gateway.GroupExistsAndIsActiveAsync(groupId, cancellationToken);
-    var isMember = await gateway.IsActiveMemberAsync(userId, groupId, cancellationToken);
-    var allowed = exists && isMember;
-    return new(name, expected, allowed, expected == allowed);
 }
 
-public sealed record GatewayCheck(string Name, bool ExpectedAllowed, bool ActualAllowed, bool Passed);
-// Expose the entry point to WebApplicationFactory integration tests.
-public partial class Program { }
