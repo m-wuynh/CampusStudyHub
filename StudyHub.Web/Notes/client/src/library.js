@@ -65,7 +65,7 @@ rows.addEventListener('click', async (event) => {
   const { action, id, title } = button.dataset
   try {
     if (action === 'share' || action === 'share-note') {
-      await openShareDialog(action, id)
+      await openShareDialog(action, id, title)
       return
     }
     if (action === 'open') {
@@ -104,56 +104,136 @@ function jsonRequest(method, value) {
   return { method, headers: { 'Content-Type': 'application/json', RequestVerificationToken: token }, ...(value === undefined ? {} : { body: JSON.stringify(value) }) }
 }
 
-async function openShareDialog(action, id) {
+const shareDocument = document.querySelector('#notes-share-document')
+const shareImpact = document.querySelector('#notes-share-impact')
+const shareCurrent = document.createElement('p')
+shareCurrent.className = 'small fw-semibold mt-2 mb-1'
+shareGroup.insertAdjacentElement('afterend', shareCurrent)
+const shareOpen = document.createElement('a')
+shareOpen.className = 'btn btn-outline-primary btn-sm mt-2 d-none'
+shareOpen.textContent = 'Mở tài liệu trong nhóm'
+shareStatus.insertAdjacentElement('afterend', shareOpen)
+const shareRevoke = document.createElement('button')
+shareRevoke.type = 'button'
+shareRevoke.className = 'btn btn-outline-danger btn-sm mt-2 d-none'
+shareRevoke.textContent = 'Thu hồi quyền truy cập'
+shareOpen.insertAdjacentElement('afterend', shareRevoke)
+let shareSequence = 0
+let shareBusy = false
+let activeShares = new Map()
+
+async function openShareDialog(action, id, title) {
+  const sequence = ++shareSequence
   shareTarget = { action, id }
+  activeShares = new Map()
+  shareDocument.textContent = title
+  shareImpact.textContent = action === 'share'
+    ? 'PDF gốc vẫn ở thư viện cá nhân. Thành viên nhóm xem PDF và ghi annotation trên lớp riêng của nhóm. Thu hồi chia sẻ sẽ chặn truy cập PDF trong nhóm.'
+    : 'Nhóm nhận một bản sao ghi chú độc lập. Sửa ghi chú cá nhân sau đó không thay đổi bản trong nhóm.'
   shareGroup.replaceChildren()
-  shareStatus.textContent = 'Đang tải các nhóm bạn là thành viên…'
+  shareCurrent.textContent = ''
+  shareOpen.classList.add('d-none')
+  shareOpen.textContent = action === 'share' ? 'Mở tài liệu trong nhóm' : 'Mở ghi chú trong nhóm'
+  shareRevoke.classList.add('d-none')
+  shareStatus.textContent = 'Đang tải nhóm và trạng thái chia sẻ…'
   shareConfirm.disabled = true
   bootstrap.Modal.getOrCreateInstance(shareModal).show()
   try {
-    const groups = await request('/api/notes/eligible-groups')
-    for (const group of groups) {
+    const [groups, shares] = await Promise.all([
+      request('/api/notes/eligible-groups'),
+      action === 'share' ? request(`/api/notes/documents/${id}/shares`) : Promise.resolve([])
+    ])
+    if (sequence !== shareSequence) return
+    for (const share of shares) activeShares.set(Number(share.groupId), share.groupName)
+    const groupOptions = new Map(groups.map(group => [Number(group.groupId), group.name]))
+    for (const share of shares) groupOptions.set(Number(share.groupId), share.groupName)
+    for (const [groupId, name] of groupOptions) {
       const option = document.createElement('option')
-      option.value = group.groupId
-      option.textContent = group.name
+      option.value = groupId
+      option.textContent = name
+      option.dataset.eligible = groups.some(group => Number(group.groupId) === groupId) ? 'true' : 'false'
       shareGroup.append(option)
     }
-    shareStatus.textContent = groups.length
-      ? 'Chỉ nhóm có membership đang hoạt động mới được phép chia sẻ.'
+    shareStatus.textContent = groupOptions.size
+      ? 'Chọn nhóm để xem quyền truy cập hiện tại.'
       : 'Bạn chưa là thành viên đang hoạt động của nhóm nào.'
-    shareConfirm.disabled = groups.length === 0
-  } catch (error) { shareStatus.textContent = error.message }
-}
-
-shareConfirm.addEventListener('click', async () => {
-  if (!shareTarget || !shareGroup.value) return
-  shareConfirm.disabled = true
-  shareStatus.textContent = 'Đang tạo quyền chia sẻ…'
-  const isDocument = shareTarget.action === 'share'
-  const url = isDocument
-    ? `/api/notes/documents/${shareTarget.id}/shares`
-    : `/api/notes/notes/${shareTarget.id}/shares`
-  try {
-    await request(url, jsonRequest('POST', { groupId: Number(shareGroup.value) }))
-    shareStatus.textContent = isDocument
-      ? 'Đã chia sẻ PDF; annotation riêng của nhóm đã được khởi tạo.'
-      : 'Đã tạo snapshot độc lập của ghi chú trong nhóm.'
-    setTimeout(() => bootstrap.Modal.getOrCreateInstance(shareModal).hide(), 600)
-  } catch (error) { shareStatus.textContent = error.message }
-  finally { shareConfirm.disabled = shareGroup.options.length === 0 }
-})
-
-async function createNote() {
-  const title = window.prompt('Tên ghi chú mới:', 'Ghi chú mới')
-  if (title === null) return
-  try {
-    const created = await request(notesApi, jsonRequest('POST', { title }))
-    location.href = `/Notes/Note/${created.id}`
+    updateShareSelection()
   } catch (error) {
-    status.textContent = `Không tạo được ghi chú: ${error.message}`
+    if (sequence === shareSequence) shareStatus.textContent = error.message
   }
 }
 
+function updateShareSelection() {
+  const groupId = Number(shareGroup.value)
+  const alreadyShared = activeShares.has(groupId)
+  const eligible = shareGroup.selectedOptions[0]?.dataset.eligible === 'true'
+  shareCurrent.textContent = !groupId ? '' : alreadyShared
+    ? shareTarget?.action === 'share' ? 'PDF đang được chia sẻ với nhóm này.' : 'Đã tạo bản sao ghi chú trong nhóm này.'
+    : 'Nhóm này chưa có quyền truy cập nội dung này.'
+  shareConfirm.disabled = shareBusy || !groupId || alreadyShared || !eligible
+  shareRevoke.classList.toggle('d-none', shareTarget?.action !== 'share' || !alreadyShared)
+  shareRevoke.disabled = shareBusy
+  shareOpen.classList.toggle('d-none', !alreadyShared)
+  if (alreadyShared) shareOpen.href = shareTarget?.action === 'share'
+    ? `/Notes/Groups/${groupId}/Documents/${shareTarget.id}`
+    : `/Notes/Groups/${groupId}`
+}
+
+shareGroup.addEventListener('change', updateShareSelection)
+shareModal.addEventListener('hidden.bs.modal', () => { shareTarget = null; ++shareSequence })
+
+shareConfirm.addEventListener('click', async () => {
+  if (shareBusy || !shareTarget || !shareGroup.value || shareConfirm.disabled) return
+  const target = { ...shareTarget }
+  const groupId = Number(shareGroup.value)
+  shareBusy = true
+  updateShareSelection()
+  shareStatus.textContent = 'Đang lưu quyền chia sẻ…'
+  const isDocument = target.action === 'share'
+  const url = isDocument
+    ? `/api/notes/documents/${target.id}/shares`
+    : `/api/notes/notes/${target.id}/shares`
+  try {
+    await request(url, jsonRequest('POST', { groupId }))
+    activeShares.set(groupId, shareGroup.selectedOptions[0].textContent)
+    shareStatus.textContent = isDocument
+      ? 'Đã chia sẻ. Mở PDF trong nhóm để kiểm tra lớp annotation riêng.'
+      : 'Đã tạo bản sao ghi chú trong nhóm.'
+    if (isDocument) await loadDocuments()
+    else {
+      shareOpen.href = `/Notes/Groups/${groupId}`
+      shareOpen.textContent = 'Mở ghi chú trong nhóm'
+      shareOpen.classList.remove('d-none')
+    }
+  } catch (error) { shareStatus.textContent = error.message }
+  finally { shareBusy = false; updateShareSelection() }
+})
+
+shareRevoke.addEventListener('click', async () => {
+  if (shareBusy || !shareTarget || shareTarget.action !== 'share') return
+  const groupId = Number(shareGroup.value)
+  if (!activeShares.has(groupId) || !window.confirm('Thu hồi chia sẻ? Thành viên nhóm sẽ không thể mở PDF và annotation của phiên chia sẻ này.')) return
+  shareBusy = true
+  updateShareSelection()
+  try {
+    await request(`/api/notes/documents/${shareTarget.id}/shares/${groupId}`, jsonRequest('DELETE'))
+    activeShares.delete(groupId)
+    shareStatus.textContent = 'Đã thu hồi quyền truy cập PDF trong nhóm.'
+    await loadDocuments()
+  } catch (error) { shareStatus.textContent = error.message }
+  finally { shareBusy = false; updateShareSelection() }
+})
+async function createNote() {
+  const button = document.querySelector('#note-create')
+  button.disabled = true
+  try {
+    const created = await request(notesApi, jsonRequest('POST', { title: 'Ghi chú mới' }))
+    location.href = `/Notes/Note/${created.id}?new=1`
+  } catch (error) {
+    status.textContent = `Không tạo được ghi chú: ${error.message}`
+    button.disabled = false
+  }
+}
 async function request(url, options = {}) {
   const response = await fetch(url, { credentials: 'same-origin', ...options })
   if (response.redirected) {
@@ -215,6 +295,7 @@ async function loadDocuments(message = '') {
 function setActiveFilter() {
   document.querySelectorAll('[data-filter]').forEach((button) => {
     button.classList.toggle('active', button.dataset.filter === activeFilter)
+    button.setAttribute('aria-pressed', String(button.dataset.filter === activeFilter))
   })
 }
 
@@ -246,7 +327,15 @@ function render() {
 
 function createRow(item) {
   const row = document.createElement('tr')
+  row.className = 'notes-library-card'
   const titleCell = document.createElement('td')
+  titleCell.className = 'notes-library-card-title'
+  const kindIcon = document.createElement('span')
+  kindIcon.className = `notes-library-kind notes-library-kind-${item.kind}`
+  kindIcon.setAttribute('aria-hidden', 'true')
+  const kindGlyph = document.createElement('i')
+  kindGlyph.className = `bi ${item.kind === 'pdf' ? 'bi-file-earmark-pdf' : 'bi-journal-text'}`
+  kindIcon.append(kindGlyph)
   const title = document.createElement('button')
   title.type = 'button'
   title.className = 'notes-document-title'
@@ -256,7 +345,13 @@ function createRow(item) {
   const detail = document.createElement('div')
   detail.className = 'small text-secondary mt-1'
   detail.textContent = item.isArchived ? 'Đã lưu trữ · chỉ đọc' : item.kind === 'note' ? 'Ghi chú cá nhân' : item.fileName
-  titleCell.append(title, detail)
+  titleCell.append(kindIcon, title, detail)
+  if (item.kind === 'pdf' && item.shareCount > 0 && !item.isArchived) {
+    const badge = document.createElement('span')
+    badge.className = 'notes-share-badge'
+    badge.textContent = `Đang chia sẻ với ${item.shareCount} nhóm`
+    titleCell.append(badge)
+  }
 
   const sizeCell = document.createElement('td')
   sizeCell.className = 'text-secondary small'
@@ -276,13 +371,18 @@ function createRow(item) {
   for (const [action, label, icon] of actions) {
     const button = document.createElement('button')
     button.type = 'button'
-    button.className = 'btn-icon-sh notes-row-action'
+    button.className = `notes-row-action${action === 'share' || action === 'share-note' ? ' notes-share-action' : ''}`
     button.title = label
     button.setAttribute('aria-label', label)
     Object.assign(button.dataset, { action, id: item.id, title: item.title })
     const glyph = document.createElement('i')
     glyph.className = `bi ${icon}`
     button.append(glyph)
+    if (action === 'share' || action === 'share-note') {
+      const text = document.createElement('span')
+      text.textContent = 'Chia sẻ'
+      button.append(text)
+    }
     actionCell.append(button)
   }
   row.append(titleCell, sizeCell, dateCell, actionCell)
@@ -294,4 +394,5 @@ function formatBytes(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
+setActiveFilter()
 loadDocuments()

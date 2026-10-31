@@ -1,0 +1,91 @@
+@model StudyHub.Web.ViewModels.NotesV3.NotesBookViewModel
+
+@{
+    ViewData["Title"] = $"Notes Book - {Model.Pdf.Title}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isGroup = Model.GroupDocumentShareId.HasValue;
+}
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/quill@@2.0.3/dist/quill.snow.css" />
+
+<link rel="stylesheet"
+      href="~/css/notesv3/notes.css"
+      asp-append-version="true" />
+
+<div class="notesv3 notesv3-book"
+     data-notesv3
+     data-notesv3-book
+     data-app-root="@Url.Content("~/")"
+     data-is-group="@(isGroup ? "true" : "false")">
+
+    @Html.AntiForgeryToken()
+
+    <header class="notesv3-header">
+        <a asp-controller="NotesV3"
+           asp-action="Reader"
+           asp-route-id="@Model.Pdf.DocumentId"
+           asp-route-shareId="@Model.GroupDocumentShareId">
+            ← Quay lại PDF
+        </a>
+
+        <h1>Notes Book</h1>
+        <p>@Model.Pdf.Title</p>
+
+        <p>
+            @(isGroup
+                ? "Tổng hợp ghi chú nhóm theo trang PDF."
+                : "Tổng hợp ghi chú cá nhân theo trang PDF.")
+        </p>
+
+        <button class="btn btn-outline-secondary"
+                type="button"
+                data-refresh-book>
+            Làm mới
+        </button>
+    </header>
+
+    <p class="notesv3-status"
+       data-book-status
+       role="status"
+       aria-live="polite">
+        Đang dựng Notes Book…
+    </p>
+
+    <p class="notesv3-empty" data-book-empty hidden>
+        Chưa có trang nào chứa ghi chú.
+    </p>
+
+    <div data-book-content>
+       @foreach (var entry in Model.Pages)
+{
+    <article class="notesv3-card notesv3-book-entry"
+             data-book-entry
+             data-page-id="@entry.PageId"
+             data-page-number="@entry.PhysicalPageNumber"
+             data-requires-replay="@(entry.RequiresReplay ? "true" : "false")"
+             hidden>
+
+        <h2>
+            <a asp-controller="NotesV3"
+               asp-action="Reader"
+               asp-route-id="@Model.Pdf.DocumentId"
+               asp-route-shareId="@Model.GroupDocumentShareId"
+               asp-route-page="@entry.PhysicalPageNumber">
+                Trang @entry.PhysicalPageNumber
+            </a>
+        </h2>
+
+        <textarea data-book-delta hidden>@entry.DeltaJson</textarea>
+
+        <div data-book-editor></div>
+    </article>
+}
+    </div>
+</div>
+
+@section Scripts {
+    <script type="module"
+            src="~/js/notesv3/pdf-reader.js"
+            asp-append-version="true"></script>
+}

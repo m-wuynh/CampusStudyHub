@@ -25,6 +25,8 @@ StudyHub.Web/App_Data/*.tmp
 # Local application configuration
 StudyHub.Web/appsettings.json
 
-.diagram-work/
+# Local-only folders
+StudyHub.Tests/
 StudyHub.BLL.Tests/
-StudyHub.Tests
+docs/
+.diagram-work/

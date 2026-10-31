@@ -1,0 +1,243 @@
+@model StudyHub.Web.ViewModels.NotesV3.NotesIndexViewModel
+
+@{
+    ViewData["Title"] = "Ghi chú & PDF";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/notesv3/notes.css"
+          asp-append-version="true" />
+}
+
+<div class="notesv3"
+     data-notesv3
+     data-notesv3-library
+     data-app-root="@Url.Content("~/")">
+
+    @Html.AntiForgeryToken()
+
+    <header class="notesv3-header">
+        <div>
+            <h1>Ghi chú &amp; PDF</h1>
+            <p>Notebook cá nhân, tài liệu và ghi chú theo trang.</p>
+        </div>
+    </header>
+
+    <div class="notesv3-counters">
+        <div class="notesv3-card">
+            <strong>@Model.Dashboard.PersonalNotebookCount</strong>
+            <span>Notebook cá nhân</span>
+        </div>
+
+        <div class="notesv3-card">
+            <strong>@Model.Dashboard.PersonalPdfCount</strong>
+            <span>PDF đang hoạt động</span>
+        </div>
+
+        <div class="notesv3-card">
+            <strong>@Model.Dashboard.SharedResourceCount</strong>
+            <span>Tài nguyên nhóm có thể truy cập</span>
+        </div>
+    </div>
+
+    <p class="notesv3-status"
+       data-status
+       role="status"
+       aria-live="polite"></p>
+
+    <div class="notesv3-actions-grid">
+        <form class="notesv3-card" data-create-notebook>
+            <h2>Tạo notebook</h2>
+
+            <label for="notesv3-notebook-title">Tên notebook</label>
+            <input id="notesv3-notebook-title"
+                   class="form-control"
+                   name="title"
+                   maxlength="200"
+                   required
+                   placeholder="Ví dụ: Hệ điều hành" />
+
+            <button class="btn btn-primary" type="submit">
+                Tạo notebook
+            </button>
+        </form>
+
+        <form class="notesv3-card" data-upload-pdf>
+            <h2>Tải PDF</h2>
+
+            <label for="notesv3-pdf-title">Tên hiển thị</label>
+            <input id="notesv3-pdf-title"
+                   class="form-control"
+                   name="Title"
+                   maxlength="200"
+                   placeholder="Để trống để dùng tên file" />
+
+            <label for="notesv3-pdf-file">File PDF, tối đa 25 MiB</label>
+            <input id="notesv3-pdf-file"
+                   class="form-control"
+                   name="File"
+                   type="file"
+                   accept=".pdf,application/pdf"
+                   required />
+
+            <button class="btn btn-primary" type="submit">
+                Tải lên
+            </button>
+        </form>
+    </div>
+
+    <section class="notesv3-section">
+        <div class="notesv3-section-heading">
+            <h2>Notebook cá nhân</h2>
+            <span>@Model.Notebooks.Count notebook</span>
+        </div>
+
+        @if (Model.Notebooks.Count == 0)
+        {
+            <p class="notesv3-empty">
+                Chưa có notebook. Tạo notebook đầu tiên ở phía trên.
+            </p>
+        }
+        else
+        {
+            <div class="notesv3-resource-grid">
+                @foreach (var notebook in Model.Notebooks)
+                {
+                    <article class="notesv3-card"
+                             data-notebook-id="@notebook.Id">
+
+                        <h3 data-resource-title>@notebook.Title</h3>
+
+                        <div class="notesv3-button-row">
+                            <a class="btn btn-primary"
+                               asp-controller="NotesV3"
+                               asp-action="Notebook"
+                               asp-route-id="@notebook.Id">
+                                Mở
+                            </a>
+
+                            <button class="btn btn-outline-secondary"
+                                    type="button"
+                                    data-action="rename-notebook">
+                                Đổi tên
+                            </button>
+
+                            <button class="btn btn-outline-danger"
+                                    type="button"
+                                    data-action="delete-notebook">
+                                Xóa
+                            </button>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="notesv3-section">
+        <div class="notesv3-section-heading">
+            <h2>PDF cá nhân</h2>
+            <span>@Model.Pdfs.Count tài liệu, gồm cả đã lưu trữ</span>
+        </div>
+
+        @if (Model.Groups.Count > 0)
+        {
+            <div class="notesv3-share-target">
+                <label for="notesv3-share-group">
+                    Nhóm nhận khi chọn “Chia sẻ”
+                </label>
+
+                <select id="notesv3-share-group"
+                        class="form-select"
+                        data-share-group>
+                    <option value="">Chọn nhóm</option>
+
+                    @foreach (var group in Model.Groups)
+                    {
+                        <option value="@group.GroupId">@group.Name</option>
+                    }
+                </select>
+            </div>
+        }
+
+        @if (Model.Pdfs.Count == 0)
+        {
+            <p class="notesv3-empty">
+                Chưa có PDF. Chọn file và tải lên ở phía trên.
+            </p>
+        }
+        else
+        {
+            <div class="notesv3-resource-grid">
+                @foreach (var pdf in Model.Pdfs)
+                {
+                    <article class="notesv3-card"
+                             data-pdf-id="@pdf.DocumentId"
+                             data-version-token="@pdf.VersionToken">
+
+                        <h3 data-resource-title>@pdf.Title</h3>
+
+                        <p class="notesv3-file-name">@pdf.FileName</p>
+
+                        <p class="notesv3-meta">
+                            @((pdf.SizeBytes / 1024d / 1024d).ToString("0.0")) MiB
+                            @if (pdf.PageCount is int pageCount)
+                            {
+                                <span> · @pageCount trang</span>
+                            }
+                        </p>
+
+                        @if (pdf.IsArchived)
+                        {
+                            <span class="badge text-bg-secondary">
+                                Đã lưu trữ
+                            </span>
+                        }
+
+                        <div class="notesv3-button-row">
+                            <a class="btn btn-primary"
+                               asp-controller="NotesV3"
+                               asp-action="Reader"
+                               asp-route-id="@pdf.DocumentId">
+                                Mở
+                            </a>
+
+                            @if (!pdf.IsArchived)
+                            {
+                                <button class="btn btn-outline-secondary"
+                                        type="button"
+                                        data-action="rename-pdf">
+                                    Đổi tên
+                                </button>
+
+                                @if (Model.Groups.Count > 0)
+                                {
+                                    <button class="btn btn-outline-primary"
+                                            type="button"
+                                            data-action="share-pdf">
+                                        Chia sẻ
+                                    </button>
+                                }
+                            }
+
+                            <button class="btn btn-outline-secondary"
+                                    type="button"
+                                    data-action="archive-pdf"
+                                    data-archived="@(pdf.IsArchived ? "true" : "false")">
+                                @(pdf.IsArchived ? "Bỏ lưu trữ" : "Lưu trữ")
+                            </button>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script type="module"
+            src="~/js/notesv3/notes-ui.js"
+            asp-append-version="true"></script>
+}

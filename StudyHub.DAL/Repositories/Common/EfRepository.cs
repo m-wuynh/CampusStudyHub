@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using StudyHub.DAL.Persistence;
 using StudyHub.DAL.Repositories.Auth;
+using StudyHub.DAL.Repositories.NotesV3;
 using StudyHub.DAL.Repositories.StudyGroups;
 
 namespace StudyHub.DAL.Repositories.Common;
@@ -9,11 +10,12 @@ namespace StudyHub.DAL.Repositories.Common;
 public sealed class EfRepository(
     StudyHubDbContext context,
     IGoogleAuthRepository googleAuth,
-    IStudyGroupRepository studyGroups) : IRepository
+    IStudyGroupRepository studyGroups,
+    INotesV3Repository notesV3Repository) : IRepository
 {
     public IGoogleAuthRepository GoogleAuth { get; } = googleAuth;
     public IStudyGroupRepository StudyGroups { get; } = studyGroups;
-
+    public INotesV3Repository NotesV3 { get; } = notesV3Repository;
     public IQueryable<TEntity> Query<TEntity>(bool asNoTracking = true) where TEntity : class
     {
         var query = context.Set<TEntity>().AsQueryable();

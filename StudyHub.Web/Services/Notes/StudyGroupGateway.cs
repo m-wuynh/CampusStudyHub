@@ -21,8 +21,10 @@ public sealed class StudyGroupGateway(
     public async Task<bool> IsActiveMemberAsync(long userId, long groupId, CancellationToken cancellationToken = default)
     {
         if (userId != currentUser.UserId) return false;
-        var group = await studyGroups.GetGroupAsync(groupId.ToString(), cancellationToken);
-        return group is { IsMember: true };
+        return await db.GroupMembers.AsNoTracking().AnyAsync(member =>
+            member.UserId == userId && member.StudyGroupId == groupId && member.Status == "Active" &&
+            !member.StudyGroup.IsArchived && member.User.Status == "Active" &&
+            member.StudyGroup.OwnerUser.Status == "Active", cancellationToken);
     }
 
     public async Task<IReadOnlyList<NoteGroupOption>> GetActiveGroupsAsync(
@@ -30,17 +32,24 @@ public sealed class StudyGroupGateway(
         CancellationToken cancellationToken = default)
     {
         if (userId != currentUser.UserId) return [];
-        var groups = await studyGroups.GetGroupsAsync(cancellationToken: cancellationToken);
-        return groups.Where(group => group.IsMember && long.TryParse(group.Id, out _))
-            .Select(group => new NoteGroupOption(long.Parse(group.Id), group.Name))
-            .ToList();
+        if (!await db.Users.AsNoTracking().AnyAsync(user => user.UserId == userId && user.Status == "Active", cancellationToken))
+            return [];
+        return await db.GroupMembers.AsNoTracking()
+            .Where(member => member.UserId == userId && member.Status == "Active" &&
+                !member.StudyGroup.IsArchived && member.StudyGroup.OwnerUser.Status == "Active")
+            .OrderBy(member => member.StudyGroup.GroupName)
+            .Select(member => new NoteGroupOption(member.StudyGroupId, member.StudyGroup.GroupName))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<NoteGroupDescriptor?> GetActiveGroupAsync(long groupId, CancellationToken cancellationToken = default)
     {
         if (groupId <= 0) return null;
-        var group = await studyGroups.GetGroupAsync(groupId.ToString(), cancellationToken);
-        return group is null ? null : new NoteGroupDescriptor(groupId, group.OwnerUserId, group.Name);
+        return await db.StudyGroups.AsNoTracking()
+            .Where(group => group.StudyGroupId == groupId && !group.IsArchived &&
+                group.OwnerUser.Status == "Active")
+            .Select(group => new NoteGroupDescriptor(group.StudyGroupId, group.OwnerUserId, group.GroupName))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<NoteGroupDescriptor?> GetDevelopmentTestGroupAsync(

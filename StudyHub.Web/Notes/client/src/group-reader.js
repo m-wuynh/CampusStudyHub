@@ -11,10 +11,12 @@ const status = document.querySelector("#group-reader-status");
 const api = `/api/notes/groups/${groupId}/documents/${documentId}`;
 let core;
 let versionId;
+let shareId;
 let versionToken;
 let readOnly = true;
 let dirty = false;
 let saving = false;
+let editRevision = 0;
 let initialAnnotations = [];
 
 for (const button of document.querySelectorAll("[data-tool]"))
@@ -31,6 +33,18 @@ window.addEventListener("keydown", event => {
 window.addEventListener("beforeunload", event => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });
 
 await open();
+if (window.signalR) {
+  const connection = new signalR.HubConnectionBuilder().withUrl('/hubs/notes').withAutomaticReconnect().build();
+  connection.on('GroupAnnotationsChanged', event => {
+    if (event.documentId === documentId && !dirty) location.reload();
+    else if (event.documentId === documentId) status.textContent = 'Annotation nhóm đã đổi. Lưu hoặc tải lại để xử lý xung đột.';
+  });
+  connection.on('PdfShareChanged', event => { if (event.documentId === documentId) location.reload(); });
+  connection.onreconnected(() => { void connection.invoke('EnterGroup', groupId).catch(() => { location.reload(); }); });
+  void connection.start().then(() => connection.invoke('EnterGroup', groupId)).catch(() => {
+    status.textContent = 'Không kết nối được đồng bộ nhóm. Tải lại trang để thử lại.';
+  });
+}
 
 async function open() {
   try {
@@ -38,10 +52,11 @@ async function open() {
     const suffix = versionQuery ? `?versionId=${encodeURIComponent(versionQuery)}` : "";
     const details = await request(`${api}${suffix}`);
     versionId = details.versionId;
+    shareId = details.shareId;
     readOnly = details.isArchived;
     root.dataset.canManage = String(details.canManage);
     document.querySelector("#group-reader-title").textContent = details.title;
-    status.textContent = `${details.fileName} · ${formatBytes(details.sizeBytes)}${readOnly ? " · PDF lưu trữ, chỉ đọc" : details.canManage ? " · annotation chính thức" : " · chỉnh sửa sẽ gửi đề xuất"}`;
+    status.textContent = `${details.fileName} · ${formatBytes(details.sizeBytes)}${readOnly ? " · PDF lưu trữ, chỉ đọc" : " · annotation nhóm"}`;
     core = await createInkLayer({
       root: document.querySelector("#group-pdf-workspace"),
       annotation: {
@@ -67,6 +82,7 @@ async function open() {
     await core.load({ url: `${api}/file${suffix}`, range: "auto", rangeChunkSize: 64 * 1024 });
     if (!await waitForFirstPage()) throw new Error("Trang đầu chưa render sau 15 giây. Tải lại PDF rồi thử lại.");
     const saved = await request(`${api}/annotations?versionId=${versionId}`);
+    if (saved.shareId !== shareId) throw new Error("Phiên chia sẻ PDF đã đổi. Tải lại trang.");
     versionToken = saved.versionToken;
     initialAnnotations = JSON.parse(saved.payloadJson);
     core.annotations.repository.replaceAll(initialAnnotations);
@@ -74,10 +90,11 @@ async function open() {
     core.annotations.repository.subscribe(event => {
       if (readOnly || ["selection", "destroy"].includes(event.type)) return;
       dirty = true;
-      status.textContent = "Có thay đổi chưa lưu. Ctrl+S để lưu hoặc gửi đề xuất.";
+      editRevision += 1;
+      status.textContent = "Có thay đổi chưa lưu. Ctrl+S để lưu.";
     });
     const count = core.viewer.getSnapshot().document.numPages;
-    status.textContent = `${details.fileName} · ${count} trang${readOnly ? " · Chỉ đọc" : details.canManage ? " · chỉnh sửa chính thức" : " · lưu thành đề xuất"}`;
+    status.textContent = `${details.fileName} · ${count} trang${readOnly ? " · Chỉ đọc" : " · chỉnh sửa trực tiếp"}`;
     for (const selector of ["#group-reader-zoom-in", "#group-reader-zoom-out", "#group-reader-fit"])
       document.querySelector(selector).disabled = false;
     if (!readOnly) {
@@ -90,29 +107,19 @@ async function open() {
 async function save() {
   if (!core || readOnly || !dirty || saving) return;
   saving = true;
+  const savedRevision = editRevision;
   const button = document.querySelector("#group-reader-save");
   button.disabled = true;
   const payload = core.annotations.repository.getAll();
-  const serialized = JSON.stringify(payload);
-  const operation = initialAnnotations.length === 0 && payload.length > 0 ? "CREATE" :
-    payload.length === 0 && initialAnnotations.length > 0 ? "DELETE" : "UPDATE";
   status.textContent = "Đang lưu annotation nhóm…";
   try {
-    if (root.dataset.canManage === "true") {
-      const result = await request(`${api}/annotations?versionId=${versionId}`, "PUT", { payload, versionToken });
-      versionToken = result.versionToken;
-      initialAnnotations = payload;
-      status.textContent = `Đã lưu annotation chính thức · ${payload.length} mục.`;
-    } else {
-      const result = await request(`/api/notes/groups/${groupId}/requests`, "POST", {
-        targetType: "GroupAnnotation", operation, targetId: null,
-        documentVersionId: versionId, proposedTitle: null,
-        proposedPayloadJson: serialized, baseVersionToken: versionToken
-      });
-      status.textContent = `Đã gửi đề xuất #${result.id}; annotation chính thức chưa đổi.`;
-      initialAnnotations = payload;
-    }
-    dirty = false;
+    const result = await request(`${api}/annotations?versionId=${versionId}`, "PUT", { shareId, payload, versionToken });
+    versionToken = result.versionToken;
+    initialAnnotations = payload;
+    if (editRevision === savedRevision) {
+      dirty = false;
+      status.textContent = `Đã lưu annotation nhóm · ${payload.length} mục.`;
+    } else status.textContent = "Có thay đổi annotation chưa lưu.";
   } catch (error) { status.textContent = `Lưu thất bại: ${error.message} · thay đổi vẫn còn trên màn hình.`; }
   finally { saving = false; button.disabled = readOnly; }
 }

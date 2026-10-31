@@ -18,6 +18,7 @@ let versionToken = null
 let archived = false
 let dirty = false
 let saving = false
+let editRevision = 0
 
 editor.on('text-change', (_delta, _old, source) => {
   if (source === 'user') setDirty()
@@ -30,7 +31,7 @@ $('#note-page-document').addEventListener('change', () => {
 $('#note-page-open-split').addEventListener('click', () => {
   const documentId = $('#note-page-document').value
   if (!documentId) return
-  location.href = `/Notes/Reader/${documentId}?noteId=${encodeURIComponent(noteId)}`
+  location.href = `/Notes/Reader/${documentId}`
 })
 window.addEventListener('keydown', (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
@@ -60,6 +61,11 @@ async function load() {
     $('#note-page-title').disabled = archived
     $('#note-page-save').disabled = archived
     setStatus(archived ? 'Ghi chú đã lưu trữ · chỉ đọc' : 'Đã lưu')
+    if (new URLSearchParams(location.search).get('new') === '1' && !archived) {
+      $('#note-page-title').focus()
+      $('#note-page-title').select()
+      setStatus('Đặt tên ghi chú rồi viết nội dung. Bấm Ctrl+S để lưu.')
+    }
     fillDocuments(documents.filter((item) => !item.isArchived))
     renderReferences(note.references)
   } catch (error) {
@@ -76,6 +82,7 @@ function fillDocuments(documents) {
 
 async function save() {
   if (!dirty || archived || saving) return
+  const savedRevision = editRevision
   saving = true
   $('#note-page-save').disabled = true
   setStatus('Đang lưu…', 'saving')
@@ -90,8 +97,12 @@ async function save() {
       })
     })
     versionToken = result.versionToken
-    dirty = false
-    setStatus(`Đã lưu · ${new Date(result.updatedAtUtc).toLocaleTimeString('vi-VN')}`)
+    if (editRevision === savedRevision) {
+      dirty = false
+      setStatus(`Đã lưu · ${new Date(result.updatedAtUtc).toLocaleTimeString('vi-VN')}`)
+    } else {
+      setStatus('Có thay đổi chưa lưu', 'dirty')
+    }
   } catch (error) {
     setStatus(`Lưu thất bại: ${error.message} · nội dung vẫn còn trên màn hình`, 'failed')
   } finally {
@@ -102,6 +113,7 @@ async function save() {
 
 function setDirty() {
   if (archived) return
+  editRevision += 1
   dirty = true
   $('#note-page-save').disabled = false
   setStatus('Có thay đổi chưa lưu', 'dirty')

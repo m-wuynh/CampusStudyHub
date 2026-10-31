@@ -1,0 +1,201 @@
+@model StudyHub.Web.ViewModels.NotesV3.NotesNotebookViewModel
+
+@{
+    ViewData["Title"] = Model.Details.Notebook.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isGroup = Model.Details.Notebook.GroupId.HasValue;
+}
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/quill@@2.0.3/dist/quill.snow.css" />
+
+<link rel="stylesheet"
+      href="~/css/notesv3/notes.css"
+      asp-append-version="true" />
+
+<div class="notesv3"
+     data-notesv3
+     data-notesv3-notebook
+     data-app-root="@Url.Content("~/")"
+     data-notebook-id="@Model.Details.Notebook.Id"
+     data-is-group="@(isGroup ? "true" : "false")">
+
+    @Html.AntiForgeryToken()
+
+    <header class="notesv3-header">
+        <a asp-controller="NotesV3" asp-action="Index">
+            ← Thư viện
+        </a>
+
+        <h1>@Model.Details.Notebook.Title</h1>
+
+        <p>@(isGroup ? "Notebook thuộc nhóm" : "Notebook cá nhân")</p>
+    </header>
+
+    <div class="notesv3-button-row">
+        <button class="btn btn-outline-secondary"
+                type="button"
+                data-command="save">
+            Lưu
+        </button>
+
+        <button class="btn btn-outline-secondary"
+                type="button"
+                data-command="copy-draft">
+            Sao chép bản nháp
+        </button>
+
+        <button class="btn btn-outline-secondary"
+                type="button"
+                data-command="reconnect">
+            Kết nối lại
+        </button>
+
+        @if (!isGroup && Model.Groups.Count > 0)
+        {
+            <select class="form-select notesv3-group-picker"
+                    data-copy-group
+                    aria-label="Nhóm nhận notebook">
+                <option value="">Chọn nhóm nhận</option>
+
+                @foreach (var group in Model.Groups)
+                {
+                    <option value="@group.GroupId">@group.Name</option>
+                }
+            </select>
+
+            <button class="btn btn-outline-primary"
+                    type="button"
+                    data-command="copy-notebook">
+                Chép vào nhóm
+            </button>
+        }
+    </div>
+
+    <p class="notesv3-status"
+       data-status
+       role="status"
+       aria-live="polite"></p>
+
+    <div class="notesv3-notebook-grid">
+        <aside class="notesv3-card notesv3-notebook-rail">
+            <h2>Notebook</h2>
+
+            @foreach (var notebook in Model.Notebooks)
+            {
+                <a class="notesv3-notebook-link @(notebook.Id == Model.Details.Notebook.Id ? "active" : "")"
+                   asp-controller="NotesV3"
+                   asp-action="Notebook"
+                   asp-route-id="@notebook.Id">
+                    @notebook.Title
+                </a>
+            }
+        </aside>
+
+        <aside class="notesv3-card notesv3-page-rail">
+            <h2>Sections &amp; Pages</h2>
+
+            <label for="notesv3-section">Section</label>
+            <select id="notesv3-section"
+                    class="form-select"
+                    data-section></select>
+
+            <div class="notesv3-button-row">
+                <button class="btn btn-sm btn-outline-primary"
+                        type="button"
+                        data-command="create-section">Thêm section</button>
+
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        data-command="rename-section">Đổi tên</button>
+
+                <button class="btn btn-sm btn-outline-danger"
+                        type="button"
+                        data-command="delete-section">Xóa</button>
+
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        data-command="section-up">↑</button>
+
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        data-command="section-down">↓</button>
+            </div>
+
+            <hr />
+
+            <button class="btn btn-sm btn-primary"
+                    type="button"
+                    data-command="create-page">
+                Thêm trang
+            </button>
+
+            <div class="notesv3-page-list" data-page-list></div>
+
+            @if (!isGroup)
+            {
+                <hr />
+
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        data-command="load-trash">
+                    Thùng rác
+                </button>
+
+                <div data-trash-panel hidden>
+                    <select class="form-select"
+                            data-trash
+                            aria-label="Trang đã xóa"></select>
+
+                    <button class="btn btn-sm btn-outline-primary"
+                            type="button"
+                            data-command="restore-page">
+                        Khôi phục
+                    </button>
+                </div>
+            }
+        </aside>
+
+        <main class="notesv3-card notesv3-editor-panel">
+            <h2 data-page-title>Chọn hoặc tạo một trang</h2>
+
+            <div class="notesv3-button-row">
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        data-command="rename-page">Đổi tên</button>
+
+                <button class="btn btn-sm btn-outline-danger"
+                        type="button"
+                        data-command="delete-page">Xóa trang</button>
+
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        data-command="page-up">↑</button>
+
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        data-command="page-down">↓</button>
+            </div>
+
+            <div class="notesv3-button-row">
+                <select class="form-select"
+                        data-move-section
+                        aria-label="Section đích"></select>
+
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        data-command="move-page">
+                    Chuyển section
+                </button>
+            </div>
+
+            <div class="notesv3-quill" data-editor></div>
+        </main>
+    </div>
+</div>
+
+@section Scripts {
+    <script type="module"
+            src="~/js/notesv3/note-editor.js"
+            asp-append-version="true"></script>
+}

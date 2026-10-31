@@ -71,7 +71,6 @@ public sealed class NotesController : Controller
     [HttpGet("")]
     public IActionResult Index()
     {
-        ViewData["ShowNotesDevelopmentRoles"] = environment.IsDevelopment();
         return View("~/Views/Notes/Index.cshtml");
     }
 

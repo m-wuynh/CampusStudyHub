@@ -10,22 +10,29 @@
 <section id="note-editor-page" class="notes-module note-editor-page sh-card" data-note-id="@Model" data-notes-api="/api/notes/notes" data-documents-api="/api/notes/documents">
     @Html.AntiForgeryToken()
     <header class="note-editor-page-heading">
-        <a asp-controller="Notes" asp-action="Index" class="btn btn-light"><i class="bi bi-arrow-left"></i> Thư viện</a>
-        <div class="flex-grow-1"><label class="visually-hidden" for="note-page-title">Tiêu đề ghi chú</label><input id="note-page-title" class="form-control form-control-lg" maxlength="200" placeholder="Tiêu đề ghi chú"></div>
-        <span id="note-page-status" class="small text-secondary" role="status">Đang tải ghi chú…</span>
-        <button id="note-page-save" class="btn-primary-sh" type="button" disabled><i class="bi bi-floppy"></i> Lưu <kbd>Ctrl+S</kbd></button>
+        <div class="note-editor-heading-top">
+            <a asp-controller="Notes" asp-action="Index" class="btn btn-light"><i class="bi bi-arrow-left"></i> Thư viện</a>
+            <div class="note-editor-heading-actions">
+                <span id="note-page-status" class="small text-secondary" role="status">Đang tải ghi chú…</span>
+                <button id="note-page-save" class="btn-primary-sh" type="button" disabled><i class="bi bi-floppy"></i> Lưu <kbd>Ctrl+S</kbd></button>
+            </div>
+        </div>
+        <label class="note-title-label" for="note-page-title">Tiêu đề ghi chú</label>
+        <input id="note-page-title" class="form-control form-control-lg" maxlength="200" placeholder="Đặt tên cho ghi chú">
     </header>
-    <div id="note-page-toolbar" class="note-quill-toolbar">
+    <div class="note-page-writing-area">
+      <div id="note-page-toolbar" class="note-quill-toolbar">
         <span class="ql-formats"><select class="ql-header"><option selected></option><option value="1"></option><option value="2"></option><option value="3"></option></select></span>
         <span class="ql-formats"><button class="ql-bold" type="button" aria-label="Đậm"></button><button class="ql-italic" type="button" aria-label="Nghiêng"></button><button class="ql-underline" type="button" aria-label="Gạch chân"></button><button class="ql-strike" type="button" aria-label="Gạch ngang"></button></span>
         <span class="ql-formats"><button class="ql-list" value="ordered" type="button" aria-label="Danh sách số"></button><button class="ql-list" value="bullet" type="button" aria-label="Danh sách chấm"></button><button class="ql-blockquote" type="button" aria-label="Trích dẫn"></button></span>
         <span class="ql-formats"><button class="ql-link" type="button" aria-label="Liên kết"></button></span>
+      </div>
+      <div id="note-page-editor" class="note-page-editor" aria-label="Nội dung ghi chú"></div>
     </div>
-    <div id="note-page-editor" class="note-page-editor" aria-label="Nội dung ghi chú"></div>
     <section class="note-page-reference-area">
-        <div><h2 class="h6 mb-1">Mở trong PDF split view</h2><p class="small text-secondary mb-2">Chọn PDF để chụp chữ hoặc vùng trang vào ghi chú này.</p></div>
-        <div class="d-flex flex-column flex-sm-row gap-2"><select id="note-page-document" class="form-select" aria-label="Chọn PDF"><option value="">Đang tải PDF…</option></select><button id="note-page-open-split" class="btn btn-outline-primary" type="button" disabled><i class="bi bi-layout-split"></i> Mở cạnh PDF</button></div>
-        <div class="mt-3"><h3 class="small fw-bold">Tham chiếu hiện có</h3><ul id="note-page-reference-list" class="note-reference-list"><li class="small text-secondary">Đang tải…</li></ul></div>
+        <div><h2 class="h6 mb-1">Sổ ghi chú theo PDF</h2><p class="small text-secondary mb-0">Chọn PDF để mở sổ ghi chú riêng của tài liệu, sắp theo từng trang. Ghi chú độc lập này vẫn được lưu riêng.</p></div>
+        <div class="note-reference-picker"><label class="form-label small fw-semibold" for="note-page-document">Tài liệu PDF</label><select id="note-page-document" class="form-select"><option value="">Đang tải PDF…</option></select><button id="note-page-open-split" class="btn btn-outline-primary" type="button" disabled><i class="bi bi-layout-split"></i> Mở cạnh PDF</button></div>
+        <div class="note-existing-references"><h3 class="small fw-bold">Tham chiếu hiện có</h3><ul id="note-page-reference-list" class="note-reference-list"><li class="small text-secondary">Đang tải…</li></ul></div>
     </section>
 </section>
 

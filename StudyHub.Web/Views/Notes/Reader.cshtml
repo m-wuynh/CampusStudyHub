@@ -1,7 +1,7 @@
 @model long
 @{
-    ViewData["Title"] = "PDF Reader";
-    ViewData["PageTitle"] = "PDF Reader";
+    ViewData["Title"] = "Đọc tài liệu PDF";
+    ViewData["PageTitle"] = "Đọc tài liệu PDF";
     ViewData["PageSubtitle"] = "Đọc và chú thích tài liệu cá nhân";
     ViewData["CompactStudySidebar"] = true;
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -11,63 +11,60 @@
      data-user-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
      data-user-name="@User.Identity?.Name">
     @Html.AntiForgeryToken()
-    <div class="reader-heading d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-3">
-        <div class="d-flex align-items-center gap-3">
-            <a asp-controller="Notes" asp-action="Index" class="btn btn-light"><i class="bi bi-arrow-left"></i> Thư viện</a>
-            <div><h2 id="reader-title" class="fw-bold mb-0" style="font-size:18px">Đang mở PDF…</h2>
+    <div class="reader-heading mb-3">
+        <div class="reader-heading-main">
+            <a asp-controller="Notes" asp-action="Index" class="btn btn-light reader-back"><i class="bi bi-arrow-left"></i> Thư viện</a>
+            <div class="reader-heading-title"><h2 id="reader-title" class="fw-bold mb-0">Đang mở PDF…</h2>
                 <span id="reader-status" class="small text-secondary" role="status">Đang tải tài liệu</span></div>
-        </div>
-        <div class="reader-save d-flex align-items-center gap-2">
-            <button id="toggle-note-workspace" class="btn btn-outline-primary" type="button" aria-expanded="false"><i class="bi bi-layout-split"></i> Ghi chú cạnh PDF</button>
-            <span id="annotation-save-status" class="small text-secondary" role="status">Đã lưu</span>
-            <button id="save-annotations" class="btn-primary-sh" type="button" disabled><i class="bi bi-floppy"></i> Lưu <kbd>Ctrl+S</kbd></button>
         </div>
     </div>
 
     <aside class="reader-tool-rail sh-card" aria-label="Thanh công cụ PDF">
-            <p class="reader-rail-title">Công cụ</p>
-            <div class="reader-rail-group">
+            <div class="reader-rail-group reader-rail-draw">
+                <span class="reader-rail-title">Chú thích</span>
                 <button id="tool-select" class="btn btn-sm btn-outline-secondary" data-tool="select" type="button" title="Chọn" aria-label="Chọn" disabled><i class="bi bi-cursor"></i><span>Chọn</span></button>
-            </div>
-            <div class="reader-rail-group">
                 <button id="tool-highlight" class="btn btn-sm btn-outline-secondary" data-tool="free-highlight" type="button" title="Highlight" aria-label="Highlight" disabled><i class="bi bi-highlighter"></i><span>Highlight</span></button>
                 <div id="highlight-settings" class="reader-tool-settings" hidden>
                     <label class="reader-color-control" for="highlight-color">Màu highlight<input id="highlight-color" type="color" value="#facc15" disabled></label>
                     <label class="reader-range-control" for="highlight-width">Độ dày <output id="highlight-width-value">16</output><input id="highlight-width" type="range" min="8" max="36" step="2" value="16" disabled></label>
                     <label class="reader-range-control" for="highlight-opacity">Độ trong <output id="highlight-opacity-value">35%</output><input id="highlight-opacity" type="range" min="10" max="80" step="5" value="35" disabled></label>
                 </div>
-            </div>
-            <div class="reader-rail-group">
                 <button id="tool-pen" class="btn btn-sm btn-outline-secondary" data-tool="freehand" type="button" title="Bút" aria-label="Bút" disabled><i class="bi bi-pencil"></i><span>Bút</span></button>
                 <div id="pen-settings" class="reader-tool-settings" hidden>
                     <label class="reader-color-control" for="pen-color">Màu bút<input id="pen-color" type="color" value="#ef4444" disabled></label>
                     <label class="reader-range-control" for="pen-width">Độ dày <output id="pen-width-value">3</output><input id="pen-width" type="range" min="1" max="12" step="1" value="3" disabled></label>
                     <label class="reader-range-control" for="pen-opacity">Độ trong <output id="pen-opacity-value">100%</output><input id="pen-opacity" type="range" min="20" max="100" step="5" value="100" disabled></label>
                 </div>
-            </div>
-            <div class="reader-rail-group">
                 <button id="tool-eraser" class="btn btn-sm btn-outline-secondary" type="button" title="Tẩy theo đoạn" aria-label="Tẩy theo đoạn" disabled><i class="bi bi-eraser"></i><span>Tẩy</span></button>
                 <div id="eraser-settings" class="reader-tool-settings" hidden>
                     <label class="reader-range-control" for="eraser-size">Cỡ tẩy <output id="eraser-size-value">18</output><input id="eraser-size" type="range" min="8" max="48" step="2" value="18"></label>
                     <small>Tẩy phần nét bị quét qua, giữ lại phần còn lại.</small>
                 </div>
-                <span class="reader-hint" title="Nhấp đúp PDF để bình luận">Nhấp đúp để bình luận</span>
+            </div>
+            <div class="reader-rail-group reader-rail-discuss">
+                <span class="reader-rail-title">Thảo luận</span>
                 <button id="toggle-comments" class="btn btn-sm btn-outline-secondary" type="button" title="Bình luận" aria-label="Bình luận" disabled aria-expanded="false"><i class="bi bi-chat-left-text"></i><span>Bình luận</span> <span id="comment-count" class="badge text-bg-secondary">0</span></button>
                 <button id="delete-annotation" class="btn btn-sm btn-outline-danger" type="button" title="Xóa chọn" aria-label="Xóa chọn" disabled><i class="bi bi-trash"></i><span>Xóa chọn</span></button>
+                <span class="reader-hint">Nhấp đúp trang PDF để bình luận.</span>
             </div>
-            <div class="reader-rail-group">
-                <span class="reader-rail-title">Thu phóng</span>
+            <div class="reader-rail-group reader-rail-navigation">
+                <span class="reader-rail-title">Trang &amp; hiển thị</span>
                 <div class="reader-rail-row"><button id="reader-zoom-out" class="btn btn-sm btn-outline-secondary" type="button" title="Thu nhỏ" aria-label="Thu nhỏ" disabled><i class="bi bi-zoom-out"></i></button><button id="reader-zoom-in" class="btn btn-sm btn-outline-secondary" type="button" title="Phóng to" aria-label="Phóng to" disabled><i class="bi bi-zoom-in"></i></button></div>
                 <button id="reader-fit-width" class="btn btn-sm btn-outline-secondary" type="button" title="Vừa chiều rộng" aria-label="Vừa chiều rộng" disabled><i class="bi bi-arrows-angle-expand"></i><span>Vừa chiều rộng</span></button>
                 <div class="reader-rail-row"><button id="reader-prev-page" class="btn btn-sm btn-outline-secondary" type="button" aria-label="Trang trước" disabled><i class="bi bi-chevron-up"></i></button><input id="reader-page-number" class="form-control form-control-sm reader-page-number" type="number" min="1" value="1" aria-label="Số trang" disabled><button id="reader-next-page" class="btn btn-sm btn-outline-secondary" type="button" aria-label="Trang tiếp" disabled><i class="bi bi-chevron-down"></i></button></div>
                 <span id="reader-page-count" class="small text-secondary text-center"></span>
             </div>
-            <div class="reader-rail-group">
+            <div class="reader-rail-group reader-rail-search">
                 <label class="reader-rail-title" for="reader-search">Tìm trong PDF</label>
                 <input id="reader-search" class="form-control form-control-sm" type="search" placeholder="Nhập từ cần tìm" aria-label="Tìm chữ trong PDF" disabled>
                 <button id="reader-search-submit" class="btn btn-sm btn-outline-secondary" type="button" title="Tìm" aria-label="Tìm" disabled><i class="bi bi-search"></i><span>Tìm</span></button>
                 <div class="reader-rail-row"><button id="reader-search-previous" class="btn btn-sm btn-outline-secondary" type="button" title="Kết quả trước" aria-label="Kết quả trước" disabled><i class="bi bi-chevron-up"></i><span>Trước</span></button><button id="reader-search-next" class="btn btn-sm btn-outline-secondary" type="button" title="Kết quả tiếp theo" aria-label="Kết quả tiếp theo" disabled><i class="bi bi-chevron-down"></i><span>Tiếp</span></button></div>
                 <span id="reader-search-status" class="small text-secondary text-center" aria-live="polite"></span>
+            </div>
+            <div class="reader-rail-group reader-rail-actions">
+                <button id="toggle-note-workspace" class="btn btn-sm btn-outline-primary" type="button" title="Ghi chú cạnh PDF" aria-label="Ghi chú cạnh PDF" aria-expanded="false"><i class="bi bi-layout-split"></i><span>Ghi chú</span></button>
+                <span id="annotation-save-status" class="small text-secondary" role="status">Đã lưu</span>
+                <button id="save-annotations" class="btn-primary-sh" type="button" disabled title="Lưu chú thích (Ctrl+S)"><i class="bi bi-floppy"></i><span>Lưu</span></button>
             </div>
     </aside>
     <div id="reader-layout">
@@ -76,14 +73,15 @@
                 <div id="reader-pages" aria-label="Các trang PDF"></div>
             </div>
         </div>
+        <div id="reader-pane-resizer" class="reader-pane-resizer" role="separator" aria-label="Điều chỉnh độ rộng ghi chú" aria-orientation="vertical" aria-controls="note-workspace" aria-valuemin="28" aria-valuemax="55" aria-valuenow="38" tabindex="0" title="Kéo để đổi độ rộng PDF và ghi chú"></div>
         <aside id="note-workspace" class="note-workspace sh-card" hidden aria-label="Ghi chú và tham chiếu">
             <div class="note-workspace-heading">
-                <div><h3 class="h6 mb-1">Ghi chú</h3><span id="note-save-status" class="small text-secondary" role="status">Chọn ghi chú để bắt đầu.</span></div>
-                <button id="note-create-in-reader" class="btn btn-sm btn-outline-primary" type="button"><i class="bi bi-plus-lg"></i> Mới</button>
+                <div><h3 class="h6 mb-1">Sổ ghi chú PDF</h3><span id="reader-notebook-title" class="small text-secondary"></span><span id="note-save-status" class="small text-secondary d-block" role="status">Chọn trang để bắt đầu.</span></div>
+                <button id="note-create-in-reader" class="btn btn-sm btn-outline-primary" type="button"><i class="bi bi-plus-lg"></i> Ghi chú trang này</button>
             </div>
-            <label class="form-label small fw-semibold mb-1" for="reader-note-select">Ghi chú cá nhân</label>
-            <select id="reader-note-select" class="form-select form-select-sm" aria-label="Chọn ghi chú"><option value="">Chọn ghi chú…</option></select>
-            <label class="form-label small fw-semibold mb-1 mt-2" for="reader-note-title">Tiêu đề</label>
+            <label class="form-label small fw-semibold mb-1" for="reader-note-select">Các trang đã ghi chú trong PDF này</label>
+            <select id="reader-note-select" class="form-select form-select-sm" aria-label="Chọn trang ghi chú"><option value="">Chọn trang…</option></select>
+            <label class="form-label small fw-semibold mb-1 mt-2" for="reader-note-title">Tiêu đề ghi chú</label>
             <input id="reader-note-title" class="form-control form-control-sm" maxlength="200" placeholder="Tên ghi chú" disabled>
             <div id="reader-note-toolbar" class="note-quill-toolbar">
                 <span class="ql-formats"><select class="ql-header"><option selected></option><option value="1"></option><option value="2"></option><option value="3"></option></select></span>
@@ -92,6 +90,7 @@
                 <span class="ql-formats"><button class="ql-link" type="button" aria-label="Liên kết"></button></span>
             </div>
             <div id="reader-note-editor" class="note-quill-editor" aria-label="Nội dung ghi chú"></div>
+            <p class="reader-capture-help">Chọn chữ trên PDF rồi bấm Chụp chữ, hoặc bấm Chụp vùng và kéo trên trang để thêm tham chiếu.</p>
             <div class="note-capture-actions">
                 <button id="capture-note-text" class="btn btn-sm btn-outline-secondary" type="button" disabled title="Chọn chữ trong PDF rồi chụp vào ghi chú"><i class="bi bi-text-paragraph"></i> Chụp chữ</button>
                 <button id="capture-note-area" class="btn btn-sm btn-outline-secondary" type="button" disabled title="Kéo vùng cần chụp trên PDF"><i class="bi bi-crop"></i> Chụp vùng</button>

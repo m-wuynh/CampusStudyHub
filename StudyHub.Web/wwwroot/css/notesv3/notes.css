@@ -1,0 +1,295 @@
+.notesv3 {
+    --nv-border: #e2e8f0;
+    --nv-muted: #64748b;
+    --nv-surface: #ffffff;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 16px;
+    color: #0f172a;
+}
+
+.notesv3-header {
+    margin-bottom: 24px;
+}
+
+.notesv3-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
+.notesv3-header p,
+.notesv3-meta,
+.notesv3-file-name {
+    color: var(--nv-muted);
+}
+
+.notesv3-counters,
+.notesv3-actions-grid,
+.notesv3-resource-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.notesv3-counters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 16px;
+}
+
+.notesv3-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.notesv3-resource-grid {
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+}
+
+.notesv3-card {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--nv-border);
+    border-radius: 14px;
+    background: var(--nv-surface);
+}
+
+.notesv3-counters .notesv3-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.notesv3-counters strong {
+    font-size: 30px;
+}
+
+.notesv3-counters span {
+    color: var(--nv-muted);
+}
+
+.notesv3-card h2,
+.notesv3-section h2 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.notesv3-card h3 {
+    font-size: 17px;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+.notesv3-card form,
+form.notesv3-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+form.notesv3-card button {
+    align-self: flex-start;
+    margin-top: auto;
+}
+
+.notesv3-section {
+    margin-top: 30px;
+}
+
+.notesv3-section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.notesv3-section-heading > span {
+    color: var(--nv-muted);
+    font-size: 14px;
+}
+
+.notesv3-button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.notesv3-file-name {
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.notesv3-meta {
+    font-size: 13px;
+}
+
+.notesv3-empty {
+    padding: 28px;
+    border: 1px dashed var(--nv-border);
+    border-radius: 14px;
+    color: var(--nv-muted);
+}
+
+.notesv3-share-target {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.notesv3-share-target select {
+    max-width: 320px;
+}
+
+.notesv3-status {
+    min-height: 24px;
+    margin: 12px 0;
+    overflow-wrap: anywhere;
+}
+
+.notesv3-status[data-state="error"] {
+    color: #b91c1c;
+}
+
+.notesv3-status[data-state="success"] {
+    color: #15803d;
+}
+
+@media (max-width: 760px) {
+    .notesv3-counters,
+    .notesv3-actions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .notesv3 {
+        padding: 12px;
+    }
+}
+.notesv3-notebook-grid {
+    display: grid;
+    grid-template-columns: 200px 270px minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.notesv3-notebook-rail,
+.notesv3-page-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notesv3-notebook-link,
+.notesv3-page-button {
+    display: block;
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 10px;
+    color: #334155;
+    background: transparent;
+    text-align: left;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.notesv3-notebook-link:hover,
+.notesv3-page-button:hover {
+    background: #f1f5f9;
+}
+
+.notesv3-notebook-link.active,
+.notesv3-page-button.active {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+}
+
+.notesv3-page-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.notesv3-editor-panel {
+    min-width: 0;
+}
+
+.notesv3-editor-panel .ql-toolbar {
+    margin-top: 16px;
+}
+
+.notesv3-quill {
+    min-height: 460px;
+}
+
+.notesv3-quill .ql-editor {
+    min-height: 460px;
+    font-size: 16px;
+    line-height: 1.7;
+}
+
+.notesv3-group-picker,
+.notesv3-editor-panel [data-move-section] {
+    width: auto;
+    max-width: 280px;
+}
+
+@media (max-width: 1050px) {
+    .notesv3-notebook-grid {
+        grid-template-columns: 180px minmax(0, 1fr);
+    }
+
+    .notesv3-editor-panel {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 650px) {
+    .notesv3-notebook-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.notesv3-book {
+    max-width: 1000px;
+}
+
+.notesv3-book-entry {
+    margin-bottom: 20px;
+}
+
+.notesv3-book-entry h2 {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.notesv3-book-entry h2 a {
+    color: #1d4ed8;
+    text-decoration: none;
+}
+
+.notesv3-book-entry h2 a:hover {
+    text-decoration: underline;
+}
+
+.notesv3-book-entry .ql-container {
+    border: 0;
+}
+
+.notesv3-book-entry .ql-editor {
+    padding: 0;
+    font-size: 16px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.notesv3-book-entry[hidden],
+.notesv3-book [hidden] {
+    display: none !important;
+}

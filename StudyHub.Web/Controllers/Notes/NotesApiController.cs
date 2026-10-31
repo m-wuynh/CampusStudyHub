@@ -21,13 +21,95 @@ public sealed class NotesApiController(StudyHubDbContext db, ICurrentUser curren
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<NoteListItem>>> List(CancellationToken cancellationToken)
     {
-        var notes = await OwnedNotes()
+        // The PDF page migration is staged separately. Keep the library and PDF sharing usable
+        // against an older database while it is awaiting the schema safety review.
+        var query = db.Notes.AsNoTracking().Where(note => note.OwnerUserId == currentUser.UserId &&
+            !note.IsDeleted && note.StudyGroupId == null && note.Visibility == "Private");
+        if (await HasPdfPageSchemaAsync(cancellationToken))
+            query = query.Where(note => !db.PdfPageNotes.Any(page => page.NoteId == note.NoteId));
+        var notes = await query
             .OrderByDescending(note => note.UpdatedAtUtc)
             .Select(note => new { note.NoteId, note.Title, note.UpdatedAtUtc,
                 note.IsArchived, note.IsPinned, note.RowVersion })
             .ToListAsync(cancellationToken);
         return Ok(notes.Select(note => new NoteListItem(note.NoteId, note.Title, note.UpdatedAtUtc,
             note.IsArchived, note.IsPinned, Convert.ToBase64String(note.RowVersion))));
+    }
+
+    private async Task<bool> HasPdfPageSchemaAsync(CancellationToken cancellationToken) =>
+        await db.Database.SqlQueryRaw<int>(
+            "SELECT CASE WHEN OBJECT_ID(N'dbo.PdfPageNotes', N'U') IS NULL THEN 0 ELSE 1 END AS [Value]")
+            .SingleAsync(cancellationToken) == 1;
+
+    [HttpGet("pdf/{documentId:long}")]
+    public async Task<IActionResult> PdfNotebook(long documentId, CancellationToken cancellationToken)
+    {
+        var document = await OwnedPdf(documentId).FirstOrDefaultAsync(cancellationToken);
+        if (document is null) return NotFound();
+        if (!await HasPdfPageSchemaAsync(cancellationToken))
+            return StatusCode(503, new { message = "Sổ ghi chú theo trang PDF đang chờ migration database." });
+        var pages = await db.PdfPageNotes.AsNoTracking()
+            .Where(page => page.DocumentId == documentId && page.OwnerUserId == currentUser.UserId)
+            .Join(OwnedNotes().AsNoTracking(), page => page.NoteId, note => note.NoteId,
+                (page, note) => new { note.NoteId, page.PageIndex, note.Title, note.IsArchived, note.UpdatedAtUtc })
+            .OrderBy(page => page.PageIndex)
+            .ToListAsync(cancellationToken);
+        return Ok(new { documentId, title = document.Title, pages });
+    }
+
+    [HttpPost("pdf/{documentId:long}/pages/{pageIndex:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreatePdfPage(long documentId, int pageIndex, CancellationToken cancellationToken)
+    {
+        if (pageIndex is < 0 or > 100_000) return BadRequest(new { message = "Số trang không hợp lệ." });
+        var document = await OwnedPdf(documentId).FirstOrDefaultAsync(cancellationToken);
+        if (document is null) return NotFound();
+        if (!await HasPdfPageSchemaAsync(cancellationToken))
+            return StatusCode(503, new { message = "Sổ ghi chú theo trang PDF đang chờ migration database." });
+        if (document.IsArchived) return Conflict(new { message = "PDF đã lưu trữ, không thể thêm ghi chú." });
+        var version = await db.DocumentVersions.AsNoTracking()
+            .Where(item => item.DocumentId == documentId)
+            .OrderByDescending(item => item.DocumentVersionId)
+            .Select(item => new { item.PageCount })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (version is null) return NotFound(new { message = "PDF chưa có phiên bản hợp lệ." });
+        if (version.PageCount is int count && pageIndex >= count)
+            return BadRequest(new { message = "Trang nằm ngoài PDF." });
+        var existingId = await db.PdfPageNotes.AsNoTracking()
+            .Where(page => page.OwnerUserId == currentUser.UserId && page.DocumentId == documentId && page.PageIndex == pageIndex)
+            .Select(page => (long?)page.NoteId).FirstOrDefaultAsync(cancellationToken);
+        if (existingId is long noteId) return Ok(new { id = noteId, pageIndex, created = false });
+        var now = DateTime.UtcNow;
+        var note = new Note
+        {
+            OwnerUserId = currentUser.UserId,
+            Title = $"Trang {pageIndex + 1}", Body = string.Empty, BodyFormat = "PlainText",
+            Visibility = "Private", ContentDeltaJson = EmptyDelta, CreatedAtUtc = now, UpdatedAtUtc = now
+        };
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        db.Notes.Add(note);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            db.PdfPageNotes.Add(new PdfPageNote
+            {
+                NoteId = note.NoteId, OwnerUserId = currentUser.UserId,
+                DocumentId = documentId, PageIndex = pageIndex
+            });
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            // The unique index also covers simultaneous creation in another tab.
+            var concurrentId = await db.PdfPageNotes.AsNoTracking().Where(page =>
+                page.OwnerUserId == currentUser.UserId && page.DocumentId == documentId && page.PageIndex == pageIndex)
+                .Select(page => (long?)page.NoteId).FirstOrDefaultAsync(cancellationToken);
+            if (concurrentId is null) throw;
+            return Ok(new { id = concurrentId.Value, pageIndex, created = false });
+        }
+        return Ok(new { id = note.NoteId, pageIndex, created = true });
     }
 
     [HttpPost]
@@ -62,6 +144,7 @@ public sealed class NotesApiController(StudyHubDbContext db, ICurrentUser curren
     {
         var note = await OwnedNotes().FirstOrDefaultAsync(item => item.NoteId == id, cancellationToken);
         if (note is null) return NotFound();
+        if (!await CanAccessNoteDocumentAsync(id, cancellationToken)) return NotFound();
         var references = await ReferenceQuery(id).ToListAsync(cancellationToken);
         return Ok(ToDetails(note, references));
     }
@@ -73,6 +156,7 @@ public sealed class NotesApiController(StudyHubDbContext db, ICurrentUser curren
     {
         var note = await OwnedNotes().FirstOrDefaultAsync(item => item.NoteId == id, cancellationToken);
         if (note is null) return NotFound();
+        if (!await CanAccessNoteDocumentAsync(id, cancellationToken)) return NotFound();
         if (note.IsArchived) return Conflict(new { message = "Ghi chú đã lưu trữ, chỉ có thể xem." });
         if (!TokenMatches(note, request.VersionToken)) return Conflict(new { message = "Ghi chú đã được cập nhật ở nơi khác. Tải lại bản mới trước khi lưu." });
         if (!TryValidateDelta(request.ContentDelta, out var normalizedDelta, out var plainText, out var error))
@@ -103,6 +187,14 @@ public sealed class NotesApiController(StudyHubDbContext db, ICurrentUser curren
     {
         var note = await OwnedNotes().FirstOrDefaultAsync(item => item.NoteId == id, cancellationToken);
         if (note is null) return NotFound(new { message = "Không tìm thấy ghi chú trong tài khoản hiện tại." });
+        PdfPageNote? pageNote = null;
+        if (await HasPdfPageSchemaAsync(cancellationToken))
+        {
+            pageNote = await db.PdfPageNotes.AsNoTracking().FirstOrDefaultAsync(item =>
+                item.NoteId == id && item.OwnerUserId == currentUser.UserId, cancellationToken);
+            if (pageNote is null)
+                return BadRequest(new { message = "Hãy tạo ghi chú cho một trang trong sổ PDF trước khi chụp nội dung." });
+        }
         if (note.IsArchived) return Conflict(new { message = "Ghi chú đã lưu trữ, không thể chụp thêm nội dung." });
         if (!TokenMatches(note, request.VersionToken)) return Conflict(new { message = "Ghi chú đã thay đổi. Tải lại bản mới trước khi chụp nội dung." });
         if (!TryValidateDelta(request.ContentDelta, out var normalizedDelta, out var plainText, out var error))
@@ -123,6 +215,9 @@ public sealed class NotesApiController(StudyHubDbContext db, ICurrentUser curren
         if (document.IsArchived) return Conflict(new { message = "PDF đã lưu trữ, không thể tạo tham chiếu mới." });
         if (version.PageCount is int pageCount && request.PageIndex >= pageCount)
             return BadRequest(new { message = "Trang tham chiếu nằm ngoài tài liệu." });
+        if (pageNote is not null &&
+            (pageNote.DocumentId != version.DocumentId || pageNote.PageIndex != request.PageIndex))
+            return BadRequest(new { message = "Chỉ có thể chụp nội dung từ đúng trang của ghi chú PDF." });
 
         note.ContentDeltaJson = normalizedDelta;
         note.Body = plainText;
@@ -163,6 +258,12 @@ public sealed class NotesApiController(StudyHubDbContext db, ICurrentUser curren
     {
         var note = await OwnedNotes().FirstOrDefaultAsync(item => item.NoteId == id, cancellationToken);
         if (note is null) return NotFound();
+        if (!await CanAccessNoteDocumentAsync(id, cancellationToken)) return NotFound();
+        if (await HasPdfPageSchemaAsync(cancellationToken))
+        {
+            var page = await db.PdfPageNotes.FirstOrDefaultAsync(item => item.NoteId == id, cancellationToken);
+            if (page is not null) db.PdfPageNotes.Remove(page);
+        }
         note.IsDeleted = true;
         note.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
@@ -173,14 +274,28 @@ public sealed class NotesApiController(StudyHubDbContext db, ICurrentUser curren
     {
         var note = await OwnedNotes().FirstOrDefaultAsync(item => item.NoteId == id, cancellationToken);
         if (note is null) return NotFound();
+        if (!await CanAccessNoteDocumentAsync(id, cancellationToken)) return NotFound();
         note.IsArchived = archived;
         note.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
 
+    private IQueryable<Document> OwnedPdf(long documentId) => db.Documents.Where(document =>
+        document.DocumentId == documentId && document.OwnerUserId == currentUser.UserId &&
+        !document.IsDeleted && document.ResourceType == "File");
+
     private IQueryable<Note> OwnedNotes() => db.Notes.Where(note => note.OwnerUserId == currentUser.UserId &&
         !note.IsDeleted && note.StudyGroupId == null && note.Visibility == "Private");
+
+    private async Task<bool> CanAccessNoteDocumentAsync(long noteId, CancellationToken cancellationToken)
+    {
+        if (!await HasPdfPageSchemaAsync(cancellationToken)) return true;
+        var documentId = await db.PdfPageNotes.AsNoTracking()
+            .Where(page => page.NoteId == noteId && page.OwnerUserId == currentUser.UserId)
+            .Select(page => (long?)page.DocumentId).FirstOrDefaultAsync(cancellationToken);
+        return documentId is null || await OwnedPdf(documentId.Value).AnyAsync(cancellationToken);
+    }
 
     private IQueryable<NoteReferenceItem> ReferenceQuery(long noteId) =>
         from reference in db.NoteReferenceLinks.AsNoTracking()

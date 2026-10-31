@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.StudyGroups;
-
+using StudyHub.DAL.Repositories.NotesV3;
 namespace StudyHub.DAL.Repositories.Common;
 
 /// <summary>
@@ -12,7 +12,7 @@ public interface IRepository
 {
     IGoogleAuthRepository GoogleAuth { get; }
     IStudyGroupRepository StudyGroups { get; }
-
+    INotesV3Repository NotesV3 { get; }
     IQueryable<TEntity> Query<TEntity>(bool asNoTracking = true) where TEntity : class;
     ValueTask<TEntity?> FindAsync<TEntity>(
         object[] keyValues,

@@ -1,0 +1,139 @@
+.notesv3-reader-toolbar,
+.notesv3-reader-search {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.notesv3-reader-search input {
+    width: min(340px, 100%);
+}
+
+.notesv3-page-number {
+    width: 85px;
+}
+
+.notesv3-reader-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 16px;
+    align-items: start;
+}
+
+.notesv3-reader-grid.notes-hidden {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.notesv3-pdf-scroll {
+    min-width: 0;
+    height: 76vh;
+    overflow: auto;
+    padding: 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #e2e8f0;
+}
+
+.notesv3-pdf-page {
+    position: relative;
+    margin: 0 auto;
+    background: #fff;
+    box-shadow: 0 2px 12px #0f172a22;
+}
+
+.notesv3-pdf-page canvas {
+    display: block;
+}
+
+.notesv3-pdf-page .textLayer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    line-height: 1;
+    text-align: initial;
+    z-index: 2;
+}
+
+.notesv3-pdf-sidebar {
+    min-width: 0;
+}
+
+.notesv3-pdf-sidebar h2 {
+    font-size: 19px;
+}
+
+.notesv3-pdf-note-editor,
+.notesv3-pdf-note-editor .ql-editor {
+    min-height: 360px;
+}
+
+.notesv3-pdf-sidebar[hidden] {
+    display: none !important;
+}
+
+.notesv3-annotation-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.notesv3-annotation-rectangle {
+    position: absolute;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+.notesv3-annotation-rectangle.is-highlight {
+    opacity: 0.32;
+    mix-blend-mode: multiply;
+}
+
+.notesv3-annotation-rectangle.is-comment {
+    border: 2px dashed;
+    border-radius: 3px;
+}
+
+.notesv3-annotation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.notesv3-annotation-item {
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.notesv3-annotation-item p {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.notesv3-reference-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.notesv3-reference-link {
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 1050px) {
+    .notesv3-reader-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .notesv3-pdf-scroll {
+        height: 65vh;
+    }
+}

@@ -32,7 +32,13 @@ public partial class StudyHubDbContext : DbContext
 
     public virtual DbSet<GroupNote> GroupNotes { get; set; }
 
+    public virtual DbSet<GroupNoteRevision> GroupNoteRevisions { get; set; }
+
     public virtual DbSet<GroupAnnotationSet> GroupAnnotationSets { get; set; }
+
+    public virtual DbSet<GroupAnnotationSession> GroupAnnotationSessions { get; set; }
+
+    public virtual DbSet<NotesOutboxEvent> NotesOutboxEvents { get; set; }
 
     public virtual DbSet<GroupChangeRequest> GroupChangeRequests { get; set; }
 
@@ -65,6 +71,8 @@ public partial class StudyHubDbContext : DbContext
     public virtual DbSet<GroupPost> GroupPosts { get; set; }
 
     public virtual DbSet<Note> Notes { get; set; }
+
+    public virtual DbSet<PdfPageNote> PdfPageNotes { get; set; }
 
     public virtual DbSet<NoteReferenceLink> NoteReferenceLinks { get; set; }
 
@@ -350,6 +358,24 @@ public partial class StudyHubDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull).HasConstraintName("FK_GroupNotes_SourceNote");
         });
 
+        modelBuilder.Entity<GroupNoteRevision>(entity =>
+        {
+            entity.HasKey(e => e.GroupNoteRevisionId);
+            entity.ToTable("GroupNoteRevisions", table =>
+                table.HasCheckConstraint("CK_GroupNoteRevisions_ContentDeltaJson", "ISJSON([ContentDeltaJson]) = 1"));
+            entity.HasIndex(e => new { e.GroupNoteId, e.CreatedAtUtc, e.GroupNoteRevisionId });
+            entity.Property(e => e.Operation).HasMaxLength(24).IsUnicode(false);
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.ContentDeltaJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.HasOne<GroupNote>().WithMany().HasForeignKey(e => e.GroupNoteId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupNoteRevisions_Note");
+            entity.HasOne<StudyGroup>().WithMany().HasForeignKey(e => e.StudyGroupId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupNoteRevisions_Group");
+            entity.HasOne<User>().WithMany().HasForeignKey(e => e.ActorUserId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupNoteRevisions_Actor");
+        });
+
         modelBuilder.Entity<GroupAnnotationSet>(entity =>
         {
             entity.HasKey(e => new { e.StudyGroupId, e.DocumentVersionId });
@@ -362,6 +388,35 @@ public partial class StudyHubDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupAnnotationSets_Group");
             entity.HasOne<DocumentVersion>().WithMany().HasForeignKey(e => e.DocumentVersionId)
                 .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupAnnotationSets_Version");
+        });
+
+        modelBuilder.Entity<GroupAnnotationSession>(entity =>
+        {
+            entity.HasKey(e => new { e.GroupDocumentShareId, e.DocumentVersionId });
+            entity.ToTable("GroupAnnotationSessions", table =>
+                table.HasCheckConstraint("CK_GroupAnnotationSessions_PayloadJson", "ISJSON([PayloadJson]) = 1"));
+            entity.Property(e => e.PayloadJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.UpdatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
+            entity.HasOne<GroupDocumentShare>().WithMany().HasForeignKey(e => e.GroupDocumentShareId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupAnnotationSessions_Share");
+            entity.HasOne<DocumentVersion>().WithMany().HasForeignKey(e => e.DocumentVersionId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_GroupAnnotationSessions_Version");
+        });
+
+        modelBuilder.Entity<NotesOutboxEvent>(entity =>
+        {
+            entity.HasKey(e => e.NotesOutboxEventId);
+            entity.ToTable("NotesOutboxEvents", table =>
+                table.HasCheckConstraint("CK_NotesOutboxEvents_PayloadJson", "ISJSON([PayloadJson]) = 1"));
+            entity.HasIndex(e => new { e.PublishedAtUtc, e.LeaseUntilUtc, e.NotesOutboxEventId });
+            entity.Property(e => e.EventName).HasMaxLength(64).IsUnicode(false);
+            entity.Property(e => e.PayloadJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.PublishedAtUtc).HasPrecision(3);
+            entity.Property(e => e.LeaseUntilUtc).HasPrecision(3);
+            entity.HasOne<StudyGroup>().WithMany().HasForeignKey(e => e.StudyGroupId)
+                .OnDelete(DeleteBehavior.ClientCascade).HasConstraintName("FK_NotesOutboxEvents_Group");
         });
 
         modelBuilder.Entity<GroupChangeRequest>(entity =>
@@ -793,6 +848,19 @@ public partial class StudyHubDbContext : DbContext
                 .HasPrincipalKey(p => new { p.UserSubjectId, p.UserId })
                 .HasForeignKey(d => new { d.UserSubjectId, d.OwnerUserId })
                 .HasConstraintName("FK_Notes_SubjectOwner");
+        });
+
+        modelBuilder.Entity<PdfPageNote>(entity =>
+        {
+            entity.HasKey(item => item.NoteId);
+            entity.ToTable("PdfPageNotes", table =>
+                table.HasCheckConstraint("CK_PdfPageNotes_PageIndex", "[PageIndex] >= 0"));
+            entity.HasIndex(item => new { item.OwnerUserId, item.DocumentId, item.PageIndex }, "UX_PdfPageNotes_Owner_Document_Page")
+                .IsUnique();
+            entity.HasOne<Note>().WithMany().HasForeignKey(item => item.NoteId)
+                .OnDelete(DeleteBehavior.Cascade).HasConstraintName("FK_PdfPageNotes_Note");
+            entity.HasOne<Document>().WithMany().HasForeignKey(item => item.DocumentId)
+                .OnDelete(DeleteBehavior.NoAction).HasConstraintName("FK_PdfPageNotes_Document");
         });
 
         modelBuilder.Entity<NoteReferenceLink>(entity =>

@@ -11,6 +11,8 @@ const $ = (selector) => document.querySelector(selector)
 
 let core
 let dirty = false
+let annotationRevision = 0
+let annotationEtag = null
 let saving = false
 let readOnly = false
 let usedCompatibilityLoad = false
@@ -23,9 +25,11 @@ let searchQuery = ''
 let documentVersionId = null
 let noteEditor = null
 let activeNoteId = null
+let activeNotePageIndex = null
 let activeNoteVersionToken = null
 let activeNoteArchived = false
 let noteDirty = false
+let noteRevision = 0
 let noteSaving = false
 let captureMode = null
 let areaGesture = null
@@ -42,6 +46,42 @@ $('#reader-pages').addEventListener('pointercancel', finishReaderGesture, true)
 
 $('#save-annotations').addEventListener('click', saveAnnotations)
 $('#toggle-note-workspace').addEventListener('click', toggleNoteWorkspace)
+const paneResizer = $('#reader-pane-resizer')
+const readerLayout = $('#reader-layout')
+let paneDragging = false
+function setNotePaneWidth(value, persist = true) {
+  const width = Math.max(28, Math.min(55, Math.round(value)))
+  readerLayout.style.setProperty('--note-pane-width', `${width}%`)
+  paneResizer.setAttribute('aria-valuenow', String(width))
+  paneResizer.setAttribute('aria-valuetext', `Ghi chú chiếm ${width}% chiều rộng`)
+  if (persist) {
+    try { localStorage.setItem('notes-reader-pane-width', String(width)) } catch { /* Private browsing may disable storage. */ }
+  }
+}
+try { setNotePaneWidth(Number(localStorage.getItem('notes-reader-pane-width')) || 38) }
+catch { setNotePaneWidth(38) }
+paneResizer.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0) return
+  paneDragging = true
+  paneResizer.setPointerCapture(event.pointerId)
+  event.preventDefault()
+})
+paneResizer.addEventListener('pointermove', (event) => {
+  if (!paneDragging) return
+  const bounds = readerLayout.getBoundingClientRect()
+  setNotePaneWidth((bounds.right - event.clientX) / bounds.width * 100, false)
+})
+for (const eventName of ['pointerup', 'pointercancel']) {
+  paneResizer.addEventListener(eventName, () => {
+    if (paneDragging) setNotePaneWidth(Number(paneResizer.getAttribute('aria-valuenow')))
+    paneDragging = false
+  })
+}
+paneResizer.addEventListener('keydown', (event) => {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+  event.preventDefault()
+  setNotePaneWidth(Number(paneResizer.getAttribute('aria-valuenow')) + (event.key === 'ArrowLeft' ? 3 : -3))
+})
 $('#note-create-in-reader').addEventListener('click', createNoteInReader)
 $('#reader-note-select').addEventListener('change', () => loadNote($('#reader-note-select').value))
 $('#reader-note-title').addEventListener('input', markNoteDirty)
@@ -180,7 +220,8 @@ async function openDocument() {
         )
       }
     }
-    const saved = await request(`${api}/${documentId}/annotations${versionQuery}`)
+    const { body: saved, etag } = await request(`${api}/${documentId}/annotations${versionQuery}`, {}, true)
+    annotationEtag = etag
     core.annotations.repository.replaceAll(saved)
     core.annotations.subscribe((event) => {
       if (event.type === 'toolChanged') updateActiveTool(event.tool)
@@ -195,6 +236,7 @@ async function openDocument() {
       renderOpenCommentPopover()
       if (readOnly || ['selection', 'destroy'].includes(event.type)) return
       dirty = true
+      annotationRevision += 1
       setSaveStatus('Có thay đổi chưa lưu', 'dirty')
     })
 
@@ -328,17 +370,19 @@ async function toggleNoteWorkspace() {
 
 async function loadNoteOptions(preferredId = null, discardCurrentEdits = false) {
   try {
-    const notes = await request('/api/notes/notes')
+    const notebook = await request(`/api/notes/notes/pdf/${documentId}`)
+    $('#reader-notebook-title').textContent = notebook.title
     const select = $('#reader-note-select')
-    select.replaceChildren(new Option('Chọn ghi chú…', ''))
-    for (const note of notes) {
-      const option = new Option(`${note.title}${note.isArchived ? ' · lưu trữ' : ''}`, String(note.id))
-      option.disabled = note.isArchived
+    select.replaceChildren(new Option('Chọn trang đã ghi chú…', ''))
+    for (const note of notebook.pages) {
+      const pageLabel = `Trang ${note.pageIndex + 1}`
+      const option = new Option(`${pageLabel}${note.title === pageLabel ? '' : ` · ${note.title}`}${note.isArchived ? ' · lưu trữ' : ''}`, String(note.noteId))
+      option.dataset.pageIndex = String(note.pageIndex)
       select.add(option)
     }
     if (preferredId) {
       const option = [...select.options].find((item) => item.value === String(preferredId))
-      if (option && !option.disabled) {
+      if (option) {
         $('#note-workspace').hidden = false
         $('#reader-layout').classList.add('note-workspace-open')
         $('#toggle-note-workspace').setAttribute('aria-expanded', 'true')
@@ -346,6 +390,8 @@ async function loadNoteOptions(preferredId = null, discardCurrentEdits = false) 
         select.value = option.value
         await loadNote(option.value, discardCurrentEdits)
       }
+    } else if (activeNoteId) {
+      select.value = String(activeNoteId)
     }
   } catch (error) {
     setNoteStatus(`Không tải được danh sách ghi chú: ${error.message}`, 'failed')
@@ -355,8 +401,11 @@ async function loadNoteOptions(preferredId = null, discardCurrentEdits = false) 
 async function createNoteInReader() {
   if (noteDirty && !window.confirm('Bỏ thay đổi chưa lưu để tạo ghi chú mới?')) return
   try {
-    const created = await request('/api/notes/notes', jsonRequest('POST', { title: 'Ghi chú mới' }))
+    const pageIndex = Math.max(0, Number($('#reader-page-number').value) - 1)
+    const created = await request(`/api/notes/notes/pdf/${documentId}/pages/${pageIndex}`, jsonRequest('POST', {}))
     await loadNoteOptions(String(created.id), true)
+    if (created.created) noteEditor.focus()
+    setNoteStatus(`Ghi chú trang ${pageIndex + 1} trong sổ PDF này.`)
   } catch (error) {
     setNoteStatus(`Không tạo được ghi chú: ${error.message}`, 'failed')
   }
@@ -369,6 +418,7 @@ async function loadNote(noteId, discardCurrentEdits = false) {
   }
   if (!noteId) {
     activeNoteId = null
+    activeNotePageIndex = null
     activeNoteVersionToken = null
     noteEditor?.setContents([{ insert: '\n' }], 'silent')
     $('#reader-note-title').value = ''
@@ -383,7 +433,12 @@ async function loadNote(noteId, discardCurrentEdits = false) {
   try {
     setNoteStatus('Đang tải ghi chú…', 'saving')
     const note = await request(`/api/notes/notes/${noteId}`)
+    const option = [...$('#reader-note-select').options].find((item) => item.value === String(noteId))
+    if (!option) throw new Error('Ghi chú không thuộc PDF này.')
     activeNoteId = note.id
+    activeNotePageIndex = Number(option.dataset.pageIndex)
+    $('#reader-note-select').value = String(note.id)
+    goToPage(activeNotePageIndex)
     activeNoteVersionToken = note.versionToken
     activeNoteArchived = note.isArchived
     $('#reader-note-title').value = note.title
@@ -400,6 +455,7 @@ async function loadNote(noteId, discardCurrentEdits = false) {
 }
 
 function markNoteDirty() {
+  noteRevision += 1
   noteDirty = true
   setNoteStatus('Có thay đổi chưa lưu', 'dirty')
   updateNoteButtons()
@@ -407,6 +463,7 @@ function markNoteDirty() {
 
 async function saveActiveNote() {
   if (!activeNoteId || activeNoteArchived || !noteDirty || noteSaving) return
+  const savedRevision = noteRevision
   noteSaving = true
   updateNoteButtons()
   setNoteStatus('Đang lưu ghi chú…', 'saving')
@@ -417,8 +474,10 @@ async function saveActiveNote() {
       versionToken: activeNoteVersionToken
     }))
     activeNoteVersionToken = result.versionToken
-    noteDirty = false
-    setNoteStatus(`Đã lưu · ${new Date(result.updatedAtUtc).toLocaleTimeString('vi-VN')}`)
+    if (noteRevision === savedRevision) {
+      noteDirty = false
+      setNoteStatus(`Đã lưu · ${new Date(result.updatedAtUtc).toLocaleTimeString('vi-VN')}`)
+    } else setNoteStatus('Có thay đổi chưa lưu', 'dirty')
     await refreshNoteOptionsTitle()
   } catch (error) {
     setNoteStatus(`Lưu thất bại: ${error.message} · nội dung vẫn còn trên màn hình`, 'failed')
@@ -430,7 +489,11 @@ async function saveActiveNote() {
 
 async function refreshNoteOptionsTitle() {
   const option = [...$('#reader-note-select').options].find((item) => item.value === String(activeNoteId))
-  if (option) option.textContent = $('#reader-note-title').value.trim()
+  if (option) {
+    const pageLabel = `Trang ${activeNotePageIndex + 1}`
+    const title = $('#reader-note-title').value.trim()
+    option.textContent = `${pageLabel}${title === pageLabel ? '' : ` · ${title}`}`
+  }
 }
 
 function updateNoteButtons() {
@@ -474,8 +537,9 @@ function toggleAreaCapture() {
 }
 
 function canCapture() {
-  if (activeNoteId && !activeNoteArchived && !readOnly && documentVersionId) return true
-  setNoteStatus('Chọn một ghi chú có thể sửa và PDF chưa lưu trữ trước.', 'failed')
+  if (activeNoteId && !activeNoteArchived && !readOnly && documentVersionId &&
+      activeNotePageIndex === Number($('#reader-page-number').value) - 1) return true
+  setNoteStatus('Hãy chọn hoặc tạo ghi chú cho đúng trang PDF đang xem trước khi chụp.', 'failed')
   return false
 }
 
@@ -528,6 +592,8 @@ function unionBounds(rectangles) {
 }
 
 async function persistCapture(captureType, pageIndex, anchor, capturedText = null, previousContents, previousDirty) {
+  if (pageIndex !== activeNotePageIndex) throw new Error('Vùng chụp không nằm trên trang của ghi chú này.')
+  const savedRevision = noteRevision
   try {
     const result = await request(`/api/notes/notes/${activeNoteId}/captures`, jsonRequest('POST', {
       versionToken: activeNoteVersionToken,
@@ -539,12 +605,16 @@ async function persistCapture(captureType, pageIndex, anchor, capturedText = nul
       contentDelta: noteEditor.getContents()
     }))
     activeNoteVersionToken = result.versionToken
-    noteDirty = false
-    setNoteStatus('Đã chụp và lưu nội dung cùng tham chiếu PDF.')
-    await loadNote(activeNoteId)
+    if (noteRevision === savedRevision) {
+      noteDirty = false
+      setNoteStatus('Đã chụp và lưu nội dung cùng tham chiếu PDF.')
+      await loadNote(activeNoteId)
+    } else setNoteStatus('Đã lưu capture; có thay đổi khác chưa lưu', 'dirty')
   } catch (error) {
-    noteEditor.setContents(previousContents, 'silent')
-    noteDirty = previousDirty
+    if (noteRevision === savedRevision) {
+      noteEditor.setContents(previousContents, 'silent')
+      noteDirty = previousDirty
+    }
     throw error
   }
 }
@@ -632,18 +702,22 @@ function waitForPageElement(pageIndex) {
 
 async function saveAnnotations() {
   if (!core || readOnly || !dirty || saving) return
+  const savedRevision = annotationRevision
   saving = true
   $('#save-annotations').disabled = true
   setSaveStatus('Đang lưu…', 'saving')
   try {
     const annotations = core.annotations.repository.getAll()
-    const result = await request(`${api}/${documentId}/annotations${versionQueryString()}`, {
+    const { body: result, etag } = await request(`${api}/${documentId}/annotations${versionQueryString()}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', RequestVerificationToken: token },
+      headers: { 'Content-Type': 'application/json', RequestVerificationToken: token, 'If-Match': annotationEtag },
       body: JSON.stringify(annotations)
-    })
-    dirty = false
-    setSaveStatus(`Đã lưu ${result.count} annotation lúc ${new Date(result.savedAtUtc).toLocaleTimeString('vi-VN')}`)
+    }, true)
+    annotationEtag = etag
+    if (annotationRevision === savedRevision) {
+      dirty = false
+      setSaveStatus(`Đã lưu ${result.count} annotation lúc ${new Date(result.savedAtUtc).toLocaleTimeString('vi-VN')}`)
+    } else setSaveStatus('Có thay đổi annotation chưa lưu', 'dirty')
   } catch (error) {
     setSaveStatus(`Lưu thất bại: ${error.message} · thay đổi vẫn còn trên màn hình`, 'failed')
   } finally {
@@ -1268,7 +1342,7 @@ function versionQueryString() {
   return documentVersionId ? `?versionId=${encodeURIComponent(documentVersionId)}` : ''
 }
 
-async function request(url, options = {}) {
+async function request(url, options = {}, includeHeaders = false) {
   const response = await fetch(url, { credentials: 'same-origin', ...options })
   if (response.redirected) {
     location.href = '/Login'
@@ -1279,7 +1353,7 @@ async function request(url, options = {}) {
     if (response.status === 401 || response.status === 403) location.href = '/Login'
     throw new Error(body?.message || body?.detail || `HTTP ${response.status}`)
   }
-  return body
+  return includeHeaders ? { body, etag: response.headers.get('etag') } : body
 }
 
 function setSaveStatus(message, state = 'saved') {
