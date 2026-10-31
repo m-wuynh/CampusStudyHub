@@ -1,6 +1,7 @@
 namespace StudyHub.Web.ViewModels.Dashboard;
 
 using StudyHub.BLL.DTOs;
+using StudyHub.BLL.DTOs.Flashcards;
 using System;
 using System.Collections.Generic;
 

@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using StudyHub.BLL.Services.Flashcards;
 using StudyHub.BLL.Services.Flashcards.Implementations;
 using StudyHub.BLL.Services.Flashcards.Interfaces;
+using StudyHub.BLL.Services.Flashcards.LearnSessions;
+using StudyHub.Web.Services.Flashcards;
 using StudyHub.BLL.Services.Auth;
 using StudyHub.BLL.Services.Notes;
 using StudyHub.BLL.Services.StudyGroups;
@@ -88,8 +90,13 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<IStudyGroupService, StudyGroupService>();
 builder.Services.AddScoped<IGroupLearningRepository, SqlGroupLearningRepository>();
 builder.Services.AddScoped<GroupLearningService>();
+//flashcards DI
 builder.Services.AddScoped<IFlashcardDeckService, FlashcardDeckService>();
 builder.Services.AddScoped<IFlashcardService, FlashcardService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ILearnSessionStore, MemoryLearnSessionStore>();
+builder.Services.AddScoped<ILearnSessionService, LearnSessionService>();
+//
 builder.Services.AddScoped<StudyHub.BLL.Services.Grades.IGradeService, StudyHub.BLL.Services.Grades.GradeService>();
 builder.Services.AddScoped<StudyHub.BLL.Services.Grades.IGoalService, StudyHub.BLL.Services.Grades.GoalService>();
 builder.Services.AddScoped<StudyHub.BLL.Services.Grades.IGradeBookService, StudyHub.BLL.Services.Grades.GradeBookService>();
@@ -158,6 +165,7 @@ app.MapControllerRoute(
 
 app.Run();
 
+
 static async Task<GatewayCheck> Check(
     string name,
     long userId,
@@ -171,5 +179,7 @@ static async Task<GatewayCheck> Check(
     var allowed = exists && isMember;
     return new(name, expected, allowed, expected == allowed);
 }
+
+public partial class Program { }
 
 public sealed record GatewayCheck(string Name, bool ExpectedAllowed, bool ActualAllowed, bool Passed);

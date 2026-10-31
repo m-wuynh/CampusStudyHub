@@ -1,4 +1,4 @@
-namespace StudyHub.BLL.DTOs;
+namespace StudyHub.BLL.DTOs.Flashcards;
 
 public sealed record FlashcardDto(long Id, string FrontText, string BackText, int SortOrder);
 public sealed record ReviewFlashcardRequestDto(Guid RequestId, long FlashcardId, byte Rating, int? ResponseMilliseconds);

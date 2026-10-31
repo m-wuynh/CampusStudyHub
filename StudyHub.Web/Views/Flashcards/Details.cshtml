@@ -4,7 +4,7 @@
     ViewData["Title"] = Model.Deck.Title;
 }
 
-<div class="container py-4">
+<div class="container py-4" id="flashcardDeckDetails" data-deck-id="@Model.Deck.DeckId">
 
     <a asp-controller="Flashcards"
        asp-action="Index"
@@ -20,7 +20,7 @@
             <div class="d-flex flex-wrap gap-2">
 
                 <a asp-controller="Flashcards"
-                   asp-action="Study"
+                   asp-action="Browse"
                    asp-route-deckId="@Model.Deck.DeckId"
                    class="btn btn-outline-primary">
 
@@ -347,54 +347,6 @@
 
 
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-
-            const deckId = '@Model.Deck.DeckId';
-
-
-            const editModal =
-                document.getElementById('editCardModal');
-
-            editModal?.addEventListener(
-                'show.bs.modal',
-                function(event) {
-
-                    const button = event.relatedTarget;
-
-                    const cardId =
-                        button.getAttribute('data-card-id');
-
-                    document.getElementById('editFrontText').value =
-                        button.getAttribute('data-front') ?? '';
-
-                    document.getElementById('editBackText').value =
-                        button.getAttribute('data-back') ?? '';
-
-                    document.getElementById('editSortOrder').value =
-                        button.getAttribute('data-sort-order') ?? 0;
-
-                    document.getElementById('editCardForm').action =
-                        `/Flashcards/${deckId}/Cards/${cardId}/Edit`;
-                });
-
-
-            const deleteModal =
-                document.getElementById('deleteCardModal');
-
-            deleteModal?.addEventListener(
-                'show.bs.modal',
-                function(event) {
-
-                    const button = event.relatedTarget;
-
-                    const cardId =
-                        button.getAttribute('data-card-id');
-
-                    document.getElementById('deleteCardForm').action =
-                        `/Flashcards/${deckId}/Cards/${cardId}/Delete`;
-                });
-
-        });
-    </script>
+    <script src="~/js/flashcards/details.js"
+            asp-append-version="true"></script>
 }

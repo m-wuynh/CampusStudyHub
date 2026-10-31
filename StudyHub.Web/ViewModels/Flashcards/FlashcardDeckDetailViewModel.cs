@@ -1,4 +1,4 @@
-﻿using StudyHub.BLL.DTOs;
+using StudyHub.BLL.DTOs.Flashcards;
 namespace StudyHub.Web.ViewModels.Flashcards
 {
     public sealed class FlashcardDeckDetailViewModel
