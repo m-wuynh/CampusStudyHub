@@ -157,36 +157,35 @@
                             </span>
                         </div>
 
-                        <div class="mt-auto d-flex gap-2">
+                        <div class="mt-auto">
+
+                            <div class="deck-card-actions">
+
+                                <a asp-controller="Flashcards"
+                                   asp-action="Browse"
+                                   asp-route-deckId="@deck.DeckId"
+                                   class="btn-secondary-sh deck-mode-btn">
+                                    <i class="bi bi-layers"></i>
+                                    Xem thẻ
+                                </a>
+
+                                <a asp-controller="Flashcards"
+                                   asp-action="Learn"
+                                   asp-route-deckId="@deck.DeckId"
+                                   class="btn-primary-sh deck-mode-btn">
+                                    <i class="bi bi-mortarboard"></i>
+                                    Luyện tập
+                                </a>
+
+                            </div>
 
                             <a asp-controller="Flashcards"
                                asp-action="Details"
                                asp-route-deckId="@deck.DeckId"
-                               class="btn-secondary-sh">
-                                <i class="bi bi-eye"></i>
-                                Chi tiết
+                               class="deck-manage-link">
+                                <i class="bi bi-sliders"></i>
+                                Quản lý trong Chi tiết
                             </a>
-
-                            <a asp-controller="Flashcards"
-                               asp-action="Study"
-                               asp-route-deckId="@deck.DeckId"
-                               class="btn-primary-sh
-                                flex-grow-1
-                                justify-content-center">
-                                <i class="bi bi-play-fill"></i>
-                                Học ngay
-                            </a>
-
-                            <button type="button"
-                                    class="btn-secondary-sh"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editSetModal"
-                                    data-deck-id="@deck.DeckId"
-                                    data-title="@deck.Title"
-                                    data-description="@deck.Description"
-                                    data-subject-id="@deck.UserSubjectId">
-                                <i class="bi bi-pencil"></i>
-                            </button>
 
                         </div>
 
@@ -343,8 +342,7 @@
                                   name="Description"
                                   maxlength="2000"
                                   class="sh-input"
-                                  rows="4">
-                        </textarea>
+                                  rows="4"></textarea>
                     </div>
 
                 </div>
@@ -421,54 +419,12 @@
 
 
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        <script src="~/js/flashcards/index.js"
+            asp-append-version="true"></script>
+}
 
-            const editModal = document.getElementById('editSetModal');
-
-            editModal?.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-
-                const deckId = button.getAttribute('data-deck-id');
-                const title = button.getAttribute('data-title') ?? '';
-                const description =
-                    button.getAttribute('data-description') ?? '';
-                const subjectId = button.getAttribute('data-subject-id') ?? '';
-
-                const form =
-                    document.getElementById('editDeckForm');
-
-                document.getElementById('editDeckSubjectId').value = subjectId;
-                document.getElementById('editDeckTitle').value =
-                    title;
-
-                document.getElementById('editDeckDescription').value =
-                    description;
-
-                form.action =
-                    `/Flashcards/${deckId}/Edit`;
-            });
-
-
-            const deleteModal =
-                document.getElementById('deleteSetModal');
-
-            deleteModal?.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-
-                const deckId =
-                    button.getAttribute('data-deck-id');
-
-                const title =
-                    button.getAttribute('data-title') ?? '';
-
-                document.getElementById('deleteDeckTitle')
-                    .textContent = title;
-
-                document.getElementById('deleteDeckForm')
-                    .action = `/Flashcards/${deckId}/Delete`;
-            });
-
-        });
-    </script>
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/flashcards/index.css"
+          asp-append-version="true" />
 }

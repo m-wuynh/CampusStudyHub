@@ -27,4 +27,6 @@ StudyHub.Web/appsettings.json
 
 # Local-only folders
 StudyHub.Tests/
+StudyHub.BLL.Tests/
 docs/
+.diagram-work/

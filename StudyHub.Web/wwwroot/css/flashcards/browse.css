@@ -1,0 +1,37 @@
+.flashcard-scene {
+    width: 100%;
+    height: 360px;
+    perspective: 1200px;
+}
+
+.flashcard {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.55s ease;
+    cursor: pointer;
+}
+
+    .flashcard.is-flipped {
+        transform: rotateY(180deg);
+    }
+
+.flashcard-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.10);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.flashcard-back {
+    transform: rotateY(180deg);
+}

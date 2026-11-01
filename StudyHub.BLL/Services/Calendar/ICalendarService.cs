@@ -11,6 +11,8 @@ public interface ICalendarService
     Task DeleteEventAsync(long userId, long id);
     Task<List<ScheduleEventDto>> GetActiveRemindersAsync(long userId);
     Task<List<int>> GetReminderMinutesAsync(long userId, long eventId);
+    Task<List<ReminderInputDto>> GetEventRemindersAsync(long userId, long eventId);
     Task ToggleEventCompletionAsync(long userId, long eventId, bool isCompleted);
     Task<bool> ToggleEventCompletionAsync(long userId, long id);
+    Task<List<ScheduleEventDto>> SearchEventsAsync(long userId, string keyword, int maxResults = 20);
 }

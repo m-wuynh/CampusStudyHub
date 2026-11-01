@@ -60,6 +60,45 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
         return Json(result);
     }
 
+    [HttpGet("SearchEvents")]
+    public async Task<IActionResult> SearchEvents([FromQuery] string? q)
+    {
+        if (string.IsNullOrWhiteSpace(q))
+            return Json(new List<object>());
+
+        var events = await calendarService.SearchEventsAsync(CurrentUserId, q.Trim());
+        var now = DateTime.Now;
+
+        var result = events.Select(ev =>
+        {
+            var isPast = ev.EndAtLocal < now;
+            var isCompleted = ev.IsCompleted;
+            var status = isCompleted ? "completed" : (isPast ? "missed" : "pending");
+            var statusText = isCompleted ? "Đã hoàn thành" : (isPast ? "Đã quá hạn" : "Sắp tới");
+
+            return new
+            {
+                id = ev.Id,
+                title = ev.Title,
+                eventType = ev.EventType,
+                start = ev.StartAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
+                end = ev.EndAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
+                startDateStr = ev.StartAtLocal.ToString("dd/MM/yyyy"),
+                startTimeStr = ev.StartAtLocal.ToString("HH:mm"),
+                endTimeStr = ev.EndAtLocal.ToString("HH:mm"),
+                dateFormatted = ev.StartAtLocal.ToString("ddd, dd 'thg' MM, yyyy", new System.Globalization.CultureInfo("vi-VN")),
+                location = ev.Location,
+                description = ev.Description,
+                isCompleted = ev.IsCompleted,
+                isPast = isPast,
+                status = status,
+                statusText = statusText
+            };
+        });
+
+        return Json(result);
+    }
+
     [HttpPost("ToggleCompletion/{id}")]
     public async Task<IActionResult> ToggleCompletion(long id)
     {
@@ -106,7 +145,14 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
     {
         var ev = await calendarService.GetEventAsync(CurrentUserId, id);
         if (ev == null) return NotFound();
-        var reminderMinutes = await calendarService.GetReminderMinutesAsync(CurrentUserId, id);
+
+        if (ev.EndAtLocal < DateTime.Now || ev.IsCompleted)
+        {
+            TempData["ErrorMessage"] = "Sự kiện đã kết thúc hoặc đã hoàn thành, chỉ được phép xóa chứ không thể chỉnh sửa.";
+            return RedirectToAction("Index");
+        }
+
+        var reminders = await calendarService.GetEventRemindersAsync(CurrentUserId, id);
         var model = new CalendarUpdateViewModel(
             ev.Id,
             ev.Title,
@@ -116,7 +162,8 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
             TimeOnly.FromDateTime(ev.EndAtLocal),
             ev.Location,
             ev.Description,
-            reminderMinutes);
+            reminders.Select(r => r.Minutes).ToList(),
+            reminders);
         return View(model);
     }
 
@@ -140,8 +187,8 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
     [HttpGet("GetEventReminders/{id}")]
     public async Task<IActionResult> GetEventReminders(long id)
     {
-        var minutes = await calendarService.GetReminderMinutesAsync(CurrentUserId, id);
-        return Json(minutes);
+        var reminders = await calendarService.GetEventRemindersAsync(CurrentUserId, id);
+        return Json(reminders);
     }
 
     [HttpPost("ToggleEventCompletion/{id}")]

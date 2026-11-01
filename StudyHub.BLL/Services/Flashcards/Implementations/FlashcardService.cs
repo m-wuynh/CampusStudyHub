@@ -1,5 +1,5 @@
 using Microsoft.Identity.Client;
-using StudyHub.BLL.DTOs;
+using StudyHub.BLL.DTOs.Flashcards;
 using StudyHub.BLL.Services.Flashcards.Interfaces;
 using StudyHub.DAL.Entities;
 using StudyHub.DAL.Repositories.Common;
