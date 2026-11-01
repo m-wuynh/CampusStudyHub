@@ -9,84 +9,129 @@
     var todayStr = DateTime.Today.ToString("yyyy-MM-dd");
 }
 
-<div style="max-width: 600px; margin: 0 auto;">
-    <div class="sh-card p-4">
-        <h3 class="fw-bold mb-4" style="font-size: 18px; color: var(--sh-slate-900);">
-            <i class="bi bi-calendar-plus me-2 text-indigo"></i>Thông tin sự kiện
-        </h3>
+@section Styles {
+    <link rel="stylesheet" href="~/css/calendar.css" asp-append-version="true" />
+}
+
+<div style="max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- ROW 1: Purple Hero Banner matching Index -->
+    <div class="calendar-hero-card position-relative overflow-hidden text-white" style="padding: 24px 28px;">
+        <!-- Decorative 4-point Sparkle Star Watermark -->
+        <svg class="hero-watermark-star" viewBox="0 0 100 100" fill="currentColor" style="width: 140px; height: 140px; right: 24px;">
+            <path d="M50 0 C50 27.6 27.6 50 0 50 C27.6 50 50 72.4 50 100 C50 72.4 72.4 50 100 50 C72.4 50 50 27.6 50 0 Z" />
+        </svg>
+
+        <div class="position-relative" style="z-index: 2;">
+            <a href="/Calendar" class="text-white text-decoration-none d-inline-flex align-items-center gap-1 opacity-75 mb-2" style="font-size: 13px;">
+                <i class="bi bi-arrow-left"></i><span>Quay lại Lịch học</span>
+            </a>
+            <h2 class="fw-bold mb-1 d-flex align-items-center gap-2" style="font-size: 22px; color: #ffffff;">
+                <i class="bi bi-calendar-check"></i><span>Cập nhật sự kiện</span>
+            </h2>
+            <p class="mb-0 text-white-50" style="font-size: 13.5px;">
+                Chỉnh sửa thông tin thời gian, địa điểm và nhắc nhở cho sự kiện
+            </p>
+        </div>
+    </div>
+
+    <!-- ROW 2: Form Card -->
+    <div class="calendar-form-card p-4">
         
+        <!-- Tên sự kiện -->
         <div class="mb-3">
-            <label class="sh-label" for="event-title">Tên sự kiện</label>
-            <input id="event-title" type="text" class="sh-input" placeholder="Ví dụ: Kiểm tra 1 tiết Toán" value="@Model.Title" />
+            <label class="calendar-form-label" for="event-title">
+                <i class="bi bi-type"></i><span>Tên sự kiện <span class="text-danger">*</span></span>
+            </label>
+            <input id="event-title" type="text" class="calendar-form-input" placeholder="Ví dụ: Kiểm tra 1 tiết Toán" value="@Model.Title" />
         </div>
         
+        <!-- Ngày, Giờ bắt đầu, Giờ kết thúc -->
         <div class="row g-3 mb-3">
             <div class="col-md-6">
-                <label class="sh-label" for="event-date">Ngày</label>
-                <input id='event-date' type='date' class='sh-input' value='@Model.Date.ToString("yyyy-MM-dd")' />
+                <label class="calendar-form-label" for="event-date">
+                    <i class="bi bi-calendar-event"></i><span>Ngày <span class="text-danger">*</span></span>
+                </label>
+                <input id='event-date' type='date' class='calendar-form-input' value='@Model.Date.ToString("yyyy-MM-dd")' min='@todayStr' />
             </div>
             <div class="col-md-3 col-6">
-                <label class="sh-label" for="event-start">Bắt đầu</label>
-                <input id='event-start' type='time' class='sh-input' value='@Model.StartTime.ToString("HH:mm")' lang="en-US" />
+                <label class="calendar-form-label" for="event-start">
+                    <i class="bi bi-clock"></i><span>Bắt đầu <span class="text-danger">*</span></span>
+                </label>
+                <input id='event-start' type='time' class='calendar-form-input' value='@Model.StartTime.ToString("HH:mm")' lang="en-US" />
             </div>
             <div class="col-md-3 col-6">
-                <label class="sh-label" for="event-end">Kết thúc</label>
-                <input id='event-end' type='time' class='sh-input' value='@Model.EndTime.ToString("HH:mm")' lang="en-US" />
+                <label class="calendar-form-label" for="event-end">
+                    <i class="bi bi-clock-history"></i><span>Kết thúc <span class="text-danger">*</span></span>
+                </label>
+                <input id='event-end' type='time' class='calendar-form-input' value='@Model.EndTime.ToString("HH:mm")' lang="en-US" />
             </div>
         </div>
         
+        <!-- Loại sự kiện & Địa điểm -->
         <div class="row g-3 mb-3">
             <div class="col-md-6">
-                <label class="sh-label" for="event-category">Loại sự kiện</label>
-                <select id="event-category" class="sh-input">
+                <label class="calendar-form-label" for="event-category">
+                    <i class="bi bi-tag"></i><span>Loại sự kiện <span class="text-danger">*</span></span>
+                </label>
+                <select id="event-category" class="calendar-form-input" style="cursor: pointer;">
                     @if (Model.EventType == "SelfStudy") {
-                        <option value="SelfStudy" selected>Tự học</option>
+                        <option value="SelfStudy" selected>📘 Tự học</option>
                     } else {
-                        <option value="SelfStudy">Tự học</option>
+                        <option value="SelfStudy">📘 Tự học</option>
                     }
                     @if (Model.EventType == "Other") {
-                        <option value="Other" selected>Bài tập / Nộp bài</option>
+                        <option value="Other" selected>📝 Bài tập / Nộp bài</option>
                     } else {
-                        <option value="Other">Bài tập / Nộp bài</option>
+                        <option value="Other">📝 Bài tập / Nộp bài</option>
                     }
                     @if (Model.EventType == "Exam") {
-                        <option value="Exam" selected>Kiểm tra / Thi</option>
+                        <option value="Exam" selected>⏰ Kiểm tra / Thi</option>
                     } else {
-                        <option value="Exam">Kiểm tra / Thi</option>
+                        <option value="Exam">⏰ Kiểm tra / Thi</option>
                     }
                     @if (Model.EventType == "Class") {
-                        <option value="Class" selected>Học nhóm</option>
+                        <option value="Class" selected>👥 Học nhóm</option>
                     } else {
-                        <option value="Class">Học nhóm</option>
+                        <option value="Class">👥 Học nhóm</option>
                     }
                 </select>
             </div>
             <div class="col-md-6">
-                <label class="sh-label" for="event-location">Địa điểm (tùy chọn)</label>
-                <input id="event-location" type="text" class="sh-input" placeholder="Phòng học, thư viện..." value="@Model.Location" />
+                <label class="calendar-form-label" for="event-location">
+                    <i class="bi bi-geo-alt"></i><span>Địa điểm (tùy chọn)</span>
+                </label>
+                <input id="event-location" type="text" class="calendar-form-input" placeholder="Phòng học, Google Meet, thư viện..." value="@Model.Location" />
             </div>
         </div>
         
         <!-- Notifications UI -->
         <div class="mb-4">
+            <label class="calendar-form-label">
+                <i class="bi bi-bell"></i><span>Nhắc nhở & Thông báo</span>
+            </label>
             <div id="notifications-container" class="d-flex flex-column gap-2 mb-2">
                 <!-- Notification rows will be appended here -->
             </div>
-            <button type="button" class="btn btn-sm btn-light rounded-pill px-3 py-2 text-primary" onclick="addNotification()" style="background-color: #e8f0fe !important; color: #1a73e8 !important; font-weight: 500; font-size: 0.9rem;">
-                <i class="bi bi-bell me-2" style="color: #5f6368;"></i>Thêm thông báo
+            <button type="button" class="btn-purple-add-notif" onclick="addNotification()">
+                <i class="bi bi-plus-circle-fill"></i><span>Thêm thông báo</span>
             </button>
         </div>
 
+        <!-- Mô tả thêm -->
         <div class="mb-4">
-            <label class="sh-label" for="event-description">Mô tả thêm</label>
-            <textarea id="event-description" class="sh-input" rows="4"
-                      placeholder="Ghi chú thêm về sự kiện này...">@Model.Description</textarea>
+            <label class="calendar-form-label" for="event-description">
+                <i class="bi bi-text-paragraph"></i><span>Ghi chú thêm</span>
+            </label>
+            <textarea id="event-description" class="calendar-form-input" rows="4"
+                      placeholder="Ghi chú chi tiết về tài liệu, nội dung bài học hoặc lưu ý quan trọng...">@Model.Description</textarea>
         </div>
         
-        <div class="d-flex justify-content-end gap-2">
-            <a href="/Calendar" class="btn-secondary-sh text-decoration-none">Hủy</a>
-            <button type="button" class="btn-primary-sh" onclick="submitEvent()">
-                <i class="bi bi-calendar-check me-1"></i>Cập nhật sự kiện
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
+            <a href="/Calendar" class="btn-purple-cancel">Hủy</a>
+            <button type="button" class="btn-purple-primary" onclick="submitEvent()">
+                <i class="bi bi-calendar-check-fill"></i><span>Cập nhật sự kiện</span>
             </button>
         </div>
     </div>
@@ -97,22 +142,23 @@
         function addNotification(val = 10, unit = 'minutes', channel = 'notification') {
             const container = document.getElementById('notifications-container');
             const row = document.createElement('div');
-            row.className = 'd-flex align-items-center gap-2 mb-1';
+            row.className = 'notif-row-purple d-flex align-items-center gap-2 flex-wrap';
             row.innerHTML = `
-                <i class="bi bi-bell ms-1 me-2 text-muted" style="font-size: 1.1rem;"></i>
-                <select class="form-select form-select-sm border-0 bg-light" style="width: auto; cursor: pointer;">
-                    <option value="notification" ${channel === 'notification' ? 'selected' : ''}>Thông báo</option>
+                <i class="bi bi-bell-fill" style="color: #7c3aed; font-size: 1.05rem;"></i>
+                <select class="notif-select-purple">
+                    <option value="notification" ${channel === 'notification' ? 'selected' : ''}>Thông báo hệ thống</option>
                     <option value="email" ${channel === 'email' ? 'selected' : ''}>Email</option>
                 </select>
-                <input type="number" min="0" class="form-control form-control-sm border-0 bg-light text-center" value="${val}" style="width: 50px;">
-                <select class="form-select form-select-sm border-0 bg-light" style="width: auto; cursor: pointer;">
+                <span class="text-muted small">Trước:</span>
+                <input type="number" min="0" class="notif-input-purple" value="${val}">
+                <select class="notif-select-purple">
                     <option value="minutes" ${unit === 'minutes' ? 'selected' : ''}>phút</option>
                     <option value="hours" ${unit === 'hours' ? 'selected' : ''}>giờ</option>
                     <option value="days" ${unit === 'days' ? 'selected' : ''}>ngày</option>
                     <option value="weeks" ${unit === 'weeks' ? 'selected' : ''}>tuần</option>
                 </select>
-                <button type="button" class="btn btn-sm btn-light border-0 text-muted ms-2 bg-transparent" onclick="this.parentElement.remove()">
-                    <i class="bi bi-x-lg"></i>
+                <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-auto" title="Xóa thông báo" onclick="this.closest('.notif-row-purple').remove()">
+                    <i class="bi bi-x-circle-fill" style="font-size: 1.1rem;"></i>
                 </button>
             `;
             container.appendChild(row);
@@ -175,7 +221,13 @@
             }
 
             if (end <= start) {
-                showToast('Giờ kết thúc phải sau giờ bắt đầu', 'error');
+				showToast('Giờ không hợp lệ , Vui lòng đặt lại', 'error');
+                return;
+            }
+
+            const selectedStart = new Date(`${date}T${start}`);
+            if (selectedStart < new Date(Date.now() - 60000)) {
+                showToast('Thời gian bắt đầu không thể ở trong quá khứ', 'error');
                 return;
             }
 

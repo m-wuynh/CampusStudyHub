@@ -87,7 +87,12 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
 
         if (endLocal <= startLocal)
         {
-            throw new ArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
+            throw new ArgumentException("Giờ không hợp lệ , Vui lòng đặt lại.");
+        }
+
+        if (startLocal < DateTime.Now.AddMinutes(-2))
+        {
+            throw new ArgumentException("Thời gian bắt đầu không thể ở trong quá khứ.");
         }
 
         var entity = new ScheduleEvent
@@ -181,11 +186,21 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
 
         if (endDateTime <= startDateTime)
         {
-            throw new ArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
+            throw new ArgumentException("Giờ không hợp lệ , Vui lòng đặt lại.");
+        }
+
+        if (startDateTime < DateTime.Now.AddMinutes(-2))
+        {
+            throw new ArgumentException("Thời gian bắt đầu không thể ở trong quá khứ.");
         }
 
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == request.Id && e.UserId == userId && !e.IsDeleted);
         if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
+
+        if (entity.EndAtLocal < DateTime.Now || entity.IsCompleted)
+        {
+            throw new InvalidOperationException("Sự kiện đã kết thúc hoặc đã hoàn thành, chỉ được phép xóa chứ không thể chỉnh sửa.");
+        }
         entity.Title = request.Title;
         entity.EventType = request.EventType;
         entity.StartAtLocal = startDateTime;
@@ -277,4 +292,41 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         await repository.SaveChangesAsync();
         return entity.IsCompleted;
     }
+
+    public async Task<List<ScheduleEventDto>> SearchEventsAsync(long userId, string keyword, int maxResults = 20)
+    {
+        if (string.IsNullOrWhiteSpace(keyword))
+            return [];
+
+        var kw = keyword.Trim();
+
+        var entities = await repository.ListAsync<ScheduleEvent>(e =>
+            e.UserId == userId &&
+            !e.IsDeleted &&
+            (e.Title.Contains(kw) ||
+             (e.Location != null && e.Location.Contains(kw)) ||
+             (e.Description != null && e.Description.Contains(kw))));
+
+        var now = DateTime.Now;
+
+        return entities
+            .OrderBy(e => e.EndAtLocal < now) // Upcoming or happening events first
+            .ThenBy(e => Math.Abs((e.StartAtLocal - now).TotalMinutes)) // Closest to current time
+            .Take(maxResults)
+            .Select(e => new ScheduleEventDto(
+                e.ScheduleEventId,
+                e.Title,
+                e.EventType,
+                e.StartAtLocal,
+                e.EndAtLocal,
+                e.TimeZoneId,
+                e.RepeatMode,
+                e.RepeatUntilDate,
+                e.Location,
+                e.Description,
+                e.GoalId,
+                e.IsCompleted
+            )).ToList();
+    }
 }
+
