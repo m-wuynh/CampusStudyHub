@@ -71,10 +71,85 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         eventClick: function(info) {
             showEventPopover(info.event, info.el);
+        },
+        datesSet: function(info) {
+            var titleEl = document.getElementById('calendar-progress-title');
+            if (titleEl) {
+                if (info.view.type === 'timeGridDay') {
+                    titleEl.innerHTML = '<i class="bi bi-calendar-check text-primary me-1"></i>Tiến độ học tập hôm nay';
+                } else {
+                    titleEl.innerHTML = '<i class="bi bi-calendar-check text-primary me-1"></i>Tiến độ học tập tuần này';
+                }
+            }
+        },
+        eventsSet: function(events) {
+            updateWeeklyProgress(events);
         }
     });
 
     calendar.render();
+
+    // ========================================================
+    // Dynamic Weekly Study Progress & Stats Calculation
+    // ========================================================
+    function updateWeeklyProgress(events) {
+        if (!events) events = calendar.getEvents();
+        var total = events.length;
+        var completed = 0;
+        var missed = 0;
+        var pending = 0;
+        var now = new Date();
+
+        events.forEach(function(e) {
+            var isComp = !!e.extendedProps?.isCompleted;
+            var end = e.end || e.start;
+            if (isComp) {
+                completed++;
+            } else if (end && new Date(end) < now) {
+                missed++;
+            } else {
+                pending++;
+            }
+        });
+
+        var percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        var barEl = document.getElementById('calendar-progress-bar');
+        var percentEl = document.getElementById('calendar-progress-percent');
+        var completedEl = document.getElementById('stat-completed-badge');
+        var pendingEl = document.getElementById('stat-pending-badge');
+        var missedEl = document.getElementById('stat-missed-badge');
+
+        if (barEl) {
+            barEl.style.width = percent + '%';
+            if (percent === 100 && total > 0) {
+                barEl.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+            } else {
+                barEl.style.background = 'linear-gradient(90deg, #1a73e8, #1e8e3e)';
+            }
+        }
+
+        if (percentEl) {
+            if (percent === 100 && total > 0) {
+                percentEl.className = 'badge rounded-pill bg-success text-white fw-bold';
+                percentEl.innerHTML = '<i class="bi bi-stars me-1"></i>100% Hoàn thành! (' + completed + '/' + total + ' ca)';
+            } else {
+                percentEl.className = 'badge rounded-pill bg-primary-subtle text-primary fw-semibold';
+                percentEl.innerText = percent + '% (' + completed + '/' + total + ' ca)';
+            }
+        }
+
+        if (completedEl) completedEl.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>' + completed + ' hoàn thành';
+        if (pendingEl) pendingEl.innerHTML = '<i class="bi bi-clock-fill me-1"></i>' + pending + ' sắp tới';
+        if (missedEl) {
+            if (missed > 0) {
+                missedEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>' + missed + ' quá hạn';
+                missedEl.classList.remove('d-none');
+            } else {
+                missedEl.classList.add('d-none');
+            }
+        }
+    }
 
     // ========================================================
     // Reusable Event Popover Function
@@ -227,6 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.ok) {
                         eventApi.setExtendedProp('isCompleted', data.isCompleted);
                         updateCompletionUI(data.isCompleted);
+                        updateWeeklyProgress();
                         calendar.refetchEvents();
                     } else {
                         alert("Lỗi: " + (data.error || "Không thể cập nhật"));
