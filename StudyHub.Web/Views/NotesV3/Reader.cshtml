@@ -1,246 +1,93 @@
 @model StudyHub.Web.ViewModels.NotesV3.NotesReaderViewModel
-
 @{
-    ViewData["Title"] = Model.Pdf.Title;
+    ViewData["Title"] = Model.Title;
+    ViewData["PageTitle"] = "Đọc PDF";
+    ViewData["PageSubtitle"] = Model.Title;
     Layout = "~/Views/Shared/_Layout.cshtml";
-
-    var fileUrl = Url.Content(
-        $"~/api/notesv3/pdfs/versions/{Model.Pdf.DocumentVersionId}/file");
-
-    if (Model.GroupDocumentShareId.HasValue)
-    {
-        fileUrl += $"?shareId={Model.GroupDocumentShareId.Value}";
-    }
+    var viewerUrl = Url.Action("Viewer", "Pdfs",
+        new { id = Model.DocumentId, page = Model.CurrentPage, shareId = Model.ShareId });
 }
 
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/quill@@2.0.3/dist/quill.snow.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/notesv3/notes.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notesv3/pdf-reader.css" asp-append-version="true" />
+}
 
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/pdfjs-dist@@6.3.289/web/pdf_viewer.css" />
-
-<link rel="stylesheet"
-      href="~/css/notesv3/notes.css"
-      asp-append-version="true" />
-
-<link rel="stylesheet"
-      href="~/css/notesv3/pdf-reader.css"
-      asp-append-version="true" />
-
-<div class="notesv3"
-     data-notesv3
-     data-notesv3-reader
-     data-is-archived="@(Model.Pdf.IsArchived ? "true" : "false")"
-     data-app-root="@Url.Content("~/")"
-     data-document-id="@Model.Pdf.DocumentId"
-     data-version-id="@Model.Pdf.DocumentVersionId"
-     data-share-id="@Model.GroupDocumentShareId"
-     data-page-count="@Model.Pdf.PageCount"
-     data-initial-page="@Model.InitialPage"
-     data-file-url="@fileUrl">
-
-    @Html.AntiForgeryToken()
-
-    <header class="notesv3-header">
-        <a asp-controller="NotesV3"
-           asp-action="Index"
-           data-leave-reader>
-            ← Thư viện
+<div class="notesv3 notesv3-reader container-fluid py-4">
+    <header class="notesv3-page-header mb-3">
+        <a class="btn-secondary-sh notesv3-back-button"
+           asp-controller="NotesV3" asp-action="Index">
+            <i class="bi bi-arrow-left"></i> Quay lại Thư viện
         </a>
-
-        <h1>@Model.Pdf.Title</h1>
-        <p>@Model.Pdf.FileName</p>
-
-        @if (Model.Pdf.IsArchived)
-        {
-            <p>PDF đã lưu trữ — chỉ xem.</p>
-        }
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-2">
+            <div>
+                <h1 class="h4 mb-1">@Model.Title</h1>
+                <p class="text-muted small mb-0">@Model.FileName · @Model.PageCount trang</p>
+            </div>
+            <a class="btn btn-outline-primary btn-sm" data-reader-book-link
+               asp-controller="Pdfs" asp-action="Book"
+               asp-route-id="@Model.DocumentId" asp-route-shareId="@Model.ShareId"
+               asp-route-page="@Model.CurrentPage">
+                <i class="bi bi-journal-text"></i> Sổ ghi chú PDF
+            </a>
+        </div>
     </header>
 
-    <div class="notesv3-reader-toolbar">
-        <button class="btn btn-outline-secondary"
-                type="button"
-                data-reader-command="previous">
-            ←
-        </button>
+    @if (TempData["Success"] is string success)
+    {
+        <div class="alert alert-success" role="status">@success</div>
+    }
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
 
-        <label for="notesv3-pdf-page">Trang</label>
-
-        <input id="notesv3-pdf-page"
-               class="form-control notesv3-page-number"
-               type="number"
-               min="1"
-               value="@Model.InitialPage"
-               data-page-number />
-
-        <span data-total-pages>/ …</span>
-
-        <button class="btn btn-outline-secondary"
-                type="button"
-                data-reader-command="next">
-            →
-        </button>
-
-        <button class="btn btn-outline-secondary"
-                type="button"
-                data-reader-command="zoom-out">
-            −
-        </button>
-
-        <span data-zoom>100%</span>
-
-        <button class="btn btn-outline-secondary"
-                type="button"
-                data-reader-command="zoom-in">
-            +
-        </button>
-
-        <button class="btn btn-outline-secondary"
-                type="button"
-                data-reader-command="fit">
-            Vừa chiều rộng
-        </button>
-
-        <button class="btn btn-outline-primary"
-                type="button"
-                data-reader-command="sidebar">
-            Ghi chú
-        </button>
-
-        <a class="btn btn-outline-primary"
-           asp-controller="NotesV3"
-           asp-action="Book"
-           asp-route-id="@Model.Pdf.DocumentId"
-           asp-route-shareId="@Model.GroupDocumentShareId"
-           data-leave-reader>
-            Notes Book
-        </a>
+    <input type="checkbox" id="notesv3-note-toggle" class="visually-hidden" checked />
+    <div class="notesv3-reader-studybar">
+        <span><i class="bi bi-shield-check"></i> PDF gốc luôn được giữ nguyên</span>
+        <label for="notesv3-note-toggle" class="btn btn-outline-primary btn-sm notesv3-toggle-button">
+            <i class="bi bi-layout-sidebar-inset-reverse"></i>
+            <span class="notesv3-hide-label">Ẩn ghi chú</span>
+            <span class="notesv3-show-label">Mở ghi chú</span>
+        </label>
     </div>
 
-    <form class="notesv3-reader-search" data-search-form>
-        <input class="form-control"
-               type="search"
-               maxlength="200"
-               placeholder="Tìm chữ trong PDF"
-               aria-label="Từ khóa trong PDF"
-               data-search />
-
-        <button class="btn btn-outline-secondary" type="submit">
-            Tìm trang tiếp theo
-        </button>
-
-        <span data-search-status role="status"></span>
-    </form>
-
-    <div class="notesv3-reader-toolbar">
-        <label for="notesv3-markup-color">Màu</label>
-
-        <input id="notesv3-markup-color"
-               type="color"
-               value="#facc15"
-               data-markup-color />
-
-        <button class="btn btn-outline-primary"
-                type="button"
-                data-markup-command="highlight"
-                disabled="@Model.Pdf.IsArchived">
-            Highlight chữ đã chọn
-        </button>
-
-        <button class="btn btn-outline-primary"
-                type="button"
-                data-markup-command="comment"
-                disabled="@Model.Pdf.IsArchived">
-            Bình luận chữ đã chọn
-        </button>
-
-        <button class="btn btn-outline-primary"
-                type="button"
-                data-markup-command="capture"
-                disabled="@Model.Pdf.IsArchived">
-            Capture vào ghi chú trang này
-        </button>
-
-        <span class="notesv3-meta">
-            Dùng chuột chọn chữ trong PDF trước.
-        </span>
-    </div>
-
-    <p class="notesv3-status"
-       data-reader-status
-       role="status"
-       aria-live="polite"></p>
-
-    <div class="notesv3-reader-grid" data-reader-grid>
-        <main class="notesv3-pdf-scroll" data-pdf-scroll>
-            <div class="notesv3-pdf-page page" data-pdf-page>
-                <canvas data-pdf-canvas></canvas>
-
-                <div class="textLayer" data-pdf-text></div>
-
-                <div class="notesv3-annotation-layer"
-                     data-annotation-layer></div>
-            </div>
+    <div class="notesv3-reader-grid mt-3">
+        <main class="notesv3-reader-frame">
+            <iframe title="Trình xem PDF: @Model.Title" src="@viewerUrl"></iframe>
         </main>
-
-        <aside class="notesv3-card notesv3-pdf-sidebar"
-               data-sidebar>
-
-            <h2 data-note-title>Ghi chú trang</h2>
-
-            <p>
-                @(Model.GroupDocumentShareId.HasValue
-                    ? "Ghi chú chung của nhóm"
-                    : "Ghi chú cá nhân")
-            </p>
-
-            <div class="notesv3-button-row">
-                <button class="btn btn-sm btn-primary"
-                        type="button"
-                        data-reader-command="save">
-                    Lưu
-                </button>
-
-                <button class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-reader-command="copy-draft">
-                    Sao chép bản nháp
-                </button>
-
-                <button class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-reader-command="reconnect">
-                    Kết nối lại
-                </button>
+        <aside class="notesv3-reader-note">
+            <div class="notesv3-note-heading">
+                <div>
+                    <h2 class="h6 mb-1">Ghi chú trang @Model.CurrentPage</h2>
+                    <p class="text-muted small mb-0">Ghi chú chữ ở đây lưu riêng với dấu trên PDF.</p>
+                </div>
+                <i class="bi bi-pencil-square"></i>
             </div>
-
-            <p class="notesv3-status"
-               data-note-status
-               role="status"
-               aria-live="polite"></p>
-
-            <div class="notesv3-pdf-note-editor"
-                 data-note-editor></div>
-
-            <hr />
-
-            <h3 class="h6">Đánh dấu trang hiện tại</h3>
-
-            <div class="notesv3-annotation-list"
-                 data-annotation-list></div>
-
-            <hr />
-
-            <h3 class="h6">Tham chiếu của ghi chú</h3>
-
-            <div class="notesv3-reference-list"
-                 data-reference-list></div>
+            @if (Model.IsArchived)
+            {
+                <p class="text-muted small mt-3">PDF đã lưu trữ. Ghi chú chỉ có thể xem.</p>
+            }
+            <form asp-controller="Pdfs" asp-action="SavePdfPageNote" method="post"
+                  class="notesv3-note-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="documentId" value="@Model.DocumentId" />
+                <input type="hidden" name="versionId" value="@Model.VersionId" />
+                <input type="hidden" name="pageNumber" value="@Model.CurrentPage" />
+                <input type="hidden" name="versionToken" value="@Model.NoteVersionToken" />
+                <input type="hidden" name="shareId" value="@Model.ShareId" />
+                <label class="visually-hidden" for="pdf-page-note">Nội dung ghi chú</label>
+                <textarea class="form-control" id="pdf-page-note" name="text"
+                          placeholder="Viết ý chính của trang này…" readonly="@Model.IsArchived">@Model.NoteText</textarea>
+                @if (!Model.IsArchived)
+                {
+                    <button class="btn btn-primary" type="submit">Lưu ghi chú trang</button>
+                }
+            </form>
         </aside>
     </div>
 </div>
 
 @section Scripts {
-    <script type="module"
-            src="~/js/notesv3/pdf-reader.js"
-            asp-append-version="true"></script>
+    <script src="~/js/notesv3/reader-position.js" asp-append-version="true"></script>
 }

@@ -1,91 +1,52 @@
 @model StudyHub.Web.ViewModels.NotesV3.NotesBookViewModel
 
 @{
-    ViewData["Title"] = $"Notes Book - {Model.Pdf.Title}";
+    ViewData["Title"] = $"Sổ ghi chú - {Model.Title}";
+    ViewData["PageTitle"] = "Sổ ghi chú PDF";
+    ViewData["PageSubtitle"] = Model.Title;
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var isGroup = Model.GroupDocumentShareId.HasValue;
 }
 
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/quill@@2.0.3/dist/quill.snow.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/notesv3/notes.css" asp-append-version="true" />
+}
 
-<link rel="stylesheet"
-      href="~/css/notesv3/notes.css"
-      asp-append-version="true" />
-
-<div class="notesv3 notesv3-book"
-     data-notesv3
-     data-notesv3-book
-     data-app-root="@Url.Content("~/")"
-     data-is-group="@(isGroup ? "true" : "false")">
-
-    @Html.AntiForgeryToken()
-
-    <header class="notesv3-header">
-        <a asp-controller="NotesV3"
-           asp-action="Reader"
-           asp-route-id="@Model.Pdf.DocumentId"
-           asp-route-shareId="@Model.GroupDocumentShareId">
-            ← Quay lại PDF
+<div class="notesv3 notesv3-book container py-4">
+    <header class="notesv3-page-header mb-4">
+        <a class="btn-secondary-sh notesv3-back-button"
+           asp-controller="Pdfs" asp-action="Reader"
+           asp-route-id="@Model.DocumentId" asp-route-shareId="@Model.ShareId"
+           asp-route-page="@Model.ReturnPage">
+            <i class="bi bi-arrow-left"></i> Quay lại PDF
         </a>
-
-        <h1>Notes Book</h1>
-        <p>@Model.Pdf.Title</p>
-
-        <p>
-            @(isGroup
-                ? "Tổng hợp ghi chú nhóm theo trang PDF."
-                : "Tổng hợp ghi chú cá nhân theo trang PDF.")
-        </p>
-
-        <button class="btn btn-outline-secondary"
-                type="button"
-                data-refresh-book>
-            Làm mới
-        </button>
+        <h1>Sổ ghi chú PDF</h1>
+        <p class="text-muted mb-0">@Model.Title</p>
     </header>
 
-    <p class="notesv3-status"
-       data-book-status
-       role="status"
-       aria-live="polite">
-        Đang dựng Notes Book…
-    </p>
-
-    <p class="notesv3-empty" data-book-empty hidden>
-        Chưa có trang nào chứa ghi chú.
-    </p>
-
-    <div data-book-content>
-       @foreach (var entry in Model.Pages)
-{
-    <article class="notesv3-card notesv3-book-entry"
-             data-book-entry
-             data-page-id="@entry.PageId"
-             data-page-number="@entry.PhysicalPageNumber"
-             data-requires-replay="@(entry.RequiresReplay ? "true" : "false")"
-             hidden>
-
-        <h2>
-            <a asp-controller="NotesV3"
-               asp-action="Reader"
-               asp-route-id="@Model.Pdf.DocumentId"
-               asp-route-shareId="@Model.GroupDocumentShareId"
-               asp-route-page="@entry.PhysicalPageNumber">
-                Trang @entry.PhysicalPageNumber
-            </a>
-        </h2>
-
-        <textarea data-book-delta hidden>@entry.DeltaJson</textarea>
-
-        <div data-book-editor></div>
-    </article>
-}
-    </div>
+    @if (Model.Pages.Count == 0)
+    {
+        <div class="notesv3-empty">Chưa có trang nào chứa ghi chú.</div>
+    }
+    else
+    {
+        <div class="d-grid gap-3">
+            @foreach (var page in Model.Pages)
+            {
+                <article class="card notesv3-book-page">
+                    <div class="card-body">
+                        <span class="notesv3-book-label">GHI CHÚ THEO TRANG</span>
+                        <h2 class="h5 mt-2">
+                            <a asp-controller="Pdfs" asp-action="Reader"
+                               asp-route-id="@Model.DocumentId"
+                               asp-route-shareId="@Model.ShareId"
+                               asp-route-page="@(page.PageNumber)">
+                                Trang @(page.PageNumber) <i class="bi bi-arrow-up-right"></i>
+                            </a>
+                        </h2>
+                        <p class="notesv3-note-text mb-0">@(page.Text)</p>
+                    </div>
+                </article>
+            }
+        </div>
+    }
 </div>
-
-@section Scripts {
-    <script type="module"
-            src="~/js/notesv3/pdf-reader.js"
-            asp-append-version="true"></script>
-}

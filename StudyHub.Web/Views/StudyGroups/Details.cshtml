@@ -202,18 +202,14 @@
         <partial name="_LearningPanels" />
         <section class="group-panel"
          data-panel-content="resources"
-         data-notesv3
-         data-notesv3-group-resources
-         data-app-root="@Url.Content("~/")"
          hidden>
-
-    @Html.AntiForgeryToken()
-
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <h2 class="group-section-title mb-0">
             <i class="bi bi-folder2-open"></i>
             Tài nguyên nhóm
         </h2>
+        <a class="btn-primary-sh" asp-controller="NotesV3" asp-action="Index"
+           asp-route-groupId="@Model.Group.Id">Mở Ghi chú &amp; PDF nhóm</a>
     </div>
 
     <div id="gl-resources" aria-live="polite">
@@ -366,7 +362,6 @@
 }
 
 @section Scripts {
-  @await Html.PartialAsync("~/Views/NotesV3/_EditorImports.cshtml")
   <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@9.0.6/dist/browser/signalr.min.js"></script>
   <script src="~/js/subject-multiselect.js" asp-append-version="true"></script>
   <script src="~/js/group-details.js" asp-append-version="true"></script>

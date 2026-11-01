@@ -2,19 +2,23 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using StudyHub.BLL.Services.Auth;
 using StudyHub.BLL.Services.Flashcards;
 using StudyHub.BLL.Services.Flashcards.Implementations;
 using StudyHub.BLL.Services.Flashcards.Interfaces;
+using StudyHub.BLL.Services.NotesV3;
+using StudyHub.BLL.Services.NotesV3.Annotations;
+using StudyHub.BLL.Services.NotesV3.Notebooks;
+using StudyHub.BLL.Services.NotesV3.Pages;
+using StudyHub.BLL.Services.NotesV3.PagesNotes;
 using StudyHub.BLL.Services.NotesV3.Pdfs;
+using StudyHub.BLL.Services.NotesV3.Sharing;
 using StudyHub.BLL.Services.StudyGroups;
 using StudyHub.DAL.Persistence;
 using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.Common;
-using StudyHub.DAL.Repositories.NotesV3;
 using StudyHub.DAL.Repositories.StudyGroups;
 using StudyHub.Web.Authentication;
 using StudyHub.Web.Hubs;
@@ -24,6 +28,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews(options =>
 {
+    options.Filters.AddService<StudyHub.Web.Filters.NotesV3ExceptionFilter>();
     options.Conventions.Add(
         new StudyHub.Web.Configuration.DisableLegacyNotesControllers());
 });
@@ -120,10 +125,6 @@ builder.Services.AddScoped<
     GoogleAuthRepository>();
 
 builder.Services.AddScoped<
-    INotesV3Repository,
-    EfNotesV3Repository>();
-
-builder.Services.AddScoped<
     IRepository,
     EfRepository>();
 
@@ -156,69 +157,20 @@ builder.Services.AddScoped<
     IFlashcardService,
     FlashcardService>();
 
-// NotesV3 access
-builder.Services.AddScoped<
-    StudyHub.BLL.Services.NotesV3.INotesV3AccessService,
-    StudyHub.BLL.Services.NotesV3.NotesV3AccessService>();
-
-// NotesV3 notebooks
-builder.Services.AddScoped<
-    StudyHub.BLL.Services.NotesV3.Notebooks.INotebookService,
-    StudyHub.BLL.Services.NotesV3.Notebooks.NotebookService>();
-
-// NotesV3 PDF
-builder.Services.AddScoped<
-    IPdfFileStorage,
-    LocalPdfFileStorage>();
-
-builder.Services.AddScoped<
-    IPdfService,
-    PdfService>();
-
-// NotesV3 PDF page notes
-builder.Services.AddScoped<
-    StudyHub.BLL.Services.NotesV3.PageNotes.IPageNotesService,
-    StudyHub.BLL.Services.NotesV3.PageNotes.PageNotesService>();
-
-// NotesV3 Group sharing
-builder.Services.AddScoped<
-    StudyHub.BLL.Services.NotesV3.Sharing.IGroupShareService,
-    StudyHub.BLL.Services.NotesV3.Sharing.GroupShareService>();
-
-// NotesV3 collaboration
-builder.Services.AddScoped<
-    StudyHub.BLL.Services.NotesV3.Collaboration.ICollaborationService,
-    StudyHub.BLL.Services.NotesV3.Collaboration.CollaborationService>();
-
-// NotesV3 annotations
-builder.Services.AddScoped<
-    StudyHub.BLL.Services.NotesV3.Annotations.IAnnotationService,
-    StudyHub.BLL.Services.NotesV3.Annotations.AnnotationService>();
-
-// NotesV3 references
-builder.Services.AddScoped<
-    StudyHub.BLL.Services.NotesV3.References.IReferenceService,
-    StudyHub.BLL.Services.NotesV3.References.ReferenceService>();
-
-// NotesV3 dashboard
-builder.Services.AddScoped<
-    StudyHub.BLL.Services.NotesV3.Dashboard.INotesDashboardService,
-    StudyHub.BLL.Services.NotesV3.Dashboard.NotesDashboardService>();
+// NotesV3: các màn hình MVC và nghiệp vụ tương ứng.
+builder.Services.AddScoped<INotesV3AccessService, NotesV3AccessService>();
+builder.Services.AddScoped<INotesIndexService, NotesIndexService>();
+builder.Services.AddScoped<INotebookService, NotebookService>();
+builder.Services.AddScoped<IPageService, PageService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<IPageNotesService, PageNotesService>();
+builder.Services.AddScoped<IPdfMarksService, PdfMarksService>();
+builder.Services.AddScoped<IGroupShareService, GroupShareService>();
+builder.Services.AddScoped<IPdfFileStorage, LocalPdfFileStorage>();
 
 // NotesV3 MVC exception filter
 builder.Services.AddScoped<
     StudyHub.Web.Filters.NotesV3ExceptionFilter>();
-
-// NotesV3 SignalR filter
-builder.Services.AddScoped<NotesV3HubFilter>();
-
-builder.Services.Configure<HubOptions<NotesV3Hub>>(options =>
-{
-    options.MaximumReceiveMessageSize = 4 * 1024 * 1024;
-    options.MaximumParallelInvocationsPerClient = 1;
-    options.EnableDetailedErrors = false;
-    options.AddFilter<NotesV3HubFilter>();
-});
 
 // Other application services
 builder.Services.AddScoped<
@@ -306,7 +258,6 @@ app.MapStaticAssets().AllowAnonymous();
 app.MapControllers();
 
 app.MapHub<StudyGroupHub>("/hubs/study-groups");
-app.MapHub<NotesV3Hub>("/hubs/notesv3");
 
 app.MapControllerRoute(
         name: "default",
