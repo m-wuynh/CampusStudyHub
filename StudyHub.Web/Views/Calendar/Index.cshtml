@@ -7,80 +7,85 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div id="calendar-view" style="max-width:1280px; margin:0 auto; display: flex; flex-direction: column;">
-  <!-- Header Actions & Student Weekly Progress -->
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
-    <!-- Left: Weekly Progress & Stats -->
-    <div class="d-flex align-items-center gap-3">
-      <div>
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <span class="fw-bold text-dark" style="font-size: 15px;" id="calendar-progress-title">
-            <i class="bi bi-calendar-check text-primary me-1"></i>Tiến độ học tập tuần này
-          </span>
-          <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold" id="calendar-progress-percent" style="font-size: 12px;">
-            0% (0 ca)
-          </span>
+<div id="calendar-view" style="max-width:1280px; margin:0 auto; display: flex; flex-direction: column; gap: 20px;">
+
+  <!-- ROW 1: Search Bar & Add Event Button -->
+  <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+    <!-- Search Bar -->
+    <div class="calendar-search-wrapper position-relative flex-grow-1" style="max-width: 680px;">
+      <div class="calendar-search-input-group d-flex align-items-center">
+        <i class="bi bi-search search-icon" style="color: #2563eb; font-size: 16px;"></i>
+        <input type="text"
+               id="calendar-search-input"
+               class="calendar-search-input"
+               placeholder="Tìm sự kiện (tiêu đề, địa điểm...)"
+               autocomplete="off"
+               spellcheck="false" />
+        <button type="button"
+                id="calendar-search-clear"
+                class="btn btn-sm btn-link text-muted p-0 border-0 calendar-search-clear d-none"
+                title="Xóa tìm kiếm">
+          <i class="bi bi-x-circle-fill"></i>
+        </button>
+      </div>
+
+      <!-- Dropdown Search Results -->
+      <div id="calendar-search-dropdown" class="calendar-search-dropdown shadow-lg d-none">
+        <div class="search-dropdown-header d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
+          <span class="small fw-semibold text-muted" id="search-results-count">Kết quả tìm kiếm</span>
+          <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">ESC để đóng</span>
         </div>
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-          <!-- Progress Bar -->
-          <div class="progress" style="width: 220px; height: 8px; border-radius: 10px; background-color: #e9ecef; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);">
-            <div id="calendar-progress-bar" class="progress-bar" role="progressbar" style="width: 0%; border-radius: 10px; background: linear-gradient(90deg, #1a73e8, #1e8e3e); transition: width 0.4s ease;"></div>
-          </div>
-          <!-- Stats badges -->
-          <div class="small d-flex align-items-center gap-2" id="calendar-stats-text" style="font-size: 12px;">
-            <span id="stat-completed-badge" class="badge bg-success-subtle text-success border border-success-subtle">
-              <i class="bi bi-check-circle-fill me-1"></i>0 hoàn thành
-            </span>
-            <span id="stat-pending-badge" class="badge bg-primary-subtle text-primary border border-primary-subtle">
-              <i class="bi bi-clock-fill me-1"></i>0 sắp tới
-            </span>
-            <span id="stat-missed-badge" class="badge bg-danger-subtle text-danger border border-danger-subtle d-none">
-              <i class="bi bi-exclamation-triangle-fill me-1"></i>0 quá hạn
-            </span>
-          </div>
-        </div>
+        <div id="calendar-search-results-list" class="calendar-search-results-list"></div>
       </div>
     </div>
 
-    <!-- Right: Add Event Button -->
-    <a href="/Calendar/Create" class="btn-primary-sh text-decoration-none shadow-sm px-4" style="border-radius: 20px;">
-      <i class="bi bi-plus-lg me-2"></i>Thêm sự kiện
+    <!-- Add Event Button -->
+    <a href="/Calendar/Create" class="btn-hero-add text-decoration-none shadow-sm d-inline-flex align-items-center gap-2">
+      <i class="bi bi-plus-lg"></i>
+      <span>Thêm sự kiện</span>
     </a>
   </div>
 
-  <!-- Calendar Container -->
-  <div class="sh-card p-0 overflow-hidden" style="background: #fff; border: 1px solid var(--sh-slate-200); border-radius: 12px; height: calc(100vh - 140px); min-height: 1030px; position: relative;">
-    
-    <!-- Search Bar Component (Will be mounted into the Center of FullCalendar Toolbar) -->
-    <div id="calendar-search-container" class="calendar-search-container d-none">
-      <div class="calendar-search-wrapper position-relative">
-        <div class="calendar-search-input-group d-flex align-items-center">
-          <i class="bi bi-search search-icon text-muted"></i>
-          <input type="text"
-                 id="calendar-search-input"
-                 class="calendar-search-input"
-                 placeholder="Tìm kiếm sự kiện (tiêu đề, địa điểm...)"
-                 autocomplete="off"
-                 spellcheck="false" />
-          <button type="button"
-                  id="calendar-search-clear"
-                  class="btn btn-sm btn-link text-muted p-0 border-0 calendar-search-clear d-none"
-                  title="Xóa tìm kiếm">
-            <i class="bi bi-x-circle-fill"></i>
-          </button>
-        </div>
+  <!-- ROW 2: Hero Progress Banner (Purple Card) -->
+  <div class="calendar-hero-card position-relative overflow-hidden text-white">
+    <!-- Decorative 4-point Sparkle Star Watermark -->
+    <svg class="hero-watermark-star" viewBox="0 0 100 100" fill="currentColor">
+      <path d="M50 0 C50 27.6 27.6 50 0 50 C27.6 50 50 72.4 50 100 C50 72.4 72.4 50 100 50 C72.4 50 50 27.6 50 0 Z" />
+    </svg>
 
-        <!-- Dropdown Search Results -->
-        <div id="calendar-search-dropdown" class="calendar-search-dropdown shadow-lg d-none">
-          <div class="search-dropdown-header d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
-            <span class="small fw-semibold text-muted" id="search-results-count">Kết quả tìm kiếm</span>
-            <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">ESC để đóng</span>
-          </div>
-          <div id="calendar-search-results-list" class="calendar-search-results-list"></div>
+    <div class="position-relative" style="z-index: 2;">
+      <!-- Title -->
+      <div class="hero-card-title mb-1.5" id="calendar-progress-title">
+        Tiến độ học tập tuần này
+      </div>
+
+      <!-- Percentage Big Text -->
+      <div class="hero-card-percent fw-bold mb-3" id="calendar-progress-percent">
+        0% (0/0 ca)
+      </div>
+
+      <!-- Progress Track & Bar -->
+      <div class="hero-progress-track mb-3">
+        <div id="calendar-progress-bar" class="hero-progress-fill" style="width: 0%;"></div>
+      </div>
+
+      <!-- 3 Pill Badges -->
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="hero-stat-pill" id="stat-completed-badge">
+          <i class="bi bi-check2 me-1 fs-6"></i><span>0 hoàn thành</span>
+        </div>
+        <div class="hero-stat-pill" id="stat-pending-badge">
+          <i class="bi bi-clock me-1"></i><span>0 sắp tới</span>
+        </div>
+        <div class="hero-stat-pill" id="stat-missed-badge">
+          <i class="bi bi-exclamation-triangle me-1"></i><span>0 quá hạn</span>
         </div>
       </div>
     </div>
+  </div>
 
+  <!-- ROW 3: Calendar Container Card -->
+  <div class="sh-card p-0 overflow-hidden calendar-main-card" style="background: #fff; border: 1px solid #f1f3f4; border-radius: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); position: relative; min-height: 800px;">
     <div id="calendar" style="height: 100%;"></div>
 
     <!-- Event Popover (Hidden by default) -->

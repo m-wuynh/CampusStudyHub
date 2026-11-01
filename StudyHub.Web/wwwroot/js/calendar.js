@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
         locale: 'en',
         initialView: 'timeGridWeek',
         firstDay: 0, // 0 = Sunday, 1 = Monday
+        height: 'auto',
         headerToolbar: {
             left: 'today prev,next title',
             center: '',
@@ -119,37 +120,25 @@ document.addEventListener('DOMContentLoaded', function() {
         var completedEl = document.getElementById('stat-completed-badge');
         var pendingEl = document.getElementById('stat-pending-badge');
         var missedEl = document.getElementById('stat-missed-badge');
-
         if (barEl) {
             barEl.style.width = percent + '%';
-            if (percent === 100 && total > 0) {
-                barEl.style.background = 'linear-gradient(90deg, #10b981, #059669)';
-            } else {
-                barEl.style.background = 'linear-gradient(90deg, #1a73e8, #1e8e3e)';
-            }
         }
 
         if (percentEl) {
-            if (percent === 100 && total > 0) {
-                percentEl.className = 'badge rounded-pill bg-success text-white fw-bold';
-                percentEl.innerHTML = '<i class="bi bi-stars me-1"></i>100% Hoàn thành! (' + completed + '/' + total + ' ca)';
-            } else {
-                percentEl.className = 'badge rounded-pill bg-primary-subtle text-primary fw-semibold';
-                percentEl.innerText = percent + '% (' + completed + '/' + total + ' ca)';
-            }
+            percentEl.innerText = percent + '% (' + completed + '/' + total + ' ca)';
         }
 
-        if (completedEl) completedEl.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>' + completed + ' hoàn thành';
-        if (pendingEl) pendingEl.innerHTML = '<i class="bi bi-clock-fill me-1"></i>' + pending + ' sắp tới';
+        if (completedEl) {
+            completedEl.innerHTML = '<i class="bi bi-check2 me-1 fs-6"></i><span>' + completed + ' hoàn thành</span>';
+        }
+        if (pendingEl) {
+            pendingEl.innerHTML = '<i class="bi bi-clock me-1"></i><span>' + pending + ' sắp tới</span>';
+        }
         if (missedEl) {
-            if (missed > 0) {
-                missedEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>' + missed + ' quá hạn';
-                missedEl.classList.remove('d-none');
-            } else {
-                missedEl.classList.add('d-none');
-            }
+            missedEl.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i><span>' + missed + ' quá hạn</span>';
         }
     }
+
 
     // ========================================================
     // Reusable Event Popover Function
@@ -419,13 +408,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mount & Initialize Search Bar into Toolbar Center
     // ========================================================
     function initSearchBar() {
-        var centerChunk = calendarEl.querySelector('.fc-header-toolbar .fc-toolbar-chunk:nth-child(2)');
-        var searchContainer = document.getElementById('calendar-search-container');
-        if (!centerChunk || !searchContainer) return;
-
-        centerChunk.appendChild(searchContainer);
-        searchContainer.classList.remove('d-none');
-
         var searchInput = document.getElementById('calendar-search-input');
         var searchClear = document.getElementById('calendar-search-clear');
         var searchDropdown = document.getElementById('calendar-search-dropdown');
@@ -617,7 +599,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Close dropdown when clicking outside
         document.addEventListener('click', function(e) {
-            if (searchDropdown && !searchDropdown.contains(e.target) && !searchContainer.contains(e.target)) {
+            if (searchDropdown && !searchDropdown.contains(e.target) && !searchInput.contains(e.target)) {
                 searchDropdown.classList.add('d-none');
             }
         });
