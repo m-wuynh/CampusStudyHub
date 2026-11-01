@@ -19,6 +19,8 @@ using StudyHub.DAL.Repositories.StudyGroups;
 using StudyHub.Web.Authentication;
 using StudyHub.Web.Hubs;
 using StudyHub.Web.Services.NotesV3;
+using StudyHub.BLL.Services.Flashcards.LearnSessions;
+using StudyHub.Web.Services.Flashcards;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -155,6 +157,17 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IFlashcardService,
     FlashcardService>();
+
+// Flashcard Learn Session - HaiLt
+builder.Services.AddMemoryCache();
+
+builder.Services.AddSingleton<
+    ILearnSessionStore,
+    MemoryLearnSessionStore>();
+
+builder.Services.AddScoped<
+    ILearnSessionService,
+    LearnSessionService>();
 
 // NotesV3 access
 builder.Services.AddScoped<

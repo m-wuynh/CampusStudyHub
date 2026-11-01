@@ -1,0 +1,221 @@
+@model FlashcardBrowseViewModel
+
+@{
+    ViewData["Title"] = $"Xem thẻ - {Model.DeckTitle}";
+}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between
+        align-items-center mb-4">
+
+        <div>
+            <a asp-controller="Flashcards"
+               asp-action="Details"
+               asp-route-deckId="@Model.DeckId"
+               class="text-decoration-none">
+                <i class="bi bi-arrow-left"></i>
+                Quay lại Deck
+            </a>
+
+            <h2 class="fw-bold mt-3 mb-1">
+                @Model.DeckTitle
+            </h2>
+
+            <p class="text-muted mb-0">
+                Xem Flashcard
+            </p>
+        </div>
+
+        <div class="text-muted">
+            <span id="currentCardNumber">0</span>
+            /
+            <span id="totalCardCount">@Model.Cards.Count</span>
+        </div>
+
+    </div>
+
+
+    @if (Model.Cards.Count == 0)
+    {
+        <div class="border rounded-4
+            p-5 text-center bg-white">
+
+            <i class="bi bi-card-text"
+               style="font-size:40px;"></i>
+
+            <h5 class="mt-3">
+                Deck này chưa có Flashcard
+            </h5>
+
+            <p class="text-muted">
+                Hãy thêm card trước khi bắt đầu học.
+            </p>
+
+            <a asp-controller="Flashcards"
+               asp-action="Details"
+               asp-route-deckId="@Model.DeckId"
+               class="btn btn-primary">
+                Quay lại Deck
+            </a>
+
+        </div>
+    }
+    else
+    {
+        <div id="studyContainer"
+             class="study-container">
+
+            <div class="flashcard-scene">
+
+                <div id="flashcard"
+                     class="flashcard">
+
+                    <div class="flashcard-face flashcard-front">
+
+                        <div class="text-muted small mb-3">
+                            MẶT TRƯỚC
+                        </div>
+
+                        <h3 id="frontText"
+                            class="fw-bold mb-0">
+                        </h3>
+
+                    </div>
+
+
+                    <div class="flashcard-face flashcard-back">
+
+                        <div class="text-muted small mb-3">
+                            MẶT SAU
+                        </div>
+
+                        <h3 id="backText"
+                            class="fw-bold mb-0">
+                        </h3>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div id="studyControls"
+                 class="d-flex justify-content-center
+                align-items-center gap-3 mt-4">
+
+                <button type="button"
+                        id="previousCardButton"
+                        class="btn btn-outline-secondary px-4">
+                    <i class="bi bi-arrow-left"></i>
+                    Thẻ trước
+                </button>
+
+
+                <button type="button"
+                        id="flipCardButton"
+                        class="btn btn-primary px-4">
+                    <i class="bi bi-arrow-repeat"></i>
+
+                    <span id="flipButtonText">
+                        Hiện đáp án
+                    </span>
+                </button>
+
+
+                <button type="button"
+                        id="nextCardButton"
+                        class="btn btn-outline-secondary px-4">
+                    Thẻ sau
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+
+            </div>
+
+            <div class="d-flex justify-content-center mt-3">
+                <button type="button"
+                        id="finishStudyButton"
+                        class="btn btn-outline-danger">
+                    <i class="bi bi-check2-circle"></i>
+                    Kết thúc
+                </button>
+            </div>
+
+        </div>
+    }
+
+</div>
+
+<div id="studyCompleted"
+     class="d-none text-center
+    border rounded-4 bg-white
+    shadow-sm p-5 mt-4">
+
+    <i class="bi bi-check-circle"
+       style="font-size:48px;"></i>
+
+    <h3 class="fw-bold mt-3">
+        Bạn đã xem hết bộ thẻ
+    </h3>
+
+    <p class="text-muted">
+        Bạn có thể học lại hoặc quay về bộ thẻ.
+    </p>
+
+    <div class="d-flex justify-content-center
+        flex-wrap gap-2 mt-4">
+
+        <button type="button"
+                id="studyAgainButton"
+                class="btn btn-primary">
+            <i class="bi bi-arrow-repeat"></i>
+            Xem lại
+        </button>
+
+        <a asp-controller="Flashcards"
+           asp-action="Details"
+           asp-route-deckId="@Model.DeckId"
+           class="btn btn-outline-secondary">
+            <i class="bi bi-card-list"></i>
+            Quản lý Flashcards
+        </a>
+
+        <a asp-controller="Flashcards"
+           asp-action="Index"
+           class="btn btn-outline-secondary">
+            <i class="bi bi-collection"></i>
+            My Decks
+        </a>
+
+        <a asp-controller="Flashcards"
+           asp-action="Learn"
+           asp-route-deckId="@Model.DeckId"
+           class="btn btn-primary">
+
+            <i class="bi bi-mortarboard"></i>
+            Bắt đầu Learn
+        </a>
+
+    </div>
+
+</div>
+
+@using System.Text.Json
+
+<script id="flashcardData" type="application/json">
+    @Html.Raw(JsonSerializer.Serialize(Model.Cards))
+</script>
+
+@section Scripts {
+    <script src="~/js/flashcards/browse.js"
+            asp-append-version="true"></script>
+}
+
+
+<!--Flip anim-->
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/flashcards/browse.css"
+          asp-append-version="true" />
+}
