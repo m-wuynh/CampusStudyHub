@@ -60,6 +60,45 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
         return Json(result);
     }
 
+    [HttpGet("SearchEvents")]
+    public async Task<IActionResult> SearchEvents([FromQuery] string? q)
+    {
+        if (string.IsNullOrWhiteSpace(q))
+            return Json(new List<object>());
+
+        var events = await calendarService.SearchEventsAsync(CurrentUserId, q.Trim());
+        var now = DateTime.Now;
+
+        var result = events.Select(ev =>
+        {
+            var isPast = ev.EndAtLocal < now;
+            var isCompleted = ev.IsCompleted;
+            var status = isCompleted ? "completed" : (isPast ? "missed" : "pending");
+            var statusText = isCompleted ? "Đã hoàn thành" : (isPast ? "Đã quá hạn" : "Sắp tới");
+
+            return new
+            {
+                id = ev.Id,
+                title = ev.Title,
+                eventType = ev.EventType,
+                start = ev.StartAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
+                end = ev.EndAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
+                startDateStr = ev.StartAtLocal.ToString("dd/MM/yyyy"),
+                startTimeStr = ev.StartAtLocal.ToString("HH:mm"),
+                endTimeStr = ev.EndAtLocal.ToString("HH:mm"),
+                dateFormatted = ev.StartAtLocal.ToString("ddd, dd 'thg' MM, yyyy", new System.Globalization.CultureInfo("vi-VN")),
+                location = ev.Location,
+                description = ev.Description,
+                isCompleted = ev.IsCompleted,
+                isPast = isPast,
+                status = status,
+                statusText = statusText
+            };
+        });
+
+        return Json(result);
+    }
+
     [HttpPost("ToggleCompletion/{id}")]
     public async Task<IActionResult> ToggleCompletion(long id)
     {

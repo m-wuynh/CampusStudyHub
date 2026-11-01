@@ -1,4 +1,4 @@
-﻿        .fc {
+        .fc {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             color: #3c4043;
         }
@@ -169,4 +169,144 @@
             text-decoration: line-through;
             opacity: 0.8;
             border-left: 3px solid #1e8e3e !important;
+        }
+
+        /* ========================================================
+           Calendar Search Bar & Filter Styling
+           ======================================================== */
+        .calendar-search-wrapper {
+            width: clamp(230px, 28vw, 360px);
+            margin: 0 12px;
+            position: relative;
+        }
+
+        .calendar-search-input-group {
+            position: relative;
+            width: 100%;
+        }
+
+        .calendar-search-input-group .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: #5f6368;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .calendar-search-input {
+            width: 100%;
+            height: 38px;
+            padding: 6px 36px 6px 36px;
+            font-size: 13.5px;
+            font-weight: 400;
+            color: #3c4043;
+            background-color: #f1f3f4;
+            border: 1px solid transparent;
+            border-radius: 24px;
+            outline: none;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .calendar-search-input:hover {
+            background-color: #e8eaed;
+        }
+
+        .calendar-search-input:focus {
+            background-color: #ffffff;
+            border-color: #1a73e8;
+            box-shadow: 0 1px 3px rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15);
+        }
+
+        .calendar-search-clear {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: #70757a !important;
+            cursor: pointer;
+            z-index: 2;
+            line-height: 1;
+        }
+
+        .calendar-search-clear:hover {
+            color: #202124 !important;
+        }
+
+        /* Search Results Dropdown */
+        .calendar-search-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: max(100%, 380px);
+            max-width: 460px;
+            max-height: 420px;
+            overflow-y: auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #dadce0;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            z-index: 1080;
+        }
+
+        .calendar-search-results-list {
+            max-height: 360px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f1f3f4;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .search-result-item.active {
+            background-color: #e8f0fe;
+        }
+
+        .result-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        /* Live event filter states on calendar */
+        .event-search-dimmed {
+            opacity: 0.25 !important;
+            filter: grayscale(60%) !important;
+            transition: opacity 0.2s ease, filter 0.2s ease;
+        }
+
+        .event-search-match {
+            opacity: 1 !important;
+            box-shadow: 0 0 0 2px #1a73e8, 0 4px 10px rgba(26, 115, 232, 0.35) !important;
+            z-index: 5 !important;
+            transition: all 0.2s ease;
+        }
+
+        /* Event highlight pulse when clicked from search result */
+        @@keyframes eventHighlightPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26, 115, 232, 0.7); }
+            50% { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(26, 115, 232, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26, 115, 232, 0); }
+        }
+
+        .event-pulse {
+            animation: eventHighlightPulse 1s ease-in-out 3;
+            z-index: 20 !important;
         }

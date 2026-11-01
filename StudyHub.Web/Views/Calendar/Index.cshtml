@@ -17,6 +17,37 @@
 
   <!-- Calendar Container -->
   <div class="sh-card p-0 overflow-hidden" style="background: #fff; border: 1px solid var(--sh-slate-200); border-radius: 12px; height: calc(100vh - 140px); min-height: 1030px; position: relative;">
+    
+    <!-- Search Bar Component (Will be mounted into the Center of FullCalendar Toolbar) -->
+    <div id="calendar-search-container" class="calendar-search-container d-none">
+      <div class="calendar-search-wrapper position-relative">
+        <div class="calendar-search-input-group d-flex align-items-center">
+          <i class="bi bi-search search-icon text-muted"></i>
+          <input type="text"
+                 id="calendar-search-input"
+                 class="calendar-search-input"
+                 placeholder="Tìm kiếm sự kiện (tiêu đề, địa điểm...)"
+                 autocomplete="off"
+                 spellcheck="false" />
+          <button type="button"
+                  id="calendar-search-clear"
+                  class="btn btn-sm btn-link text-muted p-0 border-0 calendar-search-clear d-none"
+                  title="Xóa tìm kiếm">
+            <i class="bi bi-x-circle-fill"></i>
+          </button>
+        </div>
+
+        <!-- Dropdown Search Results -->
+        <div id="calendar-search-dropdown" class="calendar-search-dropdown shadow-lg d-none">
+          <div class="search-dropdown-header d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
+            <span class="small fw-semibold text-muted" id="search-results-count">Kết quả tìm kiếm</span>
+            <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">ESC để đóng</span>
+          </div>
+          <div id="calendar-search-results-list" class="calendar-search-results-list"></div>
+        </div>
+      </div>
+    </div>
+
     <div id="calendar" style="height: 100%;"></div>
 
     <!-- Event Popover (Hidden by default) -->

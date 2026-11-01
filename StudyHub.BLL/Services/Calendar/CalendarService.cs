@@ -277,4 +277,41 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         await repository.SaveChangesAsync();
         return entity.IsCompleted;
     }
+
+    public async Task<List<ScheduleEventDto>> SearchEventsAsync(long userId, string keyword, int maxResults = 20)
+    {
+        if (string.IsNullOrWhiteSpace(keyword))
+            return [];
+
+        var kw = keyword.Trim();
+
+        var entities = await repository.ListAsync<ScheduleEvent>(e =>
+            e.UserId == userId &&
+            !e.IsDeleted &&
+            (e.Title.Contains(kw) ||
+             (e.Location != null && e.Location.Contains(kw)) ||
+             (e.Description != null && e.Description.Contains(kw))));
+
+        var now = DateTime.Now;
+
+        return entities
+            .OrderBy(e => e.EndAtLocal < now) // Upcoming or happening events first
+            .ThenBy(e => Math.Abs((e.StartAtLocal - now).TotalMinutes)) // Closest to current time
+            .Take(maxResults)
+            .Select(e => new ScheduleEventDto(
+                e.ScheduleEventId,
+                e.Title,
+                e.EventType,
+                e.StartAtLocal,
+                e.EndAtLocal,
+                e.TimeZoneId,
+                e.RepeatMode,
+                e.RepeatUntilDate,
+                e.Location,
+                e.Description,
+                e.GoalId,
+                e.IsCompleted
+            )).ToList();
+    }
 }
+
