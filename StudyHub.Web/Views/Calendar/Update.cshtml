@@ -23,7 +23,7 @@
         <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <label class="sh-label" for="event-date">Ngày</label>
-                <input id='event-date' type='date' class='sh-input' value='@Model.Date.ToString("yyyy-MM-dd")' />
+                <input id='event-date' type='date' class='sh-input' value='@Model.Date.ToString("yyyy-MM-dd")' min='@todayStr' />
             </div>
             <div class="col-md-3 col-6">
                 <label class="sh-label" for="event-start">Bắt đầu</label>
@@ -176,6 +176,12 @@
 
             if (end <= start) {
                 showToast('Giờ kết thúc phải sau giờ bắt đầu', 'error');
+                return;
+            }
+
+            const selectedStart = new Date(`${date}T${start}`);
+            if (selectedStart < new Date(Date.now() - 60000)) {
+                showToast('Thời gian bắt đầu không thể ở trong quá khứ', 'error');
                 return;
             }
 

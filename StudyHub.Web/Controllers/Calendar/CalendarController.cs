@@ -145,6 +145,13 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
     {
         var ev = await calendarService.GetEventAsync(CurrentUserId, id);
         if (ev == null) return NotFound();
+
+        if (ev.EndAtLocal < DateTime.Now || ev.IsCompleted)
+        {
+            TempData["ErrorMessage"] = "Sự kiện đã kết thúc hoặc đã hoàn thành, chỉ được phép xóa chứ không thể chỉnh sửa.";
+            return RedirectToAction("Index");
+        }
+
         var reminders = await calendarService.GetEventRemindersAsync(CurrentUserId, id);
         var model = new CalendarUpdateViewModel(
             ev.Id,

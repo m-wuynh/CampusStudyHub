@@ -219,6 +219,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var isPast = endTime && (new Date(endTime) < new Date());
 
+        // Edit button control: Quá thời hạn hoặc đã complete/miss -> CHỈ ĐƯỢC XÓA, KHÔNG EDIT
+        var editBtn = document.getElementById('btn-edit-event');
+        function updateEditButton(completed) {
+            if (editBtn) {
+                if (isPast || completed) {
+                    editBtn.style.setProperty('display', 'none', 'important');
+                    editBtn.onclick = null;
+                } else {
+                    editBtn.style.removeProperty('display');
+                    editBtn.onclick = function() {
+                        window.location.href = '/Calendar/Update/' + eventApi.id;
+                    };
+                }
+            }
+        }
+
         function updateCompletionUI(completed) {
             var curMissed = !completed && isPast;
             var curColor = completed ? '#1e8e3e' : (curMissed ? '#d93025' : '#1a73e8');
@@ -227,6 +243,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 titleEl.style.textDecoration = completed ? 'line-through' : 'none';
                 titleEl.style.color = completed ? '#70757a' : '#3c4043';
             }
+
+            // Đồng bộ trạng thái nút Edit
+            updateEditButton(completed);
 
             // Nếu quá hạn: ẩn đi ô tick hoàn thành ở dưới
             if (chkRow) {
@@ -380,13 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .catch(() => {});
         }
 
-        // Set Edit/Delete URLs
-        var editBtn = document.getElementById('btn-edit-event');
-        if (editBtn) {
-            editBtn.onclick = function() {
-                window.location.href = '/Calendar/Update/' + eventApi.id;
-            };
-        }
+        // Delete URL
         var delBtn = document.getElementById('btn-delete-event');
         if (delBtn) {
             delBtn.onclick = function() {

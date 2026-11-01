@@ -121,6 +121,12 @@
                 return;
             }
 
+            const selectedStart = new Date(`${date}T${start}`);
+            if (selectedStart < new Date(Date.now() - 60000)) {
+                showToast('Thời gian bắt đầu không thể ở trong quá khứ', 'error');
+                return;
+            }
+
             if (start.length === 5) start += ":00";
             if (end.length === 5) end += ":00";
 

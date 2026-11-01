@@ -90,6 +90,11 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             throw new ArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
         }
 
+        if (startLocal < DateTime.Now.AddMinutes(-2))
+        {
+            throw new ArgumentException("Thời gian bắt đầu không thể ở trong quá khứ.");
+        }
+
         var entity = new ScheduleEvent
         {
             UserId = userId,
@@ -184,8 +189,18 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
             throw new ArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
         }
 
+        if (startDateTime < DateTime.Now.AddMinutes(-2))
+        {
+            throw new ArgumentException("Thời gian bắt đầu không thể ở trong quá khứ.");
+        }
+
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == request.Id && e.UserId == userId && !e.IsDeleted);
         if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
+
+        if (entity.EndAtLocal < DateTime.Now || entity.IsCompleted)
+        {
+            throw new InvalidOperationException("Sự kiện đã kết thúc hoặc đã hoàn thành, chỉ được phép xóa chứ không thể chỉnh sửa.");
+        }
         entity.Title = request.Title;
         entity.EventType = request.EventType;
         entity.StartAtLocal = startDateTime;
