@@ -427,3 +427,157 @@
             animation: eventHighlightPulse 1s ease-in-out 3;
             z-index: 20 !important;
         }
+
+        /* ========================================================
+           ROW: Form & Editor Styling (Create / Update Pages)
+           ======================================================== */
+        .calendar-form-card {
+            background: #ffffff;
+            border: 1px solid #f1f3f4;
+            border-radius: 24px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+        }
+
+        .calendar-form-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 7px;
+        }
+
+        .calendar-form-label i {
+            color: #7c3aed;
+        }
+
+        .calendar-form-input {
+            width: 100%;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 10px 16px;
+            font-size: 14px;
+            color: #1f2937;
+            background-color: #ffffff;
+            outline: none;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .calendar-form-input:hover {
+            border-color: #d1d5db;
+        }
+
+        .calendar-form-input:focus {
+            border-color: #7c3aed !important;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15) !important;
+            background-color: #ffffff;
+        }
+
+        .btn-purple-primary {
+            background-color: #7c3aed !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 11px 26px;
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .btn-purple-primary:hover {
+            background-color: #6d28d9 !important;
+            box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+            transform: translateY(-1px);
+            color: #ffffff !important;
+        }
+
+        .btn-purple-cancel {
+            background-color: #f3f4f6;
+            color: #4b5563 !important;
+            font-weight: 500;
+            font-size: 14px;
+            padding: 11px 22px;
+            border-radius: 20px;
+            border: none;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-purple-cancel:hover {
+            background-color: #e5e7eb;
+            color: #111827 !important;
+        }
+
+        .btn-purple-add-notif {
+            background-color: #f5f3ff !important;
+            color: #7c3aed !important;
+            border: 1.5px dashed #ddd6fe !important;
+            font-weight: 600;
+            font-size: 13.5px;
+            border-radius: 20px;
+            padding: 8px 20px;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .btn-purple-add-notif:hover {
+            background-color: #ede9fe !important;
+            color: #6d28d9 !important;
+            border-color: #c4b5fd !important;
+        }
+
+        .notif-row-purple {
+            background-color: #fcfaff;
+            border: 1px solid #f3e8ff;
+            border-radius: 12px;
+            padding: 8px 12px;
+            transition: all 0.15s ease;
+        }
+
+        .notif-row-purple:hover {
+            border-color: #e9d5ff;
+            background-color: #f5f3ff;
+        }
+
+        .notif-select-purple {
+            border: 1px solid #e9d5ff;
+            border-radius: 8px;
+            background-color: #ffffff;
+            color: #4c1d95;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 4px 10px;
+            outline: none;
+        }
+
+        .notif-select-purple:focus {
+            border-color: #7c3aed;
+        }
+
+        .notif-input-purple {
+            border: 1px solid #e9d5ff;
+            border-radius: 8px;
+            background-color: #ffffff;
+            color: #4c1d95;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            padding: 4px 6px;
+            outline: none;
+            width: 54px;
+        }
+
+        .notif-input-purple:focus {
+            border-color: #7c3aed;
+        }

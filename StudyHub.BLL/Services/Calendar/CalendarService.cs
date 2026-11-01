@@ -87,7 +87,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
 
         if (endLocal <= startLocal)
         {
-            throw new ArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
+            throw new ArgumentException("Giờ không hợp lệ , Vui lòng đặt lại.");
         }
 
         if (startLocal < DateTime.Now.AddMinutes(-2))
@@ -186,7 +186,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
 
         if (endDateTime <= startDateTime)
         {
-            throw new ArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
+            throw new ArgumentException("Giờ không hợp lệ , Vui lòng đặt lại.");
         }
 
         if (startDateTime < DateTime.Now.AddMinutes(-2))
