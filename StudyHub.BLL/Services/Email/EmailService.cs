@@ -24,7 +24,7 @@ public class EmailService : IEmailService
             var port = int.Parse(_config["Smtp:Port"] ?? "587");
             var username = _config["Smtp:Username"];
             var password = _config["Smtp:Password"];
-            var fromEmail = _config["Smtp:FromEmail"] ?? username;
+            var fromEmail = _config["Smtp:FromEmail"] ?? username ?? "no-reply@studyhub.com";
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
