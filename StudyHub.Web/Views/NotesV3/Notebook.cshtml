@@ -1,201 +1,182 @@
 @model StudyHub.Web.ViewModels.NotesV3.NotesNotebookViewModel
-
 @{
-    ViewData["Title"] = Model.Details.Notebook.Title;
+    ViewData["Title"] = Model.Title;
+    ViewData["PageTitle"] = "Notebook";
+    ViewData["PageSubtitle"] = Model.Title;
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var isGroup = Model.Details.Notebook.GroupId.HasValue;
+    var selectedSection = Model.Sections.FirstOrDefault(section =>
+        section.Id == Model.SelectedSectionId);
 }
 
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/quill@@2.0.3/dist/quill.snow.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/notesv3/notes.css" asp-append-version="true" />
+}
 
-<link rel="stylesheet"
-      href="~/css/notesv3/notes.css"
-      asp-append-version="true" />
-
-<div class="notesv3"
-     data-notesv3
-     data-notesv3-notebook
-     data-app-root="@Url.Content("~/")"
-     data-notebook-id="@Model.Details.Notebook.Id"
-     data-is-group="@(isGroup ? "true" : "false")">
-
-    @Html.AntiForgeryToken()
-
-    <header class="notesv3-header">
-        <a asp-controller="NotesV3" asp-action="Index">
-            ← Thư viện
+<div class="notesv3 notesv3-notebook container-fluid py-4">
+    <header class="notesv3-page-header mb-3">
+        <a class="btn-secondary-sh notesv3-back-button"
+           asp-controller="NotesV3" asp-action="Index">
+            <i class="bi bi-arrow-left"></i> Quay lại Thư viện
         </a>
-
-        <h1>@Model.Details.Notebook.Title</h1>
-
-        <p>@(isGroup ? "Notebook thuộc nhóm" : "Notebook cá nhân")</p>
+        <div class="d-flex align-items-center gap-3 mt-2">
+            <span class="notesv3-notebook-icon"><i class="bi bi-journal-bookmark-fill"></i></span>
+            <div>
+                <h1 class="h4 mb-1">@Model.Title</h1>
+                <p class="text-muted small mb-0">@Model.Sections.Count section · @Model.Sections.Sum(section => section.Pages.Count) trang</p>
+            </div>
+        </div>
     </header>
 
-    <div class="notesv3-button-row">
-        <button class="btn btn-outline-secondary"
-                type="button"
-                data-command="save">
-            Lưu
-        </button>
+    @if (TempData["Success"] is string success)
+    {
+        <div class="alert alert-success" role="status">@success</div>
+    }
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
 
-        <button class="btn btn-outline-secondary"
-                type="button"
-                data-command="copy-draft">
-            Sao chép bản nháp
-        </button>
-
-        <button class="btn btn-outline-secondary"
-                type="button"
-                data-command="reconnect">
-            Kết nối lại
-        </button>
-
-        @if (!isGroup && Model.Groups.Count > 0)
-        {
-            <select class="form-select notesv3-group-picker"
-                    data-copy-group
-                    aria-label="Nhóm nhận notebook">
-                <option value="">Chọn nhóm nhận</option>
-
-                @foreach (var group in Model.Groups)
+    <div class="notesv3-notebook-shell">
+        <aside class="notesv3-notebook-sections" aria-label="Sections">
+            <h2 class="notesv3-rail-heading">SECTIONS</h2>
+            <nav>
+                @foreach (var section in Model.Sections)
                 {
-                    <option value="@group.GroupId">@group.Name</option>
+                    <a class="notesv3-section-tab @(section.Id == Model.SelectedSectionId ? "active" : "")"
+                       asp-controller="Notebooks" asp-action="Notebook"
+                       asp-route-id="@Model.Id" asp-route-sectionId="@(section.Id)">
+                        <i class="bi bi-bookmark"></i><span>@(section.Title)</span>
+                    </a>
                 }
-            </select>
-
-            <button class="btn btn-outline-primary"
-                    type="button"
-                    data-command="copy-notebook">
-                Chép vào nhóm
-            </button>
-        }
-    </div>
-
-    <p class="notesv3-status"
-       data-status
-       role="status"
-       aria-live="polite"></p>
-
-    <div class="notesv3-notebook-grid">
-        <aside class="notesv3-card notesv3-notebook-rail">
-            <h2>Notebook</h2>
-
-            @foreach (var notebook in Model.Notebooks)
+            </nav>
+            <form asp-controller="Notebooks" asp-action="CreateSection" method="post"
+                  class="notesv3-rail-create">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="notebookId" value="@Model.Id" />
+                <label for="section-title" class="form-label small fw-semibold">Section mới</label>
+                <input class="form-control form-control-sm" id="section-title" name="title"
+                       maxlength="200" placeholder="Tên section" required />
+                <button class="btn btn-outline-primary btn-sm w-100 mt-2" type="submit">
+                    <i class="bi bi-plus-lg"></i> Thêm section
+                </button>
+            </form>
+            @if (selectedSection is not null)
             {
-                <a class="notesv3-notebook-link @(notebook.Id == Model.Details.Notebook.Id ? "active" : "")"
-                   asp-controller="NotesV3"
-                   asp-action="Notebook"
-                   asp-route-id="@notebook.Id">
-                    @notebook.Title
-                </a>
+                <details class="notesv3-rail-settings">
+                    <summary>Quản lý section</summary>
+                    <form asp-controller="Notebooks" asp-action="RenameSection" method="post" class="mt-2">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="notebookId" value="@Model.Id" />
+                        <input type="hidden" name="sectionId" value="@selectedSection.Id" />
+                        <input class="form-control form-control-sm" name="title"
+                               value="@selectedSection.Title" maxlength="200" required
+                               aria-label="Tên section mới" />
+                        <button class="btn btn-outline-primary btn-sm mt-2" type="submit">Đổi tên</button>
+                    </form>
+                    <form asp-controller="Notebooks" asp-action="DeleteSection" method="post" class="mt-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="notebookId" value="@Model.Id" />
+                        <input type="hidden" name="sectionId" value="@selectedSection.Id" />
+                        <button class="btn btn-outline-danger btn-sm" type="submit">Xóa section</button>
+                    </form>
+                </details>
             }
         </aside>
 
-        <aside class="notesv3-card notesv3-page-rail">
-            <h2>Sections &amp; Pages</h2>
-
-            <label for="notesv3-section">Section</label>
-            <select id="notesv3-section"
-                    class="form-select"
-                    data-section></select>
-
-            <div class="notesv3-button-row">
-                <button class="btn btn-sm btn-outline-primary"
-                        type="button"
-                        data-command="create-section">Thêm section</button>
-
-                <button class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-command="rename-section">Đổi tên</button>
-
-                <button class="btn btn-sm btn-outline-danger"
-                        type="button"
-                        data-command="delete-section">Xóa</button>
-
-                <button class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-command="section-up">↑</button>
-
-                <button class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-command="section-down">↓</button>
+        <aside class="notesv3-notebook-pages" aria-label="Các trang">
+            <div class="notesv3-pages-heading">
+                <h2 class="h6 mb-0">@(selectedSection?.Title ?? "Trang ghi chú")</h2>
+                <span class="small text-muted">@(selectedSection?.Pages.Count ?? 0) trang</span>
             </div>
-
-            <hr />
-
-            <button class="btn btn-sm btn-primary"
-                    type="button"
-                    data-command="create-page">
-                Thêm trang
-            </button>
-
-            <div class="notesv3-page-list" data-page-list></div>
-
-            @if (!isGroup)
+            @if (selectedSection is null)
             {
-                <hr />
-
-                <button class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-command="load-trash">
-                    Thùng rác
-                </button>
-
-                <div data-trash-panel hidden>
-                    <select class="form-select"
-                            data-trash
-                            aria-label="Trang đã xóa"></select>
-
-                    <button class="btn btn-sm btn-outline-primary"
-                            type="button"
-                            data-command="restore-page">
-                        Khôi phục
+                <p class="text-muted small p-3">Tạo section đầu tiên để bắt đầu ghi chú.</p>
+            }
+            else
+            {
+                <nav class="notesv3-pages-list">
+                    @foreach (var page in selectedSection.Pages)
+                    {
+                        <a class="notesv3-page-tab @(Model.CurrentPage?.Id == page.Id ? "active" : "")"
+                           asp-controller="Notebooks" asp-action="Notebook"
+                           asp-route-id="@Model.Id" asp-route-pageId="@(page.Id)">
+                            <i class="bi bi-file-text"></i><span>@(page.Title)</span>
+                        </a>
+                    }
+                </nav>
+                @if (selectedSection.Pages.Count == 0)
+                {
+                    <p class="text-muted small px-3">Section này chưa có trang.</p>
+                }
+                <form asp-controller="Pages" asp-action="CreatePage" method="post"
+                      class="notesv3-rail-create">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="notebookId" value="@Model.Id" />
+                    <input type="hidden" name="sectionId" value="@selectedSection.Id" />
+                    <label for="new-page" class="form-label small fw-semibold">Trang mới</label>
+                    <input class="form-control form-control-sm" id="new-page" name="title"
+                           maxlength="200" placeholder="Tên trang" required />
+                    <button class="btn btn-outline-primary btn-sm w-100 mt-2" type="submit">
+                        <i class="bi bi-plus-lg"></i> Thêm trang
                     </button>
+                </form>
+            }
+        </aside>
+
+        <main class="notesv3-notebook-editor">
+            @if (Model.CurrentPage is null)
+            {
+                <div class="notesv3-notebook-empty">
+                    <i class="bi bi-journal-text"></i>
+                    <h2 class="h5 mt-3">Chưa có trang nào được chọn</h2>
+                    <p class="text-muted">Chọn hoặc tạo một trang ở cột bên trái để viết ghi chú.</p>
                 </div>
             }
-        </aside>
-
-        <main class="notesv3-card notesv3-editor-panel">
-            <h2 data-page-title>Chọn hoặc tạo một trang</h2>
-
-            <div class="notesv3-button-row">
-                <button class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-command="rename-page">Đổi tên</button>
-
-                <button class="btn btn-sm btn-outline-danger"
-                        type="button"
-                        data-command="delete-page">Xóa trang</button>
-
-                <button class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-command="page-up">↑</button>
-
-                <button class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-command="page-down">↓</button>
-            </div>
-
-            <div class="notesv3-button-row">
-                <select class="form-select"
-                        data-move-section
-                        aria-label="Section đích"></select>
-
-                <button class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-command="move-page">
-                    Chuyển section
-                </button>
-            </div>
-
-            <div class="notesv3-quill" data-editor></div>
+            else
+            {
+                <header class="notesv3-editor-heading">
+                    <div>
+                        <span class="notesv3-editor-eyebrow">@selectedSection?.Title</span>
+                        <h2 class="h4 mb-0">@Model.CurrentPage.Title</h2>
+                    </div>
+                    <details class="notesv3-page-actions">
+                        <summary class="btn btn-outline-secondary btn-sm">⋯ Tùy chọn</summary>
+                        <form asp-controller="Pages" asp-action="RenamePage" method="post" class="mt-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="notebookId" value="@Model.Id" />
+                            <input type="hidden" name="pageId" value="@Model.CurrentPage.Id" />
+                            <input type="hidden" name="versionToken" value="@Model.CurrentPage.VersionToken" />
+                            <label class="form-label small" for="rename-page">Đổi tên trang</label>
+                            <input class="form-control form-control-sm" id="rename-page" name="title"
+                                   value="@Model.CurrentPage.Title" maxlength="200" required />
+                            <button class="btn btn-outline-primary btn-sm mt-2" type="submit">Lưu tên</button>
+                        </form>
+                        <form asp-controller="Pages" asp-action="DeletePage" method="post" class="mt-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="notebookId" value="@Model.Id" />
+                            <input type="hidden" name="pageId" value="@Model.CurrentPage.Id" />
+                            <input type="hidden" name="versionToken" value="@Model.CurrentPage.VersionToken" />
+                            <button class="btn btn-outline-danger btn-sm" type="submit">Xóa trang</button>
+                        </form>
+                    </details>
+                </header>
+                <form asp-controller="Pages" asp-action="SavePage" method="post"
+                      class="notesv3-editor-form">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="notebookId" value="@Model.Id" />
+                    <input type="hidden" name="pageId" value="@Model.CurrentPage.Id" />
+                    <input type="hidden" name="versionToken" value="@Model.CurrentPage.VersionToken" />
+                    <label class="visually-hidden" for="page-text">Nội dung ghi chú</label>
+                    <textarea id="page-text" name="text" class="notesv3-editor-paper"
+                              placeholder="Bắt đầu viết ghi chú ở đây…">@Model.CurrentPage.Text</textarea>
+                    <div class="notesv3-editor-footer">
+                        <span class="text-muted small">Ghi chú được lưu khi bạn bấm nút bên phải.</span>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-cloud-check"></i> Lưu ghi chú
+                        </button>
+                    </div>
+                </form>
+            }
         </main>
     </div>
 </div>
-
-@section Scripts {
-    <script type="module"
-            src="~/js/notesv3/note-editor.js"
-            asp-append-version="true"></script>
-}

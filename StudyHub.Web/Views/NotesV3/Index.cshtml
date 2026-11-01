@@ -2,242 +2,185 @@
 
 @{
     ViewData["Title"] = "Ghi chú & PDF";
+    ViewData["PageTitle"] = "Ghi chú & PDF";
+    ViewData["PageSubtitle"] = "Không gian học tập của riêng bạn";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 @section Styles {
-    <link rel="stylesheet"
-          href="~/css/notesv3/notes.css"
-          asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notesv3/notes.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notesv3/index.css" asp-append-version="true" />
 }
 
-<div class="notesv3"
-     data-notesv3
-     data-notesv3-library
-     data-app-root="@Url.Content("~/")">
-
-    @Html.AntiForgeryToken()
-
-    <header class="notesv3-header">
-        <div>
-            <h1>Ghi chú &amp; PDF</h1>
-            <p>Notebook cá nhân, tài liệu và ghi chú theo trang.</p>
+<main class="notesv3 notesv3-library container-fluid">
+    <header class="notesv3-library-hero">
+        <div class="notesv3-library-hero-copy">
+            <span class="notesv3-library-eyebrow"><i class="bi bi-stars"></i> THƯ VIỆN CỦA BẠN</span>
+            <h1>Học tập liền mạch,<br /><span>mọi thứ trong tầm tay.</span></h1>
+            <p>Tổ chức notebook, đọc tài liệu PDF và chia sẻ kiến thức cùng nhóm học ở một nơi.</p>
+            <div class="notesv3-library-hero-actions">
+                <button class="btn is-primary" type="button" data-bs-toggle="modal" data-bs-target="#createNotebookModal">
+                    <i class="bi bi-plus-lg"></i> Tạo notebook
+                </button>
+                <button class="btn is-secondary" type="button" data-bs-toggle="modal" data-bs-target="#uploadPdfModal">
+                    <i class="bi bi-cloud-arrow-up"></i> Tải PDF lên
+                </button>
+            </div>
+        </div>
+        <div class="notesv3-library-hero-panel" aria-label="Tổng quan thư viện">
+            <div class="notesv3-library-panel-top"><span>Thư viện học tập</span><i class="bi bi-grid-1x2-fill"></i></div>
+            <div class="notesv3-library-panel-total"><strong>@(Model.NotebookCount + Model.PdfCount)</strong><span>tài nguyên cá nhân</span></div>
+            <div class="notesv3-library-panel-line"><span></span></div>
+            <div class="notesv3-library-panel-meta">
+                <span><i class="bi bi-journal-text"></i> @Model.NotebookCount notebook</span>
+                <span><i class="bi bi-file-earmark-pdf"></i> @Model.PdfCount PDF</span>
+            </div>
         </div>
     </header>
 
-    <div class="notesv3-counters">
-        <div class="notesv3-card">
-            <strong>@Model.Dashboard.PersonalNotebookCount</strong>
-            <span>Notebook cá nhân</span>
-        </div>
+    @if (TempData["Success"] is string success)
+    {
+        <div class="alert alert-success notesv3-library-alert" role="status"><i class="bi bi-check-circle-fill"></i> @success</div>
+    }
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger notesv3-library-alert" role="alert"><i class="bi bi-exclamation-circle-fill"></i> @error</div>
+    }
 
-        <div class="notesv3-card">
-            <strong>@Model.Dashboard.PersonalPdfCount</strong>
-            <span>PDF đang hoạt động</span>
-        </div>
-
-        <div class="notesv3-card">
-            <strong>@Model.Dashboard.SharedResourceCount</strong>
-            <span>Tài nguyên nhóm có thể truy cập</span>
-        </div>
-    </div>
-
-    <p class="notesv3-status"
-       data-status
-       role="status"
-       aria-live="polite"></p>
-
-    <div class="notesv3-actions-grid">
-        <form class="notesv3-card" data-create-notebook>
-            <h2>Tạo notebook</h2>
-
-            <label for="notesv3-notebook-title">Tên notebook</label>
-            <input id="notesv3-notebook-title"
-                   class="form-control"
-                   name="title"
-                   maxlength="200"
-                   required
-                   placeholder="Ví dụ: Hệ điều hành" />
-
-            <button class="btn btn-primary" type="submit">
-                Tạo notebook
-            </button>
-        </form>
-
-        <form class="notesv3-card" data-upload-pdf>
-            <h2>Tải PDF</h2>
-
-            <label for="notesv3-pdf-title">Tên hiển thị</label>
-            <input id="notesv3-pdf-title"
-                   class="form-control"
-                   name="Title"
-                   maxlength="200"
-                   placeholder="Để trống để dùng tên file" />
-
-            <label for="notesv3-pdf-file">File PDF, tối đa 25 MiB</label>
-            <input id="notesv3-pdf-file"
-                   class="form-control"
-                   name="File"
-                   type="file"
-                   accept=".pdf,application/pdf"
-                   required />
-
-            <button class="btn btn-primary" type="submit">
-                Tải lên
-            </button>
-        </form>
-    </div>
-
-    <section class="notesv3-section">
-        <div class="notesv3-section-heading">
-            <h2>Notebook cá nhân</h2>
-            <span>@Model.Notebooks.Count notebook</span>
-        </div>
-
-        @if (Model.Notebooks.Count == 0)
-        {
-            <p class="notesv3-empty">
-                Chưa có notebook. Tạo notebook đầu tiên ở phía trên.
-            </p>
-        }
-        else
-        {
-            <div class="notesv3-resource-grid">
-                @foreach (var notebook in Model.Notebooks)
-                {
-                    <article class="notesv3-card"
-                             data-notebook-id="@notebook.Id">
-
-                        <h3 data-resource-title>@notebook.Title</h3>
-
-                        <div class="notesv3-button-row">
-                            <a class="btn btn-primary"
-                               asp-controller="NotesV3"
-                               asp-action="Notebook"
-                               asp-route-id="@notebook.Id">
-                                Mở
-                            </a>
-
-                            <button class="btn btn-outline-secondary"
-                                    type="button"
-                                    data-action="rename-notebook">
-                                Đổi tên
-                            </button>
-
-                            <button class="btn btn-outline-danger"
-                                    type="button"
-                                    data-action="delete-notebook">
-                                Xóa
-                            </button>
-                        </div>
-                    </article>
-                }
-            </div>
-        }
+    <section class="notesv3-library-overview" aria-label="Tổng quan thư viện">
+        <article class="notesv3-library-stat is-notebook"><span class="stat-icon"><i class="bi bi-journal-bookmark-fill"></i></span><div><strong>@Model.NotebookCount</strong><small>Notebook cá nhân</small></div></article>
+        <article class="notesv3-library-stat is-pdf"><span class="stat-icon"><i class="bi bi-file-earmark-pdf-fill"></i></span><div><strong>@Model.PdfCount</strong><small>Tài liệu PDF</small></div></article>
+        <article class="notesv3-library-stat is-group"><span class="stat-icon"><i class="bi bi-people-fill"></i></span><div><strong>@Model.SharedCount</strong><small>Tài nguyên được chia sẻ</small></div></article>
+        <a class="notesv3-library-trash-card" asp-controller="NotesV3" asp-action="Trash"><span><i class="bi bi-trash3"></i></span><div><strong>Thùng rác</strong><small>Khôi phục nội dung đã xóa</small></div><i class="bi bi-chevron-right"></i></a>
     </section>
 
-    <section class="notesv3-section">
-        <div class="notesv3-section-heading">
-            <h2>PDF cá nhân</h2>
-            <span>@Model.Pdfs.Count tài liệu, gồm cả đã lưu trữ</span>
-        </div>
+    @if (Model.Groups.Count > 0)
+    {
+        <nav class="notesv3-library-groups" aria-label="Chọn nhóm học">
+            <span class="groups-label"><i class="bi bi-people-fill"></i> Không gian nhóm</span>
+            <a class="notesv3-library-group-pill @(Model.SelectedGroup is null ? "is-active" : "")" asp-action="Index">Cá nhân</a>
+            @foreach (var group in Model.Groups)
+            {
+                <a class="notesv3-library-group-pill @(Model.SelectedGroup?.Id == group.Id ? "is-active" : "")"
+                   asp-action="Index" asp-route-groupId="@group.Id">@group.Name</a>
+            }
+        </nav>
+    }
 
-        @if (Model.Groups.Count > 0)
-        {
-            <div class="notesv3-share-target">
-                <label for="notesv3-share-group">
-                    Nhóm nhận khi chọn “Chia sẻ”
-                </label>
-
-                <select id="notesv3-share-group"
-                        class="form-select"
-                        data-share-group>
-                    <option value="">Chọn nhóm</option>
-
-                    @foreach (var group in Model.Groups)
+    @if (Model.SelectedGroup is not null)
+    {
+        <section class="notesv3-library-group-section" aria-labelledby="group-resources-heading">
+            <div class="notesv3-library-heading">
+                <div><span class="notesv3-library-kicker"><i class="bi bi-people"></i> THƯ VIỆN CHUNG</span><h2 id="group-resources-heading">@Model.SelectedGroup.Name</h2><p>Notebook và tài liệu đang được chia sẻ trong nhóm.</p></div>
+                <div class="notesv3-library-heading-actions">
+                    <button type="button" data-bs-toggle="modal" data-bs-target="#createGroupNotebookModal"><i class="bi bi-plus-lg"></i> Tạo notebook</button>
+                    <a asp-controller="StudyGroups" asp-action="Details" asp-route-groupId="@Model.SelectedGroup.Id">Về trang nhóm <i class="bi bi-arrow-up-right"></i></a>
+                </div>
+            </div>
+            @if (Model.GroupNotebooks.Count == 0 && Model.GroupPdfs.Count == 0)
+            {
+                <div class="notesv3-library-empty"><span><i class="bi bi-collection"></i></span><div><strong>Thư viện nhóm đang trống</strong><p>Tạo notebook đầu tiên để bắt đầu cộng tác.</p></div></div>
+            }
+            else
+            {
+                <div class="notesv3-library-grid">
+                    @foreach (var notebook in Model.GroupNotebooks)
                     {
-                        <option value="@group.GroupId">@group.Name</option>
+                        <article class="notesv3-library-card is-notebook">
+                            <div class="notesv3-library-cover"><i class="bi bi-journal-bookmark-fill"></i><span>NOTE</span></div>
+                            <div class="notesv3-library-card-body"><span class="notesv3-library-type"><i class="bi bi-people-fill"></i> NOTEBOOK NHÓM</span><h3>@notebook.Title</h3><p>Không gian ghi chú chung</p><a asp-controller="Notebooks" asp-action="Notebook" asp-route-id="@notebook.Id">Mở notebook <i class="bi bi-arrow-right"></i></a></div>
+                        </article>
                     }
-                </select>
+                    @foreach (var pdf in Model.GroupPdfs)
+                    {
+                        <article class="notesv3-library-card is-pdf">
+                            <div class="notesv3-library-cover"><i class="bi bi-file-earmark-pdf-fill"></i><span>PDF</span></div>
+                            <div class="notesv3-library-card-body"><span class="notesv3-library-type"><i class="bi bi-people-fill"></i> PDF NHÓM</span><h3>@pdf.Title</h3><p title="@pdf.FileName">@pdf.FileName · @pdf.PageCount trang</p><a asp-controller="Pdfs" asp-action="Reader" asp-route-id="@pdf.Id" asp-route-shareId="@pdf.ShareId">Mở tài liệu <i class="bi bi-arrow-right"></i></a></div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    }
+
+    <div class="notesv3-library-sections">
+        <section aria-labelledby="notebooks-heading">
+            <div class="notesv3-library-heading">
+                <div><span class="notesv3-library-kicker">BỘ SƯU TẬP CÁ NHÂN</span><h2 id="notebooks-heading">Notebook của tôi <span class="notesv3-library-count">@Model.Notebooks.Count</span></h2><p>Ghi lại ý tưởng và sắp xếp kiến thức theo cách của bạn.</p></div>
+                <button class="notesv3-library-add-button" type="button" data-bs-toggle="modal" data-bs-target="#createNotebookModal"><i class="bi bi-plus-lg"></i> Notebook mới</button>
             </div>
-        }
+            @if (Model.Notebooks.Count == 0)
+            {
+                <div class="notesv3-library-empty"><span><i class="bi bi-journal-plus"></i></span><div><strong>Chưa có notebook nào</strong><p>Tạo một cuốn để bắt đầu ghi chú bài học.</p></div><button type="button" data-bs-toggle="modal" data-bs-target="#createNotebookModal">Tạo notebook</button></div>
+            }
+            else
+            {
+                <div class="notesv3-library-grid">
+                    @foreach (var notebook in Model.Notebooks)
+                    {
+                        <article class="notesv3-library-card is-notebook">
+                            <div class="notesv3-library-cover"><i class="bi bi-journal-bookmark-fill"></i><span>NOTE</span></div>
+                            <div class="notesv3-library-card-body">
+                                <span class="notesv3-library-type">NOTEBOOK</span><h3>@notebook.Title</h3><p>Ghi chú cá nhân</p>
+                                <div class="notesv3-library-card-actions"><a asp-controller="Notebooks" asp-action="Notebook" asp-route-id="@notebook.Id">Mở notebook <i class="bi bi-arrow-right"></i></a><button type="button" data-bs-toggle="modal" data-bs-target="#manageNotebook-@notebook.Id" aria-label="Quản lý notebook @notebook.Title"><i class="bi bi-three-dots"></i></button></div>
+                            </div>
+                        </article>
+                        <partial name="_NotebookManageModal" model="notebook" />
+                    }
+                </div>
+            }
+        </section>
 
-        @if (Model.Pdfs.Count == 0)
-        {
-            <p class="notesv3-empty">
-                Chưa có PDF. Chọn file và tải lên ở phía trên.
-            </p>
-        }
-        else
-        {
-            <div class="notesv3-resource-grid">
-                @foreach (var pdf in Model.Pdfs)
-                {
-                    <article class="notesv3-card"
-                             data-pdf-id="@pdf.DocumentId"
-                             data-version-token="@pdf.VersionToken">
-
-                        <h3 data-resource-title>@pdf.Title</h3>
-
-                        <p class="notesv3-file-name">@pdf.FileName</p>
-
-                        <p class="notesv3-meta">
-                            @((pdf.SizeBytes / 1024d / 1024d).ToString("0.0")) MiB
-                            @if (pdf.PageCount is int pageCount)
-                            {
-                                <span> · @pageCount trang</span>
-                            }
-                        </p>
-
-                        @if (pdf.IsArchived)
-                        {
-                            <span class="badge text-bg-secondary">
-                                Đã lưu trữ
-                            </span>
-                        }
-
-                        <div class="notesv3-button-row">
-                            <a class="btn btn-primary"
-                               asp-controller="NotesV3"
-                               asp-action="Reader"
-                               asp-route-id="@pdf.DocumentId">
-                                Mở
-                            </a>
-
-                            @if (!pdf.IsArchived)
-                            {
-                                <button class="btn btn-outline-secondary"
-                                        type="button"
-                                        data-action="rename-pdf">
-                                    Đổi tên
-                                </button>
-
-                                @if (Model.Groups.Count > 0)
-                                {
-                                    <button class="btn btn-outline-primary"
-                                            type="button"
-                                            data-action="share-pdf">
-                                        Chia sẻ
-                                    </button>
-                                }
-                            }
-
-                            <button class="btn btn-outline-secondary"
-                                    type="button"
-                                    data-action="archive-pdf"
-                                    data-archived="@(pdf.IsArchived ? "true" : "false")">
-                                @(pdf.IsArchived ? "Bỏ lưu trữ" : "Lưu trữ")
-                            </button>
-                        </div>
-                    </article>
-                }
+        <section aria-labelledby="pdfs-heading">
+            <div class="notesv3-library-heading">
+                <div><span class="notesv3-library-kicker">TỦ TÀI LIỆU</span><h2 id="pdfs-heading">PDF của tôi <span class="notesv3-library-count">@Model.Pdfs.Count</span></h2><p>Đọc, đánh dấu và ghi chú ngay trên tài liệu.</p></div>
+                <button class="notesv3-library-add-button" type="button" data-bs-toggle="modal" data-bs-target="#uploadPdfModal"><i class="bi bi-cloud-arrow-up"></i> Tải PDF lên</button>
             </div>
-        }
-    </section>
+            @if (Model.Pdfs.Count == 0)
+            {
+                <div class="notesv3-library-empty"><span><i class="bi bi-file-earmark-arrow-up"></i></span><div><strong>Chưa có tài liệu PDF</strong><p>Tải tài liệu lên để đọc và ghi chú tập trung hơn.</p></div><button type="button" data-bs-toggle="modal" data-bs-target="#uploadPdfModal">Tải PDF lên</button></div>
+            }
+            else
+            {
+                <div class="notesv3-library-grid">
+                    @foreach (var pdf in Model.Pdfs)
+                    {
+                        <article class="notesv3-library-card is-pdf @(pdf.IsArchived ? "is-archived" : "")">
+                            <div class="notesv3-library-cover"><i class="bi bi-file-earmark-pdf-fill"></i><span>PDF</span></div>
+                            <div class="notesv3-library-card-body">
+                                <span class="notesv3-library-type">PDF · @pdf.PageCount TRANG</span><h3>@pdf.Title</h3><p title="@pdf.FileName">@pdf.FileName</p>
+                                @if (pdf.IsArchived) { <span class="notesv3-library-archived"><i class="bi bi-archive"></i> Đã lưu trữ</span> }
+                                <div class="notesv3-library-card-actions"><a asp-controller="Pdfs" asp-action="Reader" asp-route-id="@pdf.Id">Mở tài liệu <i class="bi bi-arrow-right"></i></a><button type="button" data-bs-toggle="modal" data-bs-target="#managePdf-@pdf.Id" aria-label="Quản lý PDF @pdf.Title"><i class="bi bi-three-dots"></i></button></div>
+                            </div>
+                        </article>
+                        <partial name="_PdfManageModal" model="pdf" view-data='new ViewDataDictionary(ViewData) { ["Groups"] = Model.Groups }' />
+                    }
+                </div>
+            }
+        </section>
+    </div>
+</main>
+
+<div class="modal fade notesv3-library-modal" id="createNotebookModal" tabindex="-1" aria-labelledby="createNotebookTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><div><span class="modal-icon is-notebook"><i class="bi bi-journal-plus"></i></span><h2 class="modal-title h5" id="createNotebookTitle">Tạo notebook mới</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+        <form asp-controller="Notebooks" asp-action="CreateNotebook" method="post">@Html.AntiForgeryToken()<div class="modal-body"><p>Đặt một cái tên dễ nhớ cho cuốn ghi chú của bạn.</p><label class="form-label" for="notebook-title">Tên notebook</label><input class="form-control" id="notebook-title" name="title" maxlength="200" required placeholder="Ví dụ: Lập trình C#" /></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button><button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i> Tạo notebook</button></div></form>
+    </div></div>
 </div>
 
-@section Scripts {
-    <script type="module"
-            src="~/js/notesv3/notes-ui.js"
-            asp-append-version="true"></script>
+<div class="modal fade notesv3-library-modal" id="uploadPdfModal" tabindex="-1" aria-labelledby="uploadPdfTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><div><span class="modal-icon is-pdf"><i class="bi bi-file-earmark-arrow-up"></i></span><h2 class="modal-title h5" id="uploadPdfTitle">Tải PDF lên</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+        <form asp-controller="Pdfs" asp-action="UploadPdf" method="post" enctype="multipart/form-data">@Html.AntiForgeryToken()<div class="modal-body"><p>Thêm tài liệu để đọc, đánh dấu và ghi chú trong thư viện.</p><label class="form-label" for="pdf-title">Tên hiển thị</label><input class="form-control mb-3" id="pdf-title" name="title" maxlength="200" placeholder="Để trống để dùng tên file" /><label class="form-label" for="pdf-file">File PDF · tối đa 25 MiB</label><input class="form-control" id="pdf-file" name="file" type="file" accept=".pdf,application/pdf" required /></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button><button class="btn btn-primary" type="submit"><i class="bi bi-cloud-arrow-up"></i> Tải lên</button></div></form>
+    </div></div>
+</div>
+
+@if (Model.SelectedGroup is not null)
+{
+    <div class="modal fade notesv3-library-modal" id="createGroupNotebookModal" tabindex="-1" aria-labelledby="createGroupNotebookTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+            <div class="modal-header"><div><span class="modal-icon is-group"><i class="bi bi-people"></i></span><h2 class="modal-title h5" id="createGroupNotebookTitle">Tạo notebook nhóm</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <form asp-controller="Notebooks" asp-action="CreateNotebook" method="post">@Html.AntiForgeryToken()<input type="hidden" name="groupId" value="@Model.SelectedGroup.Id" /><div class="modal-body"><p>Notebook này sẽ nằm trong nhóm <strong>@Model.SelectedGroup.Name</strong>.</p><label class="form-label" for="group-notebook-title">Tên notebook</label><input class="form-control" id="group-notebook-title" name="title" maxlength="200" required placeholder="Ví dụ: Bài tập nhóm" /></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button><button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i> Tạo notebook</button></div></form>
+        </div></div>
+    </div>
 }

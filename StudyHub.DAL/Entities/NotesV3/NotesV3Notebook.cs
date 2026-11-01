@@ -11,5 +11,6 @@ public sealed class NotesV3Notebook
     public string Title { get; set; } = string.Empty;
     public int SortOrder { get; set; }
     public bool IsDeleted { get; set; }
+    public DateTime? DeletedAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; }
 }
