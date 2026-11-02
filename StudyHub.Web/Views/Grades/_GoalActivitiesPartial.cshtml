@@ -1,0 +1,107 @@
+@model StudyHub.BLL.DTOs.GoalDto
+@using StudyHub.BLL.DTOs
+@{
+    var goal = Model;
+    var acts = goal.Activities ?? new List<GoalActivityDto>();
+    var completedCount = acts.Count(a => a.IsCompleted);
+    var totalCount = acts.Count;
+}
+
+<div class="goal-activities-box">
+  <!-- Activities Box Header -->
+  <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-list-task text-muted fs-5"></i>
+      <span class="fw-bold" style="font-size:13.5px; color:var(--sh-slate-900);">Hoạt động cần thực hiện</span>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-bold" style="font-size:12px; color:var(--sh-slate-900);" id="activity-progress-@goal.Id">
+        @completedCount/@totalCount hoàn thành
+      </span>
+      <button type="button" class="btn-icon-subtle p-0 text-muted" data-bs-toggle="collapse" data-bs-target="#activities-collapse-@goal.Id" title="Thu gọn">
+        <i class="bi bi-chevron-up"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- History achievement records if any -->
+  @if (goal.Histories != null && goal.Histories.Any()) {
+    <div class="mb-3">
+      <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#history-goal-@goal.Id" style="font-size:11.5px; color:var(--sh-indigo-600); font-weight:600;">
+        <i class="bi bi-clock-history me-1"></i>Lịch sử thành tích cũ (@goal.Histories.Count lần đạt)
+        <i class="bi bi-chevron-down ms-1" style="font-size:9px;"></i>
+      </button>
+      <div class="collapse mt-1" id="history-goal-@goal.Id">
+        <div class="p-2 rounded bg-light border" style="font-size:11px;">
+          @foreach (var hist in goal.Histories) {
+            <div class="d-flex justify-content-between py-1 border-bottom border-light">
+              <span>Mục tiêu <strong>@hist.TargetValue.ToString("0.0")</strong> — Đã đạt: <strong class="text-success">@hist.AchievedScore.ToString("0.0")</strong></span>
+              <span class="text-muted">@StudyHub.BLL.Constants.GradeClock.ToLocal(hist.AchievedAtUtc).ToString("dd/MM/yyyy HH:mm")</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Activities List -->
+  <div class="activities-list d-flex flex-column mb-3" id="activities-list-@goal.Id">
+    @if (acts.Any()) {
+      @foreach (var act in acts) {
+        <div class="activity-row d-flex align-items-center justify-content-between" id="activity-item-@act.Id">
+          <!-- Left: Clickable Icon + Title + Date -->
+          <div class="d-flex align-items-center gap-3 overflow-hidden me-2 flex-grow-1">
+            @if (act.IsCompleted) {
+              <i class="bi bi-check-circle-fill text-success fs-5 cursor-pointer flex-shrink-0"
+                 title="Nhấn để đổi trạng thái"
+                 onclick="toggleActivity(@act.Id, @goal.Id, this)"></i>
+              <div class="d-flex flex-column overflow-hidden text-truncate">
+                <span class="activity-title text-truncate fw-medium text-decoration-line-through text-muted" style="font-size:13px;" title="@act.Title">@act.Title</span>
+                <span class="text-muted" style="font-size:11px; margin-top:1px;">@act.StartAtLocal.ToString("dd/MM/yyyy HH:mm") – @(act.EndAtLocal.Date == act.StartAtLocal.Date ? act.EndAtLocal.ToString("HH:mm") : act.EndAtLocal.ToString("dd/MM/yyyy HH:mm"))</span>
+              </div>
+            } else {
+              <i class="bi bi-circle text-muted fs-5 cursor-pointer flex-shrink-0"
+                 title="Nhấn để đánh dấu hoàn thành"
+                 onclick="toggleActivity(@act.Id, @goal.Id, this)"></i>
+              <div class="d-flex flex-column overflow-hidden text-truncate">
+                <span class="activity-title text-truncate fw-medium" style="font-size:13px; color:var(--sh-slate-900);" title="@act.Title">@act.Title</span>
+                <span class="text-muted" style="font-size:11px; margin-top:1px;">@act.StartAtLocal.ToString("dd/MM/yyyy HH:mm") – @(act.EndAtLocal.Date == act.StartAtLocal.Date ? act.EndAtLocal.ToString("HH:mm") : act.EndAtLocal.ToString("dd/MM/yyyy HH:mm"))</span>
+              </div>
+            }
+          </div>
+
+          <!-- Right: Badge + Actions -->
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            @if (act.IsCompleted) {
+              <span class="badge activity-badge activity-badge-done">Đã xong</span>
+            } else {
+              <span class="badge activity-badge activity-badge-todo">To do</span>
+            }
+
+            <button type="button" class="btn-icon-subtle" title="Sửa hoạt động"
+                    data-title="@act.Title" data-description="@(act.Description ?? "")"
+                    data-start="@act.StartAtLocal.ToString("yyyy-MM-ddTHH:mm", System.Globalization.CultureInfo.InvariantCulture)"
+                    data-end="@act.EndAtLocal.ToString("yyyy-MM-ddTHH:mm", System.Globalization.CultureInfo.InvariantCulture)"
+                    onclick="openEditActivityModal(@act.Id, this.dataset.title, this.dataset.start, this.dataset.end, this.dataset.description)">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button type="button" class="btn-icon-subtle danger" title="Xóa hoạt động"
+                    onclick="deleteActivity(@act.Id)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      }
+    } else {
+      <div class="text-center py-3 text-muted" style="font-size:12.5px;">
+        Chưa có hoạt động học tập nào cho nấc mục tiêu này.
+      </div>
+    }
+  </div>
+
+  <!-- Add Activity Button -->
+  <button type="button" class="btn-add-activity-dashed" onclick="openAddActivityModal(@goal.Id)">
+    <i class="bi bi-plus-lg me-1"></i>Thêm hoạt động học tập
+  </button>
+</div>
+

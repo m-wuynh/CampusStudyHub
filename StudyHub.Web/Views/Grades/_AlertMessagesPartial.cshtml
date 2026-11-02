@@ -1,0 +1,9 @@
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="d-none js-tempdata-alert" data-type="error" data-message="@TempData["ErrorMessage"]"></div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="d-none js-tempdata-alert" data-type="success" data-message="@TempData["SuccessMessage"]"></div>
+}
+

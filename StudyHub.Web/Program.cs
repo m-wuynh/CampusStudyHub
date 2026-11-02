@@ -33,6 +33,10 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.AddService<StudyHub.Web.Filters.NotesV3ExceptionFilter>();
     options.Conventions.Add(
         new StudyHub.Web.Configuration.DisableLegacyNotesControllers());
+
+    // Grades & Goals: đọc số trong form theo InvariantCulture (không phụ thuộc culture server).
+    options.ModelBinderProviders.Insert(
+        0, new StudyHub.Web.Configuration.GradesDecimalModelBinderProvider());
 });
 
 builder.Services.AddHttpContextAccessor();
@@ -187,6 +191,11 @@ builder.Services.AddScoped<
 
 // Other application services
 builder.Services.AddScoped<
+    StudyHub.BLL.Services.Grades.GradeBookDeletionService>();
+builder.Services.AddScoped<
+    StudyHub.BLL.Services.Grades.GoalStatusSyncService>();
+
+builder.Services.AddScoped<
     StudyHub.BLL.Services.Grades.IGradeService,
     StudyHub.BLL.Services.Grades.GradeService>();
 
@@ -201,6 +210,9 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     StudyHub.BLL.Services.Calendar.ICalendarService,
     StudyHub.BLL.Services.Calendar.CalendarService>();
+builder.Services.AddScoped<
+    StudyHub.BLL.Services.Dashboard.IDashboardNotesService,
+    StudyHub.BLL.Services.Dashboard.DashboardNotesService>();
 
 builder.Services.AddTransient<
     StudyHub.BLL.Services.Email.IEmailService,

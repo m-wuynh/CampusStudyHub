@@ -1,0 +1,109 @@
+@model StudyHub.BLL.DTOs.GradesPageDto
+@using StudyHub.BLL.DTOs
+@{
+    var data = Model;
+    var selectedGradeBook = data.GradeBooks.FirstOrDefault(t => t.GradeBookId == data.SelectedGradeBookId);
+    var gradeBook = data.GradeBook;
+}
+
+<!-- ═══ GRADES TAB ═══ -->
+<div id="grades-tab">
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-3">
+    
+    @if (gradeBook != null) {
+      <!-- VIEW MODE HEADER -->
+      <div id="view-mode-header" class="mode-header" style="display: block;">
+        <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">
+          @gradeBook.Name
+        </h3>
+        <p class="mb-0" style="font-size:11px; color:var(--sh-slate-400);">@(selectedGradeBook?.Name ?? "")</p>
+      </div>
+      
+      <!-- SCORE MODE HEADER -->
+      <div id="score-mode-header" class="mode-header" style="display: none; width: 100%;">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">@gradeBook.Name <span class="badge bg-primary" style="font-size:10px; margin-left:4px;">Nhập điểm</span></h3>
+            <p class="mb-0" style="font-size:11px; color:var(--sh-slate-400);">@(selectedGradeBook?.Name ?? "")</p>
+          </div>
+          <button type="button" class="btn-secondary-sh" style="padding: 4px 12px; font-size:12px;" onclick="setUiMode('view')"><i class="bi bi-arrow-left"></i> Quay lại</button>
+        </div>
+      </div>
+
+      <!-- STRUCTURE MODE HEADER -->
+      <div id="structure-mode-header" class="mode-header" style="display: none; width: 100%;">
+        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-between">
+          <div class="d-flex align-items-center gap-2 m-0 flex-grow-1">
+            <input type="text" id="gradebook-name-input" class="sh-input fw-bold" style="font-size:15px; max-width: 300px; padding: 4px 8px;" value="@gradeBook.Name" required maxlength="200" onchange="updateGradeBookName(@gradeBook.GradeBookId, this.value)" />
+            <span id="gradebook-name-status" class="text-success" style="font-size:11px; display:none;"><i class="bi bi-check-circle"></i> Đã lưu</span>
+            <button type="button" class="btn-secondary-sh ms-2" style="padding: 6px 14px; font-size:12px; white-space: nowrap;" onclick="setUiMode('view')">
+              <i class="bi bi-arrow-left me-1"></i> Lưu và quay lại
+            </button>
+          </div>
+          <button type="button" class="btn-icon-sh danger fw-bold" style="padding: 6px 14px; width: auto; font-size:12px; border-radius: 6px; white-space: nowrap;" data-bs-toggle="modal" data-bs-target="#deleteGradeBookModal">
+              <i class="bi bi-trash3 me-1"></i> Xóa bảng điểm
+          </button>
+        </div>
+      </div>
+    } else {
+      <div id="view-mode-header" class="mode-header" style="display: block;">
+        <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">
+          Chưa có bảng điểm
+        </h3>
+        <p class="mb-0" style="font-size:11px; color:var(--sh-slate-400);">@(selectedGradeBook?.Name ?? "")</p>
+      </div>
+    }
+
+    <!-- VIEW MODE ACTIONS -->
+    <div class="d-flex gap-2 flex-wrap align-items-center mode-header" id="view-mode-actions" style="display: flex !important;">
+      <!-- GradeBook selector -->
+      <form method="get" asp-action="Index" class="d-flex m-0">
+        <select name="gradeBookId" class="sh-input" style="font-size:12px; width:auto; padding:6px 12px;" onchange="this.form.submit()">
+          @if(!data.GradeBooks.Any()) {
+            <option value="">Chưa có sổ điểm</option>
+          }
+          @foreach(var term in data.GradeBooks) {
+            if (term.GradeBookId == data.SelectedGradeBookId) {
+              <option value="@term.GradeBookId" selected>@term.Name</option>
+            } else {
+              <option value="@term.GradeBookId">@term.Name</option>
+            }
+          }
+        </select>
+      </form>
+      <button class="btn-secondary-sh" style="padding: 6px 12px;" data-bs-toggle="modal" data-bs-target="#wizardGradeBookModal" title="Thêm sổ điểm">
+        <i class="bi bi-calendar-plus"></i> Thêm sổ điểm
+      </button>
+
+      @if(data.SelectedGradeBookId.HasValue && gradeBook != null) {
+        <button class="btn-primary-sh" style="padding: 6px 12px;" onclick="openEnterGradesModal()">
+          <i class="bi bi-pencil-square"></i> Nhập điểm
+        </button>
+        <button class="btn-secondary-sh" style="padding: 6px 12px;" onclick="setUiMode('structure')">
+          <i class="bi bi-gear"></i> Chỉnh sửa bảng
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (data.SelectedGradeBookId.HasValue && gradeBook == null) {
+    <div class="sh-card text-center py-5">
+      <div style="font-size:48px; margin-bottom:12px;">📋</div>
+      <h4 class="fw-bold" style="font-size:14px; color:var(--sh-slate-700);">Chưa có dữ liệu cho sổ điểm này</h4>
+      <p class="text-muted" style="font-size:12px;">Tạo bảng điểm để bắt đầu theo dõi điểm số của bạn.</p>
+      <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#wizardGradeBookModal">
+        <i class="bi bi-journal-plus"></i> Tạo bảng điểm
+      </button>
+    </div>
+  } else if (data.SelectedGradeBookId.HasValue) {
+    <partial name="_GradeEntryTablePartial" model="Model" />
+  } else {
+    <div class="sh-card text-center py-5">
+      <p class="text-muted mb-3">Bạn chưa có sổ điểm nào. Hãy tạo sổ điểm năm học để bắt đầu.</p>
+      <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#wizardGradeBookModal">
+        <i class="bi bi-plus-lg"></i> Tạo sổ điểm
+      </button>
+    </div>
+  }
+</div>
+
