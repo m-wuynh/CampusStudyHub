@@ -1,0 +1,125 @@
+@model StudyHub.Web.ViewModels.NotesV3.NotesTrashViewModel
+
+@{
+    ViewData["Title"] = "Thùng rác ghi chú";
+    ViewData["PageTitle"] = "Thùng rác ghi chú";
+    ViewData["PageSubtitle"] = "Khôi phục tài liệu đã xóa";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/notesv3/notes.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notesv3/index.css" asp-append-version="true" />
+}
+
+<main class="notesv3 notesv3-library notesv3-trash container py-4">
+    <a class="btn-secondary-sh notesv3-trash-back" asp-controller="NotesV3" asp-action="Index">
+        <i class="bi bi-arrow-left"></i> Quay lại thư viện
+    </a>
+
+    <div class="notesv3-trash-heading">
+        <div class="notesv3-library-stat-icon is-pdf"><i class="bi bi-trash3"></i></div>
+        <div>
+            <span class="notesv3-library-kicker">THƯ VIỆN CỦA BẠN</span>
+            <h1>Thùng rác</h1>
+            <p>Bạn có 30 ngày kể từ lúc xóa để khôi phục notebook hoặc PDF.</p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] is string success)
+    {
+        <div class="alert alert-success" role="status">@success</div>
+    }
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
+
+    @if (Model.Notebooks.Count == 0 && Model.Pdfs.Count == 0)
+    {
+        <div class="notesv3-library-empty notesv3-trash-empty">
+            <i class="bi bi-check-circle"></i>
+            <p>Thùng rác đang trống.</p>
+        </div>
+    }
+    else
+    {
+        <section class="notesv3-trash-section" aria-labelledby="trash-notebooks-heading">
+            <div class="notesv3-library-heading">
+                <div><span class="notesv3-library-kicker">ĐÃ XÓA</span><h2 id="trash-notebooks-heading">Notebook <span>@Model.Notebooks.Count</span></h2></div>
+            </div>
+            @if (Model.Notebooks.Count == 0)
+            {
+                <p class="notesv3-trash-none">Không có notebook đã xóa.</p>
+            }
+            else
+            {
+                <div class="notesv3-library-grid">
+                    @foreach (var notebook in Model.Notebooks)
+                    {
+                        <article class="notesv3-library-card">
+                            <div class="notesv3-library-cover is-notebook"><i class="bi bi-journal-bookmark-fill"></i></div>
+                            <div class="notesv3-library-card-body">
+                                <span class="notesv3-library-type">NOTEBOOK ĐÃ XÓA</span>
+                                <h3>@notebook.Title</h3>
+                                @if (notebook.DaysLeft > 0)
+                                {
+                                    <p class="notesv3-trash-days">Còn @notebook.DaysLeft ngày để khôi phục</p>
+                                    <form asp-controller="Notebooks" asp-action="RestoreNotebook" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@notebook.Id" />
+                                        <button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Khôi phục</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <p class="notesv3-trash-days is-expired">Đã hết hạn khôi phục</p>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="notesv3-trash-section" aria-labelledby="trash-pdfs-heading">
+            <div class="notesv3-library-heading">
+                <div><span class="notesv3-library-kicker">ĐÃ XÓA</span><h2 id="trash-pdfs-heading">PDF <span>@Model.Pdfs.Count</span></h2></div>
+            </div>
+            @if (Model.Pdfs.Count == 0)
+            {
+                <p class="notesv3-trash-none">Không có PDF đã xóa.</p>
+            }
+            else
+            {
+                <div class="notesv3-library-grid">
+                    @foreach (var pdf in Model.Pdfs)
+                    {
+                        <article class="notesv3-library-card">
+                            <div class="notesv3-library-cover is-pdf"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+                            <div class="notesv3-library-card-body">
+                                <span class="notesv3-library-type">PDF ĐÃ XÓA</span>
+                                <h3>@pdf.Title</h3>
+                                <p>@pdf.FileName</p>
+                                @if (pdf.DaysLeft > 0)
+                                {
+                                    <p class="notesv3-trash-days">Còn @pdf.DaysLeft ngày để khôi phục</p>
+                                    <form asp-controller="Pdfs" asp-action="RestorePdf" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@pdf.Id" />
+                                        <input type="hidden" name="versionToken" value="@pdf.VersionToken" />
+                                        <button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Khôi phục</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <p class="notesv3-trash-days is-expired">Đã hết hạn khôi phục</p>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    }
+</main>

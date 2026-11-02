@@ -9,6 +9,7 @@ public sealed class NotesV3Document
 
     public bool IsArchived { get; set; }
     public bool IsDeleted { get; set; }
+    public DateTime? DeletedAtUtc { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
