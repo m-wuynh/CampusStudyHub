@@ -2035,6 +2035,9 @@ namespace StudyHub.DAL.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
                     b.Property<long?>("GradeBookId")
                         .HasColumnType("bigint");
 

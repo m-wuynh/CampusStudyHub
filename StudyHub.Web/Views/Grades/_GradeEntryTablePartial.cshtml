@@ -1,0 +1,264 @@
+@model StudyHub.BLL.DTOs.GradesPageDto
+@using StudyHub.BLL.DTOs
+@using StudyHub.BLL.Services.Grades
+@{
+    var data = Model;
+    var columns = Model.Columns;
+    var gradeBook = Model.GradeBook;
+}
+
+<!-- ═══ TABLE VIEW MODE ═══ -->
+<div class="sh-card overflow-hidden mode-panel" id="table-view-mode" style="display: block;">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 grade-table">
+      <thead>
+        <tr>
+          <th class="ps-4">Môn học</th>
+          @foreach(var col in columns) {
+            <th>
+              <div style="line-height:1.2;">@col.Name</div>
+              <div style="font-size:10px; color:var(--sh-slate-400); font-weight:normal;">(x@(col.Weight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)))</div>
+            </th>
+          }
+          <th>ĐTB Môn</th>
+          <th class="pe-4">Tiến độ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var s in data.SubjectDetails)
+        {
+          var ladder = data.GoalLadders.FirstOrDefault(l => l.UserSubjectId == s.UserSubjectId);
+          var currentAvg = s.CurrentAverage10;
+          // Môn chưa có điểm không hiển thị tiến độ (giữ như trước).
+          var currentGoal = ladder != null && currentAvg.HasValue ? GoalOverviewCalculator.FocusGoal(ladder) : null;
+
+          int? pct = null;
+          string color = "var(--sh-slate-400)";
+          if (currentGoal != null && currentGoal.TargetValue > 0) {
+              pct = currentGoal.ProgressPercent;
+              var shownAvg = GradeCalculator.RoundForDisplay(currentAvg) ?? 0m;
+              color = currentGoal.Status == GoalStatus.Achieved ? "var(--sh-emerald-600)"
+                      : shownAvg >= currentGoal.TargetValue - StudyHub.BLL.Constants.GradeConstants.NearTargetMargin ? "var(--sh-amber-600)"
+                      : "var(--sh-rose-600)";
+          }
+
+          <tr>
+            <td class="ps-4 fw-semibold" style="font-size:12px; color:var(--sh-slate-900);">
+              <div class="d-flex align-items-center gap-2">
+                <span class="rounded-circle d-inline-block" style="width:8px; height:8px; background-color:@(s.ColorHex ?? StudyHub.BLL.Constants.GradeConstants.DefaultSubjectColor);"></span>
+                <span>@s.SubjectName</span>
+                @if (s.CreditWeight != 1) {
+                  <span class="badge bg-light text-muted" style="font-size:9px;">x@s.CreditWeight</span>
+                }
+              </div>
+            </td>
+
+            @foreach (var col in columns) {
+              var colEntries = s.Entries.Where(e => e.GradeColumnId == col.GradeColumnId).ToList();
+              <td style="font-size:12px;">
+                @if (colEntries.Any()) {
+                  <span class="fw-bold" style="color:var(--sh-slate-800);">@string.Join(" · ", colEntries.Select(e => e.Score.ToString("0.0")))</span>
+                } else {
+                  <span class="text-muted">—</span>
+                }
+              </td>
+            }
+
+            <td class="fw-black subject-avg-cell" style="font-size:14px; color:var(--sh-slate-900);" data-subject-id="@s.UserSubjectId">
+              @(s.CurrentAverage10?.ToString("0.0") ?? "—")
+            </td>
+
+            <td class="pe-4" style="min-width: 140px;">
+              @if (currentGoal != null) {
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 6px; background-color: var(--sh-slate-100);">
+                    <div class="progress-bar rounded" role="progressbar" style="width: @(pct ?? 0)%; background-color: @color;"></div>
+                  </div>
+                  <span style="font-size: 11px; font-weight: 700; color: @color; min-width: 32px;">@(pct ?? 0)%</span>
+                </div>
+                <div style="font-size: 9px; color: var(--sh-slate-400); margin-top: 2px;">
+                  Mục tiêu: @currentGoal.TargetValue.ToString("0.0")
+                </div>
+              } else {
+                <span class="text-muted" style="font-size: 11px;">Chưa có mục tiêu</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ TABLE SCORE MODE ═══ -->
+<div class="sh-card overflow-hidden mode-panel" id="table-score-mode" style="display: none;">
+  
+  <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold" style="font-size:13px; color:var(--sh-indigo-700);">
+          <i class="bi bi-pencil-square me-1"></i> Chế độ nhập điểm
+      </h6>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 grade-table edit-table" id="score-table-grid">
+      <thead>
+        <tr id="score-mode-header-row">
+          <th class="ps-4" style="min-width: 150px;">Môn học</th>
+          @foreach(var col in columns) {
+            <th data-col-id="@col.GradeColumnId">
+                <div style="font-size: 11px;">@col.Name <span style="color:var(--sh-slate-400); font-weight:normal;">(x@(col.Weight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)))</span></div>
+            </th>
+          }
+          <th>ĐTB Môn</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var s in data.SubjectDetails)
+        {
+          <tr data-subject-id="@s.UserSubjectId">
+            <td class="ps-4 fw-semibold" style="font-size:12px; color:var(--sh-slate-900);">
+              <div class="d-flex align-items-center gap-2">
+                  <span>@s.SubjectName</span>
+              </div>
+            </td>
+
+            @foreach (var col in columns) {
+              var colEntries = s.Entries.Where(e => e.GradeColumnId == col.GradeColumnId).ToList();
+              <td style="font-size:12px; position: relative;">
+                <div class="d-flex flex-wrap align-items-center gap-1">
+                  @foreach (var entry in colEntries) {
+                    <span class="d-inline-flex align-items-center">
+                      <span class="fw-bold editable-grade" 
+                            style="color:var(--sh-indigo-600); cursor: text; padding: 4px; display: inline-block; min-width: 30px; border-bottom: 1px dashed var(--sh-indigo-300);" 
+                            onclick="openInlineEdit(this, @entry.Id, @s.UserSubjectId, @col.GradeColumnId, @entry.Score.ToString(System.Globalization.CultureInfo.InvariantCulture))">
+                          @entry.Score.ToString("0.0")
+                      </span>
+                      <button class="btn-icon-sh text-muted p-0 ms-1" style="font-size:9px;" onclick="deleteGradeInline(@entry.Id, this)"><i class="bi bi-x-circle"></i></button>
+                    </span>
+                  }
+                  <span class="editable-grade text-muted" 
+                        style="cursor: text; padding: 4px; display: inline-block; min-width: 30px; border-bottom: 1px dashed var(--sh-slate-200); font-style: italic; font-size: 11px;" 
+                        title="Thêm điểm"
+                        onclick="openInlineEdit(this, null, @s.UserSubjectId, @col.GradeColumnId, null)">
+                      @(colEntries.Any() ? "[+]" : "[nhập]")
+                  </span>
+                </div>
+              </td>
+            }
+
+            <td class="fw-black subject-avg-cell" style="font-size:14px; color:var(--sh-slate-600);" data-subject-id="@s.UserSubjectId">
+              @(s.CurrentAverage10?.ToString("0.0") ?? "—")
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ TABLE STRUCTURE MODE ═══ -->
+<div class="sh-card overflow-hidden mode-panel" id="table-structure-mode" style="display: none;">
+  
+  <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="mb-0 fw-bold" style="font-size:13px; color:var(--sh-indigo-700); white-space: nowrap;">
+          <i class="bi bi-gear me-1"></i> Chế độ chỉnh sửa cấu trúc bảng
+      </h6>
+      <div class="d-flex gap-2 align-items-center">
+          <button type="button" class="btn-secondary-sh" style="padding: 6px 12px; font-size:12px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;" data-bs-toggle="modal" data-bs-target="#addUserSubjectModal">
+            <i class="bi bi-journal-plus"></i> + Thêm môn
+          </button>
+          <button type="button" class="btn-secondary-sh" style="padding: 6px 12px; font-size:12px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;" data-bs-toggle="modal" data-bs-target="#addColumnModal">
+            <i class="bi bi-layout-three-columns"></i> + Thêm cột
+          </button>
+      </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 grade-table edit-table" id="structure-table-grid">
+      <thead>
+        <tr id="structure-mode-header-row">
+          <th class="ps-4" style="min-width: 150px;">Môn học</th>
+          @foreach(var col in columns) {
+            <th data-col-id="@col.GradeColumnId">
+              <div class="d-flex align-items-center justify-content-between gap-1">
+                <div class="d-flex align-items-center gap-1">
+                    <div class="d-flex flex-column me-1">
+                        <button type="button" class="btn-icon-sh p-0 m-0 text-muted" style="font-size:8px; line-height: 1;" onclick="moveColumn(@col.GradeColumnId, -1)"><i class="bi bi-caret-left-fill"></i></button>
+                        <button type="button" class="btn-icon-sh p-0 m-0 text-muted" style="font-size:8px; line-height: 1;" onclick="moveColumn(@col.GradeColumnId, 1)"><i class="bi bi-caret-right-fill"></i></button>
+                    </div>
+                    <span style="font-size: 11px;">@col.Name <span style="color:var(--sh-slate-400); font-weight:normal;">(x@(col.Weight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)))</span></span>
+                </div>
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn-icon-sh text-muted" style="padding:2px; font-size:10px;" title="Sửa cột"
+                            data-name="@col.Name"
+                            onclick="editColumn(@col.GradeColumnId, this.dataset.name, @col.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture), @col.DisplayOrder)">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <form asp-action="DeleteColumn" method="post" class="d-inline"
+                          data-confirm="Bạn chắc chắn muốn XÓA cột &quot;@col.Name&quot;? Toàn bộ điểm của cột này sẽ bị xóa."
+                          onsubmit="return confirm(this.dataset.confirm)">
+                      <input type="hidden" name="id" value="@col.GradeColumnId" />
+                      <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
+                      <button type="submit" class="btn-icon-sh danger" style="padding:2px; font-size:10px;" title="Xóa cột">
+                        <i class="bi bi-trash3"></i>
+                      </button>
+                    </form>
+                </div>
+              </div>
+            </th>
+          }
+          <th>ĐTB Môn</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var s in data.SubjectDetails)
+        {
+          <tr data-subject-id="@s.UserSubjectId">
+            <td class="ps-4 fw-semibold" style="font-size:12px; color:var(--sh-slate-900);">
+              <div class="d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                      <div class="d-flex flex-column me-1">
+                          <button type="button" class="btn-icon-sh p-0 m-0 text-muted" style="font-size:8px; line-height: 1;" onclick="moveSubject(@s.UserSubjectId, -1)"><i class="bi bi-caret-up-fill"></i></button>
+                          <button type="button" class="btn-icon-sh p-0 m-0 text-muted" style="font-size:8px; line-height: 1;" onclick="moveSubject(@s.UserSubjectId, 1)"><i class="bi bi-caret-down-fill"></i></button>
+                      </div>
+                      <span style="cursor: pointer;" data-name="@s.SubjectName" onclick="editSubject(@s.UserSubjectId, this.dataset.name, '@s.CreditWeight.ToString(System.Globalization.CultureInfo.InvariantCulture)')">@s.SubjectName</span>
+                  </div>
+                  <form asp-action="DeleteUserSubject" method="post" class="d-inline"
+                        data-confirm="Xóa vĩnh viễn môn &quot;@s.SubjectName&quot;? Điểm, mục tiêu, hoạt động, deadline và phiên học của môn sẽ bị xóa; ghi chú, tài liệu, flashcard được giữ nhưng không còn gắn môn. Thao tác không thể hoàn tác."
+                        onsubmit="return confirm(this.dataset.confirm)">
+                      <input type="hidden" name="id" value="@s.UserSubjectId" />
+                      <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
+                      <button type="submit" class="btn-icon-sh danger" style="padding: 2px; font-size:11px;" title="Xóa môn"><i class="bi bi-trash3"></i></button>
+                  </form>
+              </div>
+            </td>
+
+            @foreach (var col in columns) {
+              var colEntries = s.Entries.Where(e => e.GradeColumnId == col.GradeColumnId).ToList();
+              <td style="font-size:12px; position: relative;">
+                @if (colEntries.Any()) {
+                  <div class="d-flex justify-content-between align-items-center">
+                      <span class="fw-bold" style="color:var(--sh-slate-500); padding: 4px; display: inline-block;">
+                          @string.Join(" · ", colEntries.Select(e => e.Score.ToString("0.0")))
+                      </span>
+                  </div>
+                } else {
+                  <div class="d-flex justify-content-between align-items-center">
+                      <span class="text-muted" style="padding: 4px; display: inline-block; font-size: 11px;">
+                          —
+                      </span>
+                  </div>
+                }
+              </td>
+            }
+
+            <td class="fw-black subject-avg-cell" style="font-size:14px; color:var(--sh-slate-600);" data-subject-id="@s.UserSubjectId">
+              @(s.CurrentAverage10?.ToString("0.0") ?? "—")
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+

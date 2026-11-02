@@ -1,0 +1,55 @@
+@model StudyHub.BLL.DTOs.GradesPageDto
+@{
+    var data = Model;
+    var columns = data.Columns ?? new List<StudyHub.BLL.DTOs.GradeColumnDto>();
+
+    var jsonState = new
+    {
+        selectedGradeBookId = data.SelectedGradeBookId ?? 0,
+        existingGradeBooks = data.GradeBooks?.Select(gb => new { gb.FromYear, gb.ToYear }).ToList(),
+        allSubjects = data.AllSubjects?.Select(s => new { s.UserSubjectId, s.GradeBookId, s.SubjectName }).ToList(),
+        goalLadders = data.GoalLadders?.Select(l => new
+        {
+            l.UserSubjectId,
+            l.SubjectName,
+            l.HasBaseGoal,
+            BaseGoal = l.BaseGoal == null ? null : new
+            {
+                l.BaseGoal.Id,
+                l.BaseGoal.Title,
+                l.BaseGoal.TargetValue,
+                EndDate = l.BaseGoal.EndDate?.ToString("yyyy-MM-dd")
+            },
+            AdditionalGoals = l.AdditionalGoals?.Select(ag => new
+            {
+                ag.Id,
+                ag.Title,
+                ag.TargetValue,
+                ag.DisplayOrder,
+                EndDate = ag.EndDate?.ToString("yyyy-MM-dd")
+            }).ToList()
+        }).ToList(),
+        columns = columns.Select(c => new
+        {
+            c.GradeColumnId,
+            c.Name,
+            c.Weight,
+            c.DisplayOrder
+        }).ToList(),
+        subjectDetails = data.SubjectDetails?.Select(s => new
+        {
+            s.UserSubjectId,
+            s.SubjectName,
+            Entries = s.Entries?.Select(e => new
+            {
+                e.Id,
+                e.GradeColumnId,
+                e.Score
+            }).ToList()
+        }).ToList()
+    };
+}
+
+<script id="grades-server-data" type="application/json">
+@Html.Raw(System.Text.Json.JsonSerializer.Serialize(jsonState))
+</script>

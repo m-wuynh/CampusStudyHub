@@ -1,4 +1,4 @@
-using StudyHub.BLL.DTOs;
+using StudyHub.BLL.Constants;
 using StudyHub.DAL.Entities;
 using System;
 using System.Collections.Generic;
@@ -6,65 +6,69 @@ using System.Linq;
 
 namespace StudyHub.BLL.Services.Grades;
 
+/// <summary>
+/// Nơi duy nhất chứa công thức tính điểm của Grades & Goals.
+/// </summary>
 public static class GradeCalculator
 {
     /// <summary>
-    /// Computes weighted average on scale 0–10 from entity collections.
-    /// Formula: SUM(Score × Weight) / SUM(Weight)
-    /// Returns null if there are no valid entries.
+    /// ĐTB môn (thang 10) từ entity. Bỏ qua điểm <c>IsDeleted</c> và cột <c>IsArchived</c>.
+    /// Công thức: Σ(Score × Weight cột) / Σ(Weight cột) trên từng điểm. Không có điểm hợp lệ → null.
     /// </summary>
-    public static decimal? CalculateSubjectAverage(
-        IEnumerable<GradeEntry> entries,
-        IEnumerable<GradeColumn> allColumns)
+    public static decimal? CalculateSubjectAverage(IEnumerable<GradeEntry> entries, IEnumerable<GradeColumn> columns)
     {
-        var activeColumnWeights = allColumns
+        var weights = columns
+            .Where(c => !c.IsArchived)
             .ToDictionary(c => c.GradeColumnId, c => c.Weight);
 
-        var validEntries = entries
-            .Where(e => activeColumnWeights.ContainsKey(e.GradeColumnId))
-            .Select(e => (Score: e.Score, Weight: activeColumnWeights[e.GradeColumnId]))
-            .ToList();
-
-        if (!validEntries.Any()) return null;
-
-        var totalWeight = validEntries.Sum(e => e.Weight);
-        if (totalWeight == 0) return null;
-
-        var weightedSum = validEntries.Sum(e => e.Score * e.Weight);
-        return Math.Round(weightedSum / totalWeight, 2, MidpointRounding.AwayFromZero);
-    }
-    /// <summary>
-    /// Computes weighted average on scale 0–10.
-    /// Formula: SUM(Score × Weight) / SUM(Weight)
-    /// Only counts entries belonging to active (non-archived) columns.
-    /// Returns null if there are no valid entries (do NOT treat as 0).
-    /// </summary>
-    public static decimal? CalculateAverage10FromEntries(
-        IEnumerable<GradeEntryDto> entries,
-        IEnumerable<GradeColumnDto> allColumns)
-    {
-        // Build lookup of active column weights
-        var activeColumnWeights = allColumns
-            .ToDictionary(c => c.GradeColumnId, c => c.Weight);
-
-        var validEntries = entries
-            .Where(e => activeColumnWeights.ContainsKey(e.GradeColumnId))
-            .Select(e => (Score: e.Score, Weight: activeColumnWeights[e.GradeColumnId]))
-            .ToList();
-
-        if (!validEntries.Any()) return null;
-
-        var totalWeight = validEntries.Sum(e => e.Weight);
-        if (totalWeight == 0) return null;
-
-        var weightedSum = validEntries.Sum(e => e.Score * e.Weight);
-        return Math.Round(weightedSum / totalWeight, 2, MidpointRounding.AwayFromZero);
+        return CalculateWeightedAverage(
+            entries.Where(e => !e.IsDeleted).Select(e => (e.GradeColumnId, e.Score)),
+            weights);
     }
 
     /// <summary>
-    /// Compute Goal Ladder progress percentage.
-    /// Cap at 100% — being above target does not count as over 100%.
-    /// Returns null if currentValue is null (no grade data yet).
+    /// Lõi tính ĐTB có trọng số. Điểm thuộc cột không có trong <paramref name="columnWeights"/> bị bỏ qua.
+    /// Làm tròn <see cref="GradeConstants.AverageDecimals"/> chữ số (AwayFromZero). Không có điểm hợp lệ → null.
+    /// </summary>
+    public static decimal? CalculateWeightedAverage(
+        IEnumerable<(long ColumnId, decimal Score)> scores,
+        IReadOnlyDictionary<long, decimal> columnWeights)
+    {
+        decimal weightedSum = 0m;
+        decimal totalWeight = 0m;
+
+        foreach (var (columnId, score) in scores)
+        {
+            if (!columnWeights.TryGetValue(columnId, out var weight)) continue;
+            weightedSum += score * weight;
+            totalWeight += weight;
+        }
+
+        if (totalWeight == 0m) return null;
+        return Math.Round(weightedSum / totalWeight, GradeConstants.AverageDecimals, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// ĐTB chung: Σ(ĐTB môn × CreditWeight) / Σ CreditWeight trên các môn có điểm và CreditWeight &gt; 0.
+    /// </summary>
+    public static decimal? CalculateOverallAverage(IEnumerable<(decimal? Average, decimal CreditWeight)> subjects)
+    {
+        var valid = subjects.Where(s => s.Average.HasValue && s.CreditWeight > 0).ToList();
+        if (valid.Count == 0) return null;
+
+        var weightedSum = valid.Sum(s => s.Average!.Value * s.CreditWeight);
+        var totalWeight = valid.Sum(s => s.CreditWeight);
+        return Math.Round(weightedSum / totalWeight, GradeConstants.AverageDecimals, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>Làm tròn ĐTB để hiển thị (<see cref="GradeConstants.DisplayDecimals"/> chữ số, AwayFromZero).</summary>
+    public static decimal? RoundForDisplay(decimal? value) =>
+        value.HasValue
+            ? Math.Round(value.Value, GradeConstants.DisplayDecimals, MidpointRounding.AwayFromZero)
+            : null;
+
+    /// <summary>
+    /// % tiến độ Goal Ladder: floor(ĐTB / Target × 100), tối đa 100. Chưa có điểm hoặc Target ≤ 0 → null.
     /// </summary>
     public static int? ComputeProgressPercent(decimal? currentValue, decimal targetValue)
     {

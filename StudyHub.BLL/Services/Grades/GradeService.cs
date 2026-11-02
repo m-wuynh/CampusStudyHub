@@ -4,35 +4,17 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using StudyHub.BLL.Constants;
 using StudyHub.BLL.DTOs;
 using StudyHub.DAL.Entities;
 using StudyHub.DAL.Repositories.Common;
 
 namespace StudyHub.BLL.Services.Grades;
 
-public interface IGradeService
-{
-    Task<GradesPageDto> GetGradePageAsync(long userId, long? gradeBookId, CancellationToken cancellationToken = default, bool includeSubjectOptions = true);
-
-    // ── Grade Entries ────────────────────────────────────────────
-    Task AddGradeEntryAsync(long userId, CreateGradeEntryDto dto, CancellationToken cancellationToken = default);
-    Task UpdateGradeEntryAsync(long userId, UpdateGradeEntryDto dto, CancellationToken cancellationToken = default);
-    Task DeleteGradeEntryAsync(long userId, long entryId, CancellationToken cancellationToken = default);
-    Task SaveSubjectGradesAsync(long userId, SaveSubjectGradesDto dto, CancellationToken cancellationToken = default);
-
-    // ── Academic Term ────────────────────────────────────────────
-    Task CreateTermAsync(long userId, CreateTermDto dto, CancellationToken cancellationToken = default);
-    Task UpdateTermAsync(long userId, UpdateTermDto dto, CancellationToken cancellationToken = default);
-    Task ArchiveTermAsync(long userId, long termId, CancellationToken cancellationToken = default);
-
-    // ── User Subject ─────────────────────────────────────────────
-    Task CreateUserSubjectAsync(long userId, CreateUserSubjectDto dto, CancellationToken cancellationToken = default);
-    Task UpdateUserSubjectAsync(long userId, UpdateUserSubjectDto dto, CancellationToken cancellationToken = default);
-    Task DeleteUserSubjectAsync(long userId, long userSubjectId, CancellationToken cancellationToken = default);
-    Task ReorderSubjectsAsync(long userId, List<ReorderSubjectDto> newOrders, CancellationToken cancellationToken = default);
-}
-
-public sealed class GradeService(IRepository repository) : IGradeService
+public sealed class GradeService(
+    IRepository repository,
+    GradeBookDeletionService deletionService,
+    GoalStatusSyncService goalStatusSync) : IGradeService
 {
     public async Task<GradesPageDto> GetGradePageAsync(long userId, long? gradeBookId, CancellationToken cancellationToken = default, bool includeSubjectOptions = true)
     {
@@ -66,28 +48,32 @@ public sealed class GradeService(IRepository repository) : IGradeService
                 gradeBookDto = new GradeBookDto(gradeBook.GradeBookId, gradeBook.Name, gradeBook.FromYear, gradeBook.ToYear);
 
                 columns = await repository.Query<GradeColumn>()
-                    .Where(c => c.GradeBookId == gradeBook.GradeBookId)
+                    .Where(c => c.GradeBookId == gradeBook.GradeBookId && !c.IsArchived)
                     .OrderBy(c => c.DisplayOrder).ThenBy(c => c.GradeColumnId)
                     .Select(c => new GradeColumnDto(c.GradeColumnId, c.GradeBookId, c.Name, c.Weight, c.DisplayOrder))
                     .ToListAsync(cancellationToken);
 
                 var currentGradeBookSubjects = await repository.Query<UserSubject>()
                     .Include(us => us.Subject)
-                    .Include(us => us.GradeEntries)
+                    .Include(us => us.GradeEntries.Where(e => !e.IsDeleted))
                     .Where(us => us.UserId == userId && us.GradeBookId == selectedGradeBookId.Value && !us.IsArchived)
+                    .OrderBy(us => us.DisplayOrder).ThenBy(us => us.UserSubjectId)
                     .ToListAsync(cancellationToken);
+
+                var columnWeights = columns.ToDictionary(c => c.GradeColumnId, c => c.Weight);
 
                 foreach (var us in currentGradeBookSubjects)
                 {
                     var entries = us.GradeEntries
+                        .OrderBy(g => g.AssessedOn).ThenBy(g => g.GradeEntryId)
                         .Select(g => new GradeEntryDto(g.GradeEntryId, g.UserSubjectId, g.GradeColumnId, g.Score))
                         .ToList();
 
-                    var avg = GradeCalculator.CalculateAverage10FromEntries(entries, columns);
+                    var avg = GradeCalculator.CalculateWeightedAverage(entries.Select(e => (e.GradeColumnId, e.Score)), columnWeights);
 
                     subjectDetails.Add(new SubjectGradeDetailDto(
                         us.UserSubjectId,
-                        us.CustomSubjectName ?? us.Subject?.SubjectName ?? "Môn học",
+                        us.CustomSubjectName ?? us.Subject?.SubjectName ?? GradeConstants.FallbackSubjectName,
                         us.ColorHex,
                         us.CreditWeight,
                         avg,
@@ -130,116 +116,21 @@ public sealed class GradeService(IRepository repository) : IGradeService
         {
             if (!goalSubjectSources.Any(s => s.UserSubjectId == ds.UserSubjectId))
             {
-                var name = ds.CustomSubjectName ?? ds.Subject?.SubjectName ?? "Môn học";
+                var name = ds.CustomSubjectName ?? ds.Subject?.SubjectName ?? GradeConstants.FallbackSubjectName;
                 goalSubjectSources.Add(new GoalSubjectSource(ds.UserSubjectId, name, null, null, null));
             }
         }
 
         var allGoalSubjectIds = goalSubjectSources.Select(s => s.UserSubjectId).ToList();
+        // Chỉ đọc: trạng thái mục tiêu đã được ghi ở các thao tác POST (GoalStatusSyncService).
         var allGoals = allGoalSubjectIds.Any()
-            ? await repository.Query<Goal>(false)
+            ? await repository.Query<Goal>()
                 .Include(g => g.ScheduleEvents.Where(e => !e.IsDeleted))
                 .Include(g => g.GoalHistories)
-                .Where(g => g.UserId == userId && allGoalSubjectIds.Contains(g.UserSubjectId))
+                .Where(g => g.UserId == userId && allGoalSubjectIds.Contains(g.UserSubjectId) && !g.IsCancelled)
                 .OrderBy(g => g.TargetValue)
                 .ToListAsync(cancellationToken)
             : new List<Goal>();
-
-        // ── Trạng thái mục tiêu tự động theo điểm số thực tế & Khởi tạo an toàn mục tiêu gốc ──
-        bool autoStatusChanged = false;
-        var subjectSourcesGrouped = goalSubjectSources
-            .GroupBy(s => new { s.GradeBookId, Normalized = s.SubjectName.Trim().ToLowerInvariant() });
-
-        foreach (var group in subjectSourcesGrouped)
-        {
-            var groupSubjectIds = group.Select(s => s.UserSubjectId).ToList();
-            var subGoals = allGoals.Where(g => groupSubjectIds.Contains(g.UserSubjectId) && !g.IsCancelled).ToList();
-            if (!subGoals.Any()) continue;
-
-            // Xử lý an toàn mục tiêu gốc:
-            // 1) Nếu chưa có mục tiêu gốc: tự động chọn mục tiêu sớm nhất làm mục tiêu gốc
-            // 2) Nếu có nhiều mục tiêu gốc: chỉ giữ mục tiêu sớm nhất là gốc
-            var baseGoals = subGoals.Where(g => g.IsBaseGoal).OrderBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue).ToList();
-            if (!baseGoals.Any())
-            {
-                var earliest = subGoals.OrderBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue).First();
-                earliest.IsBaseGoal = true;
-                earliest.UpdatedAtUtc = DateTime.UtcNow;
-                repository.Update(earliest);
-                autoStatusChanged = true;
-            }
-            else if (baseGoals.Count > 1)
-            {
-                for (int i = 1; i < baseGoals.Count; i++)
-                {
-                    baseGoals[i].IsBaseGoal = false;
-                    baseGoals[i].UpdatedAtUtc = DateTime.UtcNow;
-                    repository.Update(baseGoals[i]);
-                    autoStatusChanged = true;
-                }
-            }
-
-            var canonicalAvg = group.FirstOrDefault(s => s.CurrentAverage10.HasValue)?.CurrentAverage10;
-
-            if (canonicalAvg.HasValue)
-            {
-                var curAvg = canonicalAvg.Value;
-                foreach (var g in subGoals)
-                {
-                    if (curAvg >= g.TargetValue)
-                    {
-                        if (g.Status != "Done")
-                        {
-                            g.Status = "Done";
-                            if (!g.AchievedScore.HasValue)
-                            {
-                                g.AchievedScore = curAvg;
-                                g.AchievedAtUtc = DateTime.UtcNow;
-                            }
-                            g.UpdatedAtUtc = DateTime.UtcNow;
-                            repository.Update(g);
-                            autoStatusChanged = true;
-                        }
-                    }
-                    else
-                    {
-                        // Đã có điểm thực tế nhưng chưa đạt TargetValue => InProgress
-                        if (g.Status != "InProgress" && !g.AchievedScore.HasValue)
-                        {
-                            g.Status = "InProgress";
-                            g.UpdatedAtUtc = DateTime.UtcNow;
-                            repository.Update(g);
-                            autoStatusChanged = true;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // Không có điểm thực tế (ví dụ chưa nhập điểm hoặc vừa xóa bảng điểm)
-                foreach (var g in subGoals)
-                {
-                    // Bảo toàn trạng thái Done và thành tích nếu đã từng đạt trước đó
-                    if (g.AchievedScore.HasValue || g.Status == "Done")
-                    {
-                        continue;
-                    }
-
-                    // Chưa từng đạt => ToDo
-                    if (g.Status != "ToDo")
-                    {
-                        g.Status = "ToDo";
-                        g.UpdatedAtUtc = DateTime.UtcNow;
-                        repository.Update(g);
-                        autoStatusChanged = true;
-                    }
-                }
-            }
-        }
-        if (autoStatusChanged)
-        {
-            await repository.SaveChangesAsync(cancellationToken);
-        }
 
         // ── 3. Compute summary stats cho Sổ điểm được chọn ──────────────────────────
         if (subjectDetails.Any())
@@ -263,26 +154,20 @@ public sealed class GradeService(IRepository repository) : IGradeService
                     lowestSubject = sd.SubjectName;
                 }
 
-                var subjectGoals = allGoals
+                // Q14 = A: môn có điểm và ĐTB hiển thị < mục tiêu gốc (dữ liệu cũ chưa có gốc → mục tiêu tạo sớm nhất).
+                var baseGoal = allGoals
                     .Where(g => g.UserSubjectId == sd.UserSubjectId && !g.IsCancelled)
-                    .OrderBy(g => g.TargetValue)
-                    .ToList();
-
-                var currentGoal = subjectGoals.FirstOrDefault(g => g.TargetValue > (sd.CurrentAverage10 ?? 0m));
-                if (currentGoal != null)
+                    .OrderByDescending(g => g.IsBaseGoal)
+                    .ThenBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue)
+                    .FirstOrDefault();
+                if (baseGoal != null && GradeCalculator.RoundForDisplay(sd.CurrentAverage10) < baseGoal.TargetValue)
                 {
                     belowTargetCount++;
                 }
             }
 
-            decimal? overallAvg = null;
-            var validSubjects = subjectDetails.Where(s => s.CurrentAverage10.HasValue && s.CreditWeight > 0).ToList();
-            if (validSubjects.Any())
-            {
-                var sumWeighted = validSubjects.Sum(s => s.CurrentAverage10!.Value * s.CreditWeight);
-                var sumWeights = validSubjects.Sum(s => s.CreditWeight);
-                overallAvg = Math.Round(sumWeighted / sumWeights, 2, MidpointRounding.AwayFromZero);
-            }
+            var overallAvg = GradeCalculator.CalculateOverallAverage(
+                subjectDetails.Select(s => (s.CurrentAverage10, s.CreditWeight)));
 
             yearSummary = new YearGradeSummaryDto(
                 overallAvg,
@@ -303,7 +188,7 @@ public sealed class GradeService(IRepository repository) : IGradeService
                 .Select(us => new GradeSubjectOptionDto(
                     us.UserSubjectId,
                     us.GradeBookId,
-                    us.CustomSubjectName ?? us.Subject!.SubjectName ?? "Môn học"))
+                    us.CustomSubjectName ?? us.Subject!.SubjectName ?? GradeConstants.FallbackSubjectName))
                 .ToListAsync(cancellationToken)
             : new List<GradeSubjectOptionDto>();
 
@@ -314,52 +199,47 @@ public sealed class GradeService(IRepository repository) : IGradeService
 
     public async Task AddGradeEntryAsync(long userId, CreateGradeEntryDto dto, CancellationToken cancellationToken = default)
     {
-        // Verify subject access
-        var userSubject = await repository.Query<UserSubject>()
-            .FirstOrDefaultAsync(us => us.UserSubjectId == dto.UserSubjectId && us.UserId == userId, cancellationToken);
-        if (userSubject is null) throw new UnauthorizedAccessException("Không có quyền truy cập môn học này.");
-        if (userSubject.IsArchived) throw new ArgumentException("Không thể nhập điểm cho môn học đã lưu trữ.");
+        var userSubject = await GetWritableSubjectAsync(userId, dto.UserSubjectId, cancellationToken);
 
-        // Verify column access
         var column = await repository.Query<GradeColumn>()
-            .Include(c => c.GradeBook)
-            .FirstOrDefaultAsync(c => c.GradeColumnId == dto.GradeColumnId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.GradeColumnId == dto.GradeColumnId && !c.IsArchived, cancellationToken);
         if (column is null) throw new ArgumentException("Cột đánh giá không tồn tại.");
-        if (column.GradeBook.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập cột này.");
+        if (column.GradeBookId != userSubject.GradeBookId)
+            throw new ArgumentException("Cột đánh giá không thuộc sổ điểm của môn học này.");
 
-        // Validate score 0–10
-        if (dto.Score < 0 || dto.Score > 10) throw new ArgumentException("Điểm phải nằm trong khoảng 0 đến 10.");
+        GradeGuard.EnsureScore(dto.Score);
 
-        var entry = new GradeEntry
+        var now = DateTime.UtcNow;
+        await using var transaction = await repository.BeginTransactionAsync(cancellationToken);
+        await repository.AddAsync(new GradeEntry
         {
-            UserSubjectId = dto.UserSubjectId,
-            GradeColumnId = dto.GradeColumnId,
-            Score = dto.Score
-        };
-
-        await repository.AddAsync(entry, cancellationToken);
+            UserSubjectId = userSubject.UserSubjectId,
+            GradeColumnId = column.GradeColumnId,
+            Score = dto.Score,
+            AssessedOn = GradeClock.Today(),
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        }, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
-        await SyncGoalStatusesForSubjectAsync(userId, dto.UserSubjectId, cancellationToken);
+        await goalStatusSync.SyncSubjectAsync(userId, userSubject.UserSubjectId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public async Task UpdateGradeEntryAsync(long userId, UpdateGradeEntryDto dto, CancellationToken cancellationToken = default)
     {
         var entry = await repository.Query<GradeEntry>(false)
-            .Include(ge => ge.UserSubject)
-            .Include(ge => ge.GradeColumn)
-            .FirstOrDefaultAsync(ge => ge.GradeEntryId == dto.Id, cancellationToken);
-
+            .FirstOrDefaultAsync(ge => ge.GradeEntryId == dto.Id && !ge.IsDeleted, cancellationToken);
         if (entry is null) throw new ArgumentException("Điểm không tồn tại.");
-        if (entry.UserSubject.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
-        if (dto.Score < 0 || dto.Score > 10) throw new ArgumentException("Điểm phải nằm trong khoảng 0 đến 10.");
+        await GetWritableSubjectAsync(userId, entry.UserSubjectId, cancellationToken);
+        GradeGuard.EnsureScore(dto.Score);
 
-        var userSubjectId = entry.UserSubjectId;
+        await using var transaction = await repository.BeginTransactionAsync(cancellationToken);
         entry.Score = dto.Score;
-
-        repository.Update(entry);
+        entry.UpdatedAtUtc = DateTime.UtcNow;
         await repository.SaveChangesAsync(cancellationToken);
-        await SyncGoalStatusesForSubjectAsync(userId, userSubjectId, cancellationToken);
+        await goalStatusSync.SyncSubjectAsync(userId, entry.UserSubjectId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public async Task DeleteGradeEntryAsync(long userId, long entryId, CancellationToken cancellationToken = default)
@@ -372,143 +252,97 @@ public sealed class GradeService(IRepository repository) : IGradeService
         if (entry.UserSubject.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         var userSubjectId = entry.UserSubjectId;
+        await using var transaction = await repository.BeginTransactionAsync(cancellationToken);
         repository.Remove(entry);
         await repository.SaveChangesAsync(cancellationToken);
-        await SyncGoalStatusesForSubjectAsync(userId, userSubjectId, cancellationToken);
+        await goalStatusSync.SyncSubjectAsync(userId, userSubjectId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Đồng bộ toàn bộ điểm của một môn từ modal nhập điểm: chỉ xét các cột thuộc sổ của môn;
+    /// điểm cũ thuộc cột ngoài sổ không bị đụng tới. Dữ liệu không hợp lệ → lỗi, không bỏ qua im lặng.
+    /// </summary>
     public async Task SaveSubjectGradesAsync(long userId, SaveSubjectGradesDto dto, CancellationToken cancellationToken = default)
     {
-        var subject = await repository.Query<UserSubject>()
-            .Include(us => us.GradeEntries)
-            .FirstOrDefaultAsync(us => us.UserSubjectId == dto.UserSubjectId && us.UserId == userId && !us.IsArchived, cancellationToken);
+        var subject = await GetWritableSubjectAsync(userId, dto.UserSubjectId, cancellationToken);
 
-        if (subject is null) throw new ArgumentException("Môn học không tồn tại.");
+        var validColumnIds = (await repository.Query<GradeColumn>()
+                .Where(c => c.GradeBookId == subject.GradeBookId && !c.IsArchived)
+                .Select(c => c.GradeColumnId)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
 
-        var validColumnIds = await repository.Query<GradeColumn>()
-            .Where(c => c.GradeBookId == subject.GradeBookId)
-            .Select(c => c.GradeColumnId)
+        var existingEntries = await repository.Query<GradeEntry>(false)
+            .Where(e => e.UserSubjectId == subject.UserSubjectId && !e.IsDeleted && validColumnIds.Contains(e.GradeColumnId))
             .ToListAsync(cancellationToken);
+        var existingById = existingEntries.ToDictionary(e => e.GradeEntryId);
+        var incoming = dto.Entries ?? new List<GradeEntryInputDto>();
 
-        var existingEntries = subject.GradeEntries.ToList();
-        var incomingEntries = dto.Entries ?? new List<GradeEntryInputDto>();
-
-        // 1. Delete entries missing in incoming list
-        var incomingEntryIds = incomingEntries.Where(e => e.GradeEntryId.HasValue && e.GradeEntryId.Value > 0).Select(e => e.GradeEntryId!.Value).ToHashSet();
-        foreach (var existing in existingEntries)
+        foreach (var input in incoming)
         {
-            if (!incomingEntryIds.Contains(existing.GradeEntryId))
+            if (!validColumnIds.Contains(input.GradeColumnId))
+                throw new ArgumentException("Cột đánh giá không thuộc sổ điểm của môn học này.");
+            GradeGuard.EnsureScore(input.Score);
+
+            if (input.GradeEntryId is > 0)
             {
-                repository.Remove(existing);
+                if (!existingById.TryGetValue(input.GradeEntryId.Value, out var existing))
+                    throw new ArgumentException("Điểm cần sửa không thuộc môn học này.");
+                if (existing.GradeColumnId != input.GradeColumnId)
+                    throw new ArgumentException("Không thể chuyển điểm sang cột đánh giá khác.");
             }
         }
 
-        // 2. Add / Update incoming entries
-        foreach (var entryDto in incomingEntries)
-        {
-            if (!validColumnIds.Contains(entryDto.GradeColumnId)) continue;
-            if (entryDto.Score < 0 || entryDto.Score > 10) throw new ArgumentException("Điểm số phải từ 0 đến 10.");
+        var keptIds = incoming
+            .Where(i => i.GradeEntryId is > 0)
+            .Select(i => i.GradeEntryId!.Value)
+            .ToHashSet();
+        var now = DateTime.UtcNow;
+        var today = GradeClock.Today();
 
-            if (entryDto.GradeEntryId.HasValue && entryDto.GradeEntryId.Value > 0)
+        await using var transaction = await repository.BeginTransactionAsync(cancellationToken);
+
+        repository.RemoveRange(existingEntries.Where(e => !keptIds.Contains(e.GradeEntryId)));
+        foreach (var input in incoming)
+        {
+            if (input.GradeEntryId is > 0)
             {
-                var existing = existingEntries.FirstOrDefault(e => e.GradeEntryId == entryDto.GradeEntryId.Value);
-                if (existing != null)
+                var existing = existingById[input.GradeEntryId.Value];
+                if (existing.Score != input.Score)
                 {
-                    existing.Score = entryDto.Score;
-                    existing.UpdatedAtUtc = DateTime.UtcNow;
-                    repository.Update(existing);
+                    existing.Score = input.Score;
+                    existing.UpdatedAtUtc = now;
                 }
             }
             else
             {
-                var newEntry = new GradeEntry
+                await repository.AddAsync(new GradeEntry
                 {
-                    UserSubjectId = dto.UserSubjectId,
-                    GradeColumnId = entryDto.GradeColumnId,
-                    Score = entryDto.Score,
-                    CreatedAtUtc = DateTime.UtcNow,
-                    UpdatedAtUtc = DateTime.UtcNow
-                };
-                await repository.AddAsync(newEntry, cancellationToken);
+                    UserSubjectId = subject.UserSubjectId,
+                    GradeColumnId = input.GradeColumnId,
+                    Score = input.Score,
+                    AssessedOn = today,
+                    CreatedAtUtc = now,
+                    UpdatedAtUtc = now
+                }, cancellationToken);
             }
         }
 
         await repository.SaveChangesAsync(cancellationToken);
-        await SyncGoalStatusesForSubjectAsync(userId, dto.UserSubjectId, cancellationToken);
+        await goalStatusSync.SyncSubjectAsync(userId, subject.UserSubjectId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
-    // ── Academic Term CRUD ───────────────────────────────────────
-
-    public async Task CreateTermAsync(long userId, CreateTermDto dto, CancellationToken cancellationToken = default)
+    /// <summary>Môn của người dùng, chưa lưu trữ và đang thuộc một sổ điểm (Q03: môn không thuộc sổ không được nhập điểm).</summary>
+    private async Task<UserSubject> GetWritableSubjectAsync(long userId, long userSubjectId, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(dto.TermName)) throw new ArgumentException("Tên học kỳ không được để trống.");
-        if (dto.StartDate >= dto.EndDate) throw new ArgumentException("Ngày bắt đầu phải trước ngày kết thúc.");
-        if (dto.EndDate < dto.StartDate.AddMonths(3)) throw new ArgumentException("Học kỳ phải kéo dài tối thiểu 3 tháng.");
-        if (dto.EndDate > dto.StartDate.AddMonths(6)) throw new ArgumentException("Học kỳ không được vượt quá 6 tháng.");
-
-        var existingName = await repository.AnyAsync<AcademicTerm>(t => t.UserId == userId && t.TermName == dto.TermName, cancellationToken);
-        if (existingName) throw new ArgumentException("Tên học kỳ đã tồn tại.");
-
-        var overlapping = await repository.AnyAsync<AcademicTerm>(t =>
-            t.UserId == userId && !t.IsArchived &&
-            t.StartDate <= dto.EndDate && t.EndDate >= dto.StartDate,
-            cancellationToken);
-        if (overlapping) throw new ArgumentException("Thời gian học kỳ bị chồng lấn với một học kỳ khác.");
-
-        var term = new AcademicTerm
-        {
-            UserId = userId,
-            TermName = dto.TermName,
-            StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
-            IsArchived = false
-        };
-
-        await repository.AddAsync(term, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task UpdateTermAsync(long userId, UpdateTermDto dto, CancellationToken cancellationToken = default)
-    {
-        var term = await repository.Query<AcademicTerm>(false)
-            .FirstOrDefaultAsync(t => t.AcademicTermId == dto.Id, cancellationToken);
-
-        if (term is null) throw new ArgumentException("Học kỳ không tồn tại.");
-        if (term.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
-
-        if (string.IsNullOrWhiteSpace(dto.TermName)) throw new ArgumentException("Tên học kỳ không được để trống.");
-        if (dto.StartDate >= dto.EndDate) throw new ArgumentException("Ngày bắt đầu phải trước ngày kết thúc.");
-        if (dto.EndDate < dto.StartDate.AddMonths(3)) throw new ArgumentException("Học kỳ phải kéo dài tối thiểu 3 tháng.");
-        if (dto.EndDate > dto.StartDate.AddMonths(6)) throw new ArgumentException("Học kỳ không được vượt quá 6 tháng.");
-
-        var existingName = await repository.AnyAsync<AcademicTerm>(t => t.UserId == userId && t.TermName == dto.TermName && t.AcademicTermId != dto.Id, cancellationToken);
-        if (existingName) throw new ArgumentException("Tên học kỳ đã tồn tại.");
-
-        var overlapping = await repository.AnyAsync<AcademicTerm>(t =>
-            t.UserId == userId && t.AcademicTermId != dto.Id && !t.IsArchived &&
-            t.StartDate <= dto.EndDate && t.EndDate >= dto.StartDate,
-            cancellationToken);
-        if (overlapping) throw new ArgumentException("Thời gian học kỳ bị chồng lấn với một học kỳ khác.");
-
-        term.TermName = dto.TermName;
-        term.StartDate = dto.StartDate;
-        term.EndDate = dto.EndDate;
-
-        repository.Update(term);
-        await repository.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task ArchiveTermAsync(long userId, long termId, CancellationToken cancellationToken = default)
-    {
-        var term = await repository.Query<AcademicTerm>(false)
-            .FirstOrDefaultAsync(t => t.AcademicTermId == termId, cancellationToken);
-
-        if (term is null) return;
-        if (term.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
-
-        term.IsArchived = true;
-        repository.Update(term);
-        await repository.SaveChangesAsync(cancellationToken);
+        var subject = await repository.Query<UserSubject>()
+            .FirstOrDefaultAsync(us => us.UserSubjectId == userSubjectId && us.UserId == userId, cancellationToken);
+        if (subject is null) throw new UnauthorizedAccessException("Không có quyền truy cập môn học này.");
+        if (subject.IsArchived) throw new ArgumentException("Không thể nhập điểm cho môn học đã lưu trữ.");
+        if (subject.GradeBookId is null) throw new InvalidOperationException("Môn học chưa thuộc sổ điểm nào nên không thể nhập điểm.");
+        return subject;
     }
 
     // ── User Subject CRUD ────────────────────────────────────────
@@ -519,25 +353,25 @@ public sealed class GradeService(IRepository repository) : IGradeService
             .FirstOrDefaultAsync(gb => gb.GradeBookId == dto.GradeBookId && gb.UserId == userId, cancellationToken);
         if (gradeBook is null) throw new UnauthorizedAccessException("Không có quyền truy cập sổ điểm này.");
 
-        if (string.IsNullOrWhiteSpace(dto.SubjectName)) throw new ArgumentException("Tên môn học không được để trống.");
+        var name = GradeGuard.RequireText(dto.SubjectName, GradeConstants.SubjectNameMaxLength, "Tên môn học");
+        EnsureCreditWeight(dto.CreditWeight);
+        await EnsureUniqueSubjectNameAsync(userId, dto.GradeBookId, name, null, cancellationToken);
 
-        var existing = await repository.AnyAsync<UserSubject>(
-            us => us.UserId == userId && us.GradeBookId == dto.GradeBookId && us.CustomSubjectName == dto.SubjectName.Trim() && !us.IsArchived,
-            cancellationToken);
-        if (existing) throw new ArgumentException("Môn học này đã tồn tại trong sổ điểm.");
+        var lastOrder = await repository.Query<UserSubject>()
+            .Where(us => us.UserId == userId && us.GradeBookId == dto.GradeBookId)
+            .MaxAsync(us => (int?)us.DisplayOrder, cancellationToken) ?? 0;
 
-        var userSubject = new UserSubject
+        await repository.AddAsync(new UserSubject
         {
             UserId = userId,
             GradeBookId = dto.GradeBookId,
             SubjectId = null,
-            CustomSubjectName = dto.SubjectName.Trim(),
+            CustomSubjectName = name,
             CreditWeight = dto.CreditWeight,
-            ColorHex = "#5138EE",
-            IsArchived = false
-        };
-
-        await repository.AddAsync(userSubject, cancellationToken);
+            ColorHex = GradeConstants.DefaultSubjectColor,
+            IsArchived = false,
+            DisplayOrder = lastOrder + 1
+        }, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
     }
 
@@ -549,96 +383,109 @@ public sealed class GradeService(IRepository repository) : IGradeService
         if (userSubject is null) throw new ArgumentException("Môn học không tồn tại.");
         if (userSubject.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
-        if (string.IsNullOrWhiteSpace(dto.SubjectName)) throw new ArgumentException("Tên môn học không được để trống.");
+        var name = GradeGuard.RequireText(dto.SubjectName, GradeConstants.SubjectNameMaxLength, "Tên môn học");
+        EnsureCreditWeight(dto.CreditWeight);
+        await EnsureUniqueSubjectNameAsync(userId, userSubject.GradeBookId, name, userSubject.UserSubjectId, cancellationToken);
 
-        userSubject.CustomSubjectName = dto.SubjectName.Trim();
+        userSubject.CustomSubjectName = name;
+        userSubject.SubjectId = null;
         userSubject.CreditWeight = dto.CreditWeight;
-        userSubject.ColorHex = dto.ColorHex ?? "#5138EE";
+        if (!string.IsNullOrWhiteSpace(dto.ColorHex))
+        {
+            if (!ColorHexPattern.IsMatch(dto.ColorHex)) throw new ArgumentException("Màu môn học không hợp lệ (định dạng #RRGGBB).");
+            userSubject.ColorHex = dto.ColorHex;
+        }
 
-        repository.Update(userSubject);
         await repository.SaveChangesAsync(cancellationToken);
     }
 
+    /// <summary>Q09/Q03: xóa cứng môn (kể cả môn không thuộc sổ) và dữ liệu phụ thuộc riêng của môn.</summary>
     public async Task DeleteUserSubjectAsync(long userId, long userSubjectId, CancellationToken cancellationToken = default)
     {
-        var userSubject = await repository.Query<UserSubject>(false)
-            .FirstOrDefaultAsync(us => us.UserSubjectId == userSubjectId, cancellationToken);
+        var exists = await repository.AnyAsync<UserSubject>(us => us.UserSubjectId == userSubjectId, cancellationToken);
+        if (!exists) return;
 
-        if (userSubject is null) return;
-        if (userSubject.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
+        await deletionService.DeleteUserSubjectsAsync(userId, new[] { userSubjectId }, cancellationToken);
+    }
 
-        // Check if ANY Goal exists (active or cancelled)
-        var hasAnyGoal = await repository.AnyAsync<Goal>(
-            g => g.UserSubjectId == userSubjectId, cancellationToken);
-        if (hasAnyGoal)
-            throw new InvalidOperationException("Không thể xóa môn này vì môn này đang có mục tiêu học tập.");
+    private static readonly System.Text.RegularExpressions.Regex ColorHexPattern =
+        new("^#[0-9A-Fa-f]{6}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
-        var entries = await repository.Query<GradeEntry>(false)
-            .Where(ge => ge.UserSubjectId == userSubjectId)
-            .ToListAsync(cancellationToken);
-        foreach (var e in entries) repository.Remove(e);
+    private static void EnsureCreditWeight(decimal creditWeight)
+    {
+        if (creditWeight <= 0) throw new ArgumentException("Hệ số môn phải lớn hơn 0.");
+    }
 
-        repository.Remove(userSubject);
-        await repository.SaveChangesAsync(cancellationToken);
+    /// <summary>Tên môn duy nhất trong cùng một sổ (không phân biệt hoa thường, đã trim).</summary>
+    private async Task EnsureUniqueSubjectNameAsync(long userId, long? gradeBookId, string name, long? exceptSubjectId, CancellationToken cancellationToken)
+    {
+        var normalized = name.ToLower();
+        var duplicate = await repository.AnyAsync<UserSubject>(us =>
+            us.UserId == userId &&
+            us.GradeBookId == gradeBookId &&
+            !us.IsArchived &&
+            us.UserSubjectId != exceptSubjectId &&
+            us.CustomSubjectName != null &&
+            us.CustomSubjectName.Trim().ToLower() == normalized,
+            cancellationToken);
+        if (duplicate) throw new ArgumentException("Môn học này đã tồn tại trong sổ điểm.");
     }
 
     public async Task ReorderSubjectsAsync(long userId, List<ReorderSubjectDto> newOrders, CancellationToken cancellationToken = default)
     {
-        var subjectIds = newOrders.Select(x => x.UserSubjectId).ToList();
+        if (newOrders == null || newOrders.Count == 0) return;
+
+        var subjectIds = newOrders.Select(x => x.UserSubjectId).Distinct().ToList();
         var subjects = await repository.Query<UserSubject>(false)
             .Where(us => us.UserId == userId && subjectIds.Contains(us.UserSubjectId))
             .ToListAsync(cancellationToken);
 
-        // Optional: you can store DisplayOrder in UserSubject if you want to remember order.
-        // But looking at the entity UserSubject, there is NO DisplayOrder column.
-        // Wait, did I miss this? Let's check UserSubject.cs first.
+        if (subjects.Count != subjectIds.Count) throw new UnauthorizedAccessException("Không có quyền truy cập môn học này.");
+        if (subjects.Select(s => s.GradeBookId).Distinct().Count() != 1)
+            throw new ArgumentException("Chỉ sắp xếp được các môn trong cùng một sổ điểm.");
+
+        foreach (var order in newOrders)
+        {
+            subjects.First(s => s.UserSubjectId == order.UserSubjectId).DisplayOrder = order.NewDisplayOrder;
+        }
+
+        await repository.SaveChangesAsync(cancellationToken);
     }
 
     // ── Private helpers ──────────────────────────────────────────
 
     private sealed record GoalSubjectSource(long UserSubjectId, string SubjectName, decimal? CurrentAverage10, long? GradeBookId = null, string? AcademicYearName = null);
 
+    /// <summary>Một ladder cho mỗi môn có mục tiêu, theo đúng UserSubjectId (không gộp môn theo tên).</summary>
     private static List<GoalLadderDto> BuildGoalLadders(
         IEnumerable<GoalSubjectSource> subjects,
         List<Goal> goals)
     {
         var result = new List<GoalLadderDto>();
+        var today = GradeClock.Today();
 
-        // Nhóm các môn theo GradeBookId và tên môn học chuẩn hóa (không phân biệt hoa thường)
-        // để mọi mục tiêu của cùng một môn trong cùng bảng điểm năm học luôn gộp chung vào 1 Goal Ladder
-        var subjectGroups = subjects
-            .GroupBy(s => new
-            {
-                s.GradeBookId,
-                NormalizedName = (s.SubjectName ?? string.Empty).Trim().ToLowerInvariant()
-            })
-            .ToList();
-
-        foreach (var group in subjectGroups)
+        foreach (var subject in subjects)
         {
-            var groupSubjectIds = group.Select(s => s.UserSubjectId).ToHashSet();
             var subjectGoals = goals
-                .Where(g => groupSubjectIds.Contains(g.UserSubjectId) && !g.IsCancelled)
+                .Where(g => g.UserSubjectId == subject.UserSubjectId && !g.IsCancelled)
                 .ToList();
-
             if (!subjectGoals.Any()) continue;
 
-            // Lấy môn học đại diện có điểm trung bình thực tế nếu có
-            var canonicalSubject = group.FirstOrDefault(s => s.CurrentAverage10.HasValue) ?? group.First();
-            var currentAvg = canonicalSubject.CurrentAverage10;
-            var academicYearName = canonicalSubject.AcademicYearName ?? group.FirstOrDefault(s => !string.IsNullOrEmpty(s.AcademicYearName))?.AcademicYearName;
+            var currentAvg = subject.CurrentAverage10;
 
-            // Xử lý an toàn dữ liệu cũ: nếu môn đã có mục tiêu nhưng chưa có IsBaseGoal, mục tiêu sớm nhất tự động là mục tiêu gốc
-            var baseGoals = subjectGoals.Where(g => g.IsBaseGoal).OrderBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue).ToList();
-            if (!baseGoals.Any() && subjectGoals.Any())
-            {
-                var earliest = subjectGoals.OrderBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue).First();
-                earliest.IsBaseGoal = true;
-            }
+            // Dữ liệu cũ chưa có mục tiêu gốc: chỉ hiển thị mục tiêu sớm nhất là gốc (không ghi DB trong GET).
+            var baseGoalId = subjectGoals
+                .Where(g => g.IsBaseGoal)
+                .OrderBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue)
+                .Select(g => (long?)g.GoalId)
+                .FirstOrDefault()
+                ?? subjectGoals.OrderBy(g => g.CreatedAtUtc).ThenBy(g => g.TargetValue).First().GoalId;
 
             var goalDtos = new List<GoalDto>();
-            // Mục tiêu gốc xếp đầu tiên, tiếp theo là các nấc bổ sung theo DisplayOrder rồi đến TargetValue
-            foreach (var g in subjectGoals.OrderByDescending(g => g.IsBaseGoal).ThenBy(g => g.DisplayOrder).ThenBy(g => g.TargetValue))
+            foreach (var g in subjectGoals
+                         .OrderByDescending(g => g.GoalId == baseGoalId)
+                         .ThenBy(g => g.DisplayOrder)
+                         .ThenBy(g => g.TargetValue))
             {
                 var activities = g.ScheduleEvents.Select(e => new GoalActivityDto(
                     e.ScheduleEventId,
@@ -659,36 +506,7 @@ public sealed class GradeService(IRepository repository) : IGradeService
                     h.CreatedAtUtc
                 )).OrderByDescending(h => h.AchievedAtUtc).ToList();
 
-                // Xác định trạng thái tự động theo điểm số thực tế
-                string lifecycleStatus;
-                if (currentAvg.HasValue)
-                {
-                    if (currentAvg.Value >= g.TargetValue)
-                    {
-                        lifecycleStatus = "Done";
-                    }
-                    else
-                    {
-                        lifecycleStatus = "InProgress";
-                    }
-                }
-                else
-                {
-                    // Không có điểm thực tế (ví dụ chưa nhập điểm hoặc đã xóa sổ điểm)
-                    if (g.AchievedScore.HasValue || g.Status == "Done")
-                    {
-                        lifecycleStatus = "Done";
-                    }
-                    else
-                    {
-                        lifecycleStatus = "ToDo";
-                    }
-                }
-
-                GoalStatus legacyStatus;
-                if (lifecycleStatus == "Done") legacyStatus = GoalStatus.Achieved;
-                else if (lifecycleStatus == "InProgress") legacyStatus = GoalStatus.InProgress;
-                else legacyStatus = GoalStatus.NoData;
+                var lifecycleStatus = GoalStatusEvaluator.Evaluate(currentAvg, g.TargetValue);
 
                 goalDtos.Add(new GoalDto(
                     g.GoalId,
@@ -697,112 +515,34 @@ public sealed class GradeService(IRepository repository) : IGradeService
                     currentAvg,
                     g.EndDate,
                     g.UserSubjectId,
-                    legacyStatus,
-                    g.IsBaseGoal,
+                    GoalStatusEvaluator.ToLegacyStatus(lifecycleStatus),
+                    g.GoalId == baseGoalId,
                     lifecycleStatus,
                     g.DisplayOrder,
                     g.AchievedScore,
                     g.AchievedAtUtc,
                     activities,
-                    histories));
+                    histories,
+                    GoalStatusEvaluator.ProgressPercent(currentAvg, g.TargetValue),
+                    // Q17: "Quá hạn" chỉ là nhãn, không đổi trạng thái.
+                    g.EndDate.HasValue && g.EndDate.Value < today && lifecycleStatus != GradeConstants.GoalLifecycle.Done));
             }
 
             var baseGoal = goalDtos.FirstOrDefault(g => g.IsBaseGoal);
             var additionalGoals = goalDtos.Where(g => !g.IsBaseGoal).ToList();
 
             result.Add(new GoalLadderDto(
-                canonicalSubject.UserSubjectId,
-                canonicalSubject.SubjectName,
+                subject.UserSubjectId,
+                subject.SubjectName,
                 currentAvg,
                 goalDtos,
                 baseGoal != null,
                 baseGoal,
                 additionalGoals,
-                academicYearName));
+                subject.AcademicYearName,
+                IsDetached: subject.GradeBookId is null));
         }
 
         return result.OrderBy(l => l.SubjectName).ToList();
     }
-
-    private async Task SyncGoalStatusesForSubjectAsync(long userId, long userSubjectId, CancellationToken cancellationToken)
-    {
-        var subject = await repository.Query<UserSubject>()
-            .Include(us => us.GradeEntries)
-            .FirstOrDefaultAsync(us => us.UserSubjectId == userSubjectId && us.UserId == userId && !us.IsArchived, cancellationToken);
-
-        if (subject == null) return;
-
-        var goals = await repository.Query<Goal>(false)
-            .Where(g => g.UserId == userId && g.UserSubjectId == userSubjectId && !g.IsCancelled)
-            .ToListAsync(cancellationToken);
-
-        if (!goals.Any()) return;
-
-        decimal? curAvg = null;
-        if (subject.GradeBookId.HasValue)
-        {
-            var columns = await repository.Query<GradeColumn>()
-                .Where(c => c.GradeBookId == subject.GradeBookId.Value)
-                .ToListAsync(cancellationToken);
-
-            curAvg = GradeCalculator.CalculateSubjectAverage(subject.GradeEntries, columns);
-        }
-
-        bool changed = false;
-        if (curAvg.HasValue)
-        {
-            var avg = curAvg.Value;
-            foreach (var g in goals)
-            {
-                if (avg >= g.TargetValue)
-                {
-                    if (g.Status != "Done")
-                    {
-                        g.Status = "Done";
-                        if (!g.AchievedScore.HasValue)
-                        {
-                            g.AchievedScore = avg;
-                            g.AchievedAtUtc = DateTime.UtcNow;
-                        }
-                        g.UpdatedAtUtc = DateTime.UtcNow;
-                        repository.Update(g);
-                        changed = true;
-                    }
-                }
-                else
-                {
-                    if (g.Status != "InProgress" && !g.AchievedScore.HasValue)
-                    {
-                        g.Status = "InProgress";
-                        g.UpdatedAtUtc = DateTime.UtcNow;
-                        repository.Update(g);
-                        changed = true;
-                    }
-                }
-            }
-        }
-        else
-        {
-            foreach (var g in goals)
-            {
-                if (!g.AchievedScore.HasValue && g.Status != "Done")
-                {
-                    if (g.Status != "ToDo")
-                    {
-                        g.Status = "ToDo";
-                        g.UpdatedAtUtc = DateTime.UtcNow;
-                        repository.Update(g);
-                        changed = true;
-                    }
-                }
-            }
-        }
-
-        if (changed)
-        {
-            await repository.SaveChangesAsync(cancellationToken);
-        }
-    }
 }
-
-
