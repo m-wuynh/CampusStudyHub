@@ -10,7 +10,7 @@
        asp-action="Index"
        class="btn btn-outline-secondary mb-3">
         <i class="bi bi-arrow-left"></i>
-        My Flashcards
+        Deck của tôi
     </a>
 
     <div class="d-flex gap-2">
@@ -22,7 +22,7 @@
                 <a asp-controller="Flashcards"
                    asp-action="Browse"
                    asp-route-deckId="@Model.Deck.DeckId"
-                   class="btn btn-outline-primary">
+                   class="btn btn-primary">
 
                     <i class="bi bi-card-text"></i>
                     Xem thẻ
@@ -34,7 +34,7 @@
                    class="btn btn-primary">
 
                     <i class="bi bi-mortarboard"></i>
-                    Learn
+                    Luyện tập
                 </a>
 
             </div>
@@ -90,16 +90,18 @@
 
                             <div class="flex-grow-1">
 
-                                <div class="small text-muted mb-1">
-                                    Mặt trước
+                                <div class="flashcard-field-label mb-2">
+                                    Thuật ngữ 
+                                    @* fronttext *@
                                 </div>
 
                                 <div class="fw-semibold mb-3">
                                     @card.FrontText
                                 </div>
 
-                                <div class="small text-muted mb-1">
-                                    Mặt sau
+                                <div class="flashcard-field-label mb-2">
+                                    Khái niệm
+                                    @* backtext *@
                                 </div>
 
                                 <div>
@@ -133,9 +135,9 @@
 
                         </div>
 
-                        <div class="small text-muted mt-3">
+                        @* <div class="small text-muted mt-3">
                             SortOrder: @card.SortOrder
-                        </div>
+                        </div> *@
 
                     </div>
                 </div>
@@ -349,4 +351,10 @@
 @section Scripts {
     <script src="~/js/flashcards/details.js"
             asp-append-version="true"></script>
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/flashcards/details.css"
+          asp-append-version="true" />
 }

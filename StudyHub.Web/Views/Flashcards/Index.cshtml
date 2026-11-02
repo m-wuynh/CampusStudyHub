@@ -73,18 +73,24 @@
             foreach (var deck in Model.Decks)
             {
                 <div class="col-12 col-sm-6 col-xl-4">
-                    <div class="sh-card p-4 h-100 d-flex flex-column">
+                    <div class="sh-card p-4 h-100 d-flex flex-column deck-card">
+
+                        <a asp-controller="Flashcards"
+                           asp-action="Details"
+                           asp-route-deckId="@deck.DeckId"
+                           class="deck-card-overlay-link"
+                           aria-label="Xem chi tiết Deck @deck.Title"></a>
 
                         <div class="d-flex justify-content-between
                             align-items-start mb-3">
 
                             <div>
-                                <span class="subject-badge subject-toan
+                                @* <span class="subject-badge subject-toan
                                     mb-2 d-inline-block">
                                     Flashcard
-                                </span>
+                                </span> *@
 
-                                <h3 class="fw-bold mb-1"
+                                @* <h3 class="fw-bold mb-1"
                                     style="font-size:14px;
                                     color:var(--sh-slate-900);">
                                     @deck.Title
@@ -93,6 +99,16 @@
                                 <p class="mb-0"
                                    style="font-size:11px;
                                     color:var(--sh-slate-500);">
+                                    @(string.IsNullOrWhiteSpace(deck.Description)
+                                        ? "Không có mô tả"
+                                        : deck.Description)
+                                </p> *@
+
+                                <h3 class="fw-bold mb-2 deck-card-title">
+                                    @deck.Title
+                                </h3>
+
+                                <p class="mb-0 deck-card-description">
                                     @(string.IsNullOrWhiteSpace(deck.Description)
                                         ? "Không có mô tả"
                                         : deck.Description)
@@ -179,13 +195,13 @@
 
                             </div>
 
-                            <a asp-controller="Flashcards"
+                            @* <a asp-controller="Flashcards"
                                asp-action="Details"
                                asp-route-deckId="@deck.DeckId"
                                class="deck-manage-link">
                                 <i class="bi bi-sliders"></i>
                                 Quản lý trong Chi tiết
-                            </a>
+                            </a> *@
 
                         </div>
 
