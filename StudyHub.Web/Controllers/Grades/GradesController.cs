@@ -1,10 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using StudyHub.BLL.Services.Auth;
 using StudyHub.BLL.DTOs;
 using StudyHub.BLL.Services.Grades;
 using StudyHub.Web.Authentication;
 using StudyHub.Web.ViewModels.Grades;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,17 +21,44 @@ public sealed class GradesController : Controller
     private readonly IGoalService goalService;
     private readonly IGradeBookService gradeBookService;
     private readonly ICurrentUser currentUser;
+    private readonly ILogger<GradesController> logger;
 
     public GradesController(
         IGradeService gradeService,
         IGoalService goalService,
         IGradeBookService gradeBookService,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        ILogger<GradesController> logger)
     {
         this.gradeService = gradeService;
         this.goalService = goalService;
         this.gradeBookService = gradeBookService;
         this.currentUser = currentUser;
+        this.logger = logger;
+    }
+
+    /// <summary>
+    /// Chỉ trả nguyên văn thông điệp của lỗi nghiệp vụ do BLL StudyHub ném ra;
+    /// lỗi database/hệ thống được log và đổi thành thông điệp chung (không lộ chi tiết SQL).
+    /// </summary>
+    private string ToUserMessage(Exception ex)
+    {
+        var thrownByBusinessLayer = ex.TargetSite?.DeclaringType?.Namespace?.StartsWith("StudyHub.BLL", StringComparison.Ordinal) == true;
+
+        switch (ex)
+        {
+            case ArgumentException or InvalidOperationException or UnauthorizedAccessException when thrownByBusinessLayer:
+                return ex.Message;
+            case DbUpdateConcurrencyException:
+                return "Dữ liệu vừa được thay đổi ở nơi khác. Vui lòng tải lại trang và thử lại.";
+            case DbUpdateException { InnerException: SqlException { Number: 2601 or 2627 } }:
+                return "Dữ liệu bị trùng với bản ghi đã có (ví dụ tên hoặc giá trị đã tồn tại).";
+            case DbUpdateException { InnerException: SqlException { Number: 547 } }:
+                return "Không thể lưu vì dữ liệu đang được tham chiếu hoặc không hợp lệ.";
+        }
+
+        logger.LogError(ex, "Grades/Goals request failed");
+        return "Đã xảy ra lỗi, vui lòng thử lại.";
     }
 
     // ── Index ────────────────────────────────────────────────────
@@ -42,24 +73,6 @@ public sealed class GradesController : Controller
 
     // ── GradeBook ────────────────────────────────────────────────
 
-    [HttpPost("CreateGradeBook")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateGradeBook(CreateGradeBookDto dto, CancellationToken cancellationToken)
-    {
-        long? newId = null;
-        try
-        {
-            var result = await gradeBookService.CreateGradeBookAsync(currentUser.UserId, dto, cancellationToken);
-            newId = result.GradeBookId;
-            TempData["SuccessMessage"] = "Đã tạo sổ điểm thành công!";
-        }
-        catch (Exception ex)
-        {
-            TempData["ErrorMessage"] = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-        }
-        return RedirectToAction("Index", new { gradeBookId = newId });
-    }
-
     [HttpPost("UpdateGradeBook")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateGradeBook(UpdateGradeBookDto dto, CancellationToken cancellationToken)
@@ -71,7 +84,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, message = ex.InnerException != null ? ex.InnerException.Message : ex.Message });
+            return Json(new { ok = false, message = ToUserMessage(ex) });
         }
     }
 
@@ -88,7 +101,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+            TempData["ErrorMessage"] = ToUserMessage(ex);
         }
         return RedirectToAction("Index", new { gradeBookId = newId });
     }
@@ -104,7 +117,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, message = ex.InnerException != null ? ex.InnerException.Message : ex.Message });
+            return Json(new { ok = false, message = ToUserMessage(ex) });
         }
     }
 
@@ -115,11 +128,11 @@ public sealed class GradesController : Controller
         try
         {
             await gradeBookService.DeleteGradeBookAsync(currentUser.UserId, id, cancellationToken);
-            TempData["SuccessMessage"] = "Đã xóa bảng điểm thành công!";
+            TempData["SuccessMessage"] = "Đã xóa vĩnh viễn sổ điểm.";
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            TempData["ErrorMessage"] = ToUserMessage(ex);
         }
         return RedirectToAction("Index");
     }
@@ -137,7 +150,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            TempData["ErrorMessage"] = ToUserMessage(ex);
         }
         return RedirectToAction("Index", new { gradeBookId = currentGradeBookId, editMode = "structure" });
     }
@@ -153,7 +166,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            TempData["ErrorMessage"] = ToUserMessage(ex);
         }
         return RedirectToAction("Index", new { gradeBookId = currentGradeBookId, editMode = "structure" });
     }
@@ -169,7 +182,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
     }
 
@@ -184,7 +197,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            TempData["ErrorMessage"] = ToUserMessage(ex);
         }
         return RedirectToAction("Index", new { gradeBookId = currentGradeBookId, editMode = "structure" });
     }
@@ -202,7 +215,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
     }
 
@@ -217,7 +230,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
     }
 
@@ -232,7 +245,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
     }
 
@@ -249,7 +262,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            TempData["ErrorMessage"] = ToUserMessage(ex);
         }
         return RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
     }
@@ -265,23 +278,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
-        }
-        return RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
-    }
-
-    [HttpPost("CancelGoal")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CancelGoal(long id, [FromForm] long? currentGradeBookId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await goalService.CancelGoalAsync(currentUser.UserId, id, cancellationToken);
-            TempData["SuccessMessage"] = "Đã xóa nấc mục tiêu thành công!";
-        }
-        catch (Exception ex)
-        {
-            TempData["ErrorMessage"] = ex.Message;
+            TempData["ErrorMessage"] = ToUserMessage(ex);
         }
         return RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
     }
@@ -297,39 +294,8 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
-    }
-
-    [HttpPost("SetGoalStatus")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SetGoalStatus([FromBody] SetGoalStatusDto dto, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await goalService.SetGoalStatusAsync(currentUser.UserId, dto, cancellationToken);
-            return Json(new { ok = true });
-        }
-        catch (Exception ex)
-        {
-            return Json(new { ok = false, error = ex.Message });
-        }
-    }
-
-    [HttpPost("DesignateBaseGoal")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DesignateBaseGoal([FromForm] long goalId, [FromForm] long? currentGradeBookId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await goalService.DesignateBaseGoalAsync(currentUser.UserId, goalId, cancellationToken);
-            TempData["SuccessMessage"] = "Đã chỉ định làm Mục tiêu gốc thành công!";
-        }
-        catch (Exception ex)
-        {
-            TempData["ErrorMessage"] = ex.Message;
-        }
-        return RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
     }
 
     [HttpPost("ReorderGoals")]
@@ -343,7 +309,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
     }
 
@@ -360,7 +326,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
     }
 
@@ -375,7 +341,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
     }
 
@@ -390,7 +356,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
     }
 
@@ -405,58 +371,8 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
-    }
-
-    // ── Academic Term ────────────────────────────────────────────
-
-    [HttpPost("AddTerm")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddTerm(CreateTermDto dto, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await gradeService.CreateTermAsync(currentUser.UserId, dto, cancellationToken);
-            TempData["SuccessMessage"] = "Đã thêm học kỳ thành công!";
-        }
-        catch (Exception ex)
-        {
-            TempData["ErrorMessage"] = ex.Message;
-        }
-        return RedirectToAction("Index");
-    }
-
-    [HttpPost("UpdateTerm")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateTerm(UpdateTermDto dto, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await gradeService.UpdateTermAsync(currentUser.UserId, dto, cancellationToken);
-            TempData["SuccessMessage"] = "Đã cập nhật học kỳ thành công!";
-        }
-        catch (Exception ex)
-        {
-            TempData["ErrorMessage"] = ex.Message;
-        }
-        return RedirectToAction("Index");
-    }
-
-    [HttpPost("ArchiveTerm")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ArchiveTerm(long id, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await gradeService.ArchiveTermAsync(currentUser.UserId, id, cancellationToken);
-            TempData["SuccessMessage"] = "Đã lưu trữ học kỳ thành công!";
-        }
-        catch (Exception ex)
-        {
-            TempData["ErrorMessage"] = ex.Message;
-        }
-        return RedirectToAction("Index");
     }
 
     // ── User Subject ─────────────────────────────────────────────
@@ -472,7 +388,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            TempData["ErrorMessage"] = ToUserMessage(ex);
         }
         return RedirectToAction("Index", new { gradeBookId = dto.GradeBookId, editMode = "structure" });
     }
@@ -488,23 +404,23 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            TempData["ErrorMessage"] = ToUserMessage(ex);
         }
         return RedirectToAction("Index", new { gradeBookId = currentGradeBookId, editMode = "structure" });
     }
 
     [HttpPost("DeleteUserSubject")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteUserSubject(long id, [FromForm] long currentGradeBookId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteUserSubject(long id, [FromForm] long? currentGradeBookId, CancellationToken cancellationToken)
     {
         try
         {
             await gradeService.DeleteUserSubjectAsync(currentUser.UserId, id, cancellationToken);
-            TempData["SuccessMessage"] = "Đã xóa môn học thành công!";
+            TempData["SuccessMessage"] = "Đã xóa vĩnh viễn môn học.";
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            TempData["ErrorMessage"] = ToUserMessage(ex);
         }
         return RedirectToAction("Index", new { gradeBookId = currentGradeBookId, editMode = "structure" });
     }
@@ -520,40 +436,7 @@ public sealed class GradesController : Controller
         }
         catch (Exception ex)
         {
-            return Json(new { ok = false, error = ex.Message });
+            return Json(new { ok = false, error = ToUserMessage(ex) });
         }
     }
 }
-
-public class ReorderColumnsRequest
-{
-    public long GradeBookId { get; set; }
-    public System.Collections.Generic.List<ReorderColumnDto> Columns { get; set; } = new();
-}
-
-public class DeleteGradeRequest
-{
-    public long Id { get; set; }
-}
-
-public class ReorderSubjectsRequest
-{
-    public System.Collections.Generic.List<ReorderSubjectDto> Subjects { get; set; } = new();
-}
-
-public class DeleteGoalRequest
-{
-    public long GoalId { get; set; }
-}
-
-public class DeleteActivityRequest
-{
-    public long ActivityId { get; set; }
-}
-
-public class ToggleActivityRequest
-{
-    public long ActivityId { get; set; }
-}
-
-

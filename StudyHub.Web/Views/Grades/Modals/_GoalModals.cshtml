@@ -1,0 +1,191 @@
+@model StudyHub.BLL.DTOs.GradesPageDto
+@{
+    var data = Model;
+}
+
+<!-- ── Add Goal Modal ── -->
+<div class="modal fade" id="addGoalModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form asp-action="AddGoal" method="post" class="modal-content">
+      <input type="hidden" name="currentGradeBookId" id="addGoalCurrentGradeBookId" value="@data.SelectedGradeBookId" />
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" style="font-size:15px;"><i class="bi bi-trophy me-2 text-primary"></i><span id="addGoalModalTitle">Đặt mục tiêu học tập</span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- 1. Bảng điểm năm học -->
+        <div class="mb-3">
+          <label class="sh-label" for="addGoalGradeBookSelect">Bảng điểm năm học</label>
+          <select id="addGoalGradeBookSelect" class="sh-input" onchange="onAddGoalGradeBookChanged(this.value)">
+            @if (!data.GradeBooks.Any()) {
+              <option value="">(Chưa có sổ điểm nào)</option>
+            } else {
+              @foreach (var gb in data.GradeBooks) {
+                if (gb.GradeBookId == data.SelectedGradeBookId) {
+                  <option value="@gb.GradeBookId" selected>@gb.Name</option>
+                } else {
+                  <option value="@gb.GradeBookId">@gb.Name</option>
+                }
+              }
+            }
+          </select>
+        </div>
+
+        <!-- 2. Môn học -->
+        <div class="mb-3">
+          <label class="sh-label" for="addGoalSubjectId">Môn học</label>
+          <select name="UserSubjectId" id="addGoalSubjectId" class="sh-input" required onchange="onAddGoalSubjectChanged()">
+            @{
+              var initialGbId = data.SelectedGradeBookId ?? (data.GradeBooks.FirstOrDefault()?.GradeBookId ?? 0);
+              var initialSubs = (data.AllSubjects ?? new List<StudyHub.BLL.DTOs.GradeSubjectOptionDto>())
+                .Where(s => s.GradeBookId == initialGbId)
+                .ToList();
+            }
+            @if (initialSubs.Any()) {
+              @foreach (var s in initialSubs) {
+                <option value="@s.UserSubjectId">@s.SubjectName</option>
+              }
+            } else {
+              <option value="">(Bảng điểm này chưa có môn học nào)</option>
+            }
+          </select>
+        </div>
+
+        <!-- 3. Tên mục tiêu -->
+        <div class="mb-3">
+          <label class="sh-label" for="goal-title">Tên mục tiêu</label>
+          <input name="Title" id="goal-title" type="text" class="sh-input" placeholder="Ví dụ: Đạt 8.0 môn Toán" maxlength="200" required />
+        </div>
+
+        <!-- 4. Điểm mục tiêu (0–10) -->
+        <div class="mb-3">
+          <label class="sh-label" for="goal-target">Điểm mục tiêu (0–10)</label>
+          <input name="TargetValue" id="goal-target" type="number" min="0.1" max="10" step="0.1" class="sh-input" placeholder="Ví dụ: 8.0" required />
+          <small class="text-muted" id="goal-target-hint" style="font-size:11px;">Thang điểm 0–10</small>
+        </div>
+
+        <!-- 5. Hạn hoàn thành (Q17) -->
+        <div class="mb-3">
+          <label class="sh-label" for="goal-deadline">Hạn hoàn thành (tùy chọn)</label>
+          <input name="EndDate" id="goal-deadline" type="date" class="sh-input" />
+        </div>
+      </div>
+      <div class="modal-footer gap-2 border-0 pt-0">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh"><i class="bi bi-trophy me-1"></i>Lưu mục tiêu</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Edit Goal Modal ── -->
+<div class="modal fade" id="editGoalModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form asp-action="UpdateGoal" method="post" class="modal-content">
+      <input type="hidden" name="Id" id="editGoalId" />
+      <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" style="font-size:15px;"><i class="bi bi-pencil-square me-2 text-primary"></i>Sửa mục tiêu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="editGoalNotice"></div>
+        <div class="mb-3">
+          <label class="sh-label" for="edit-goal-title">Tên mục tiêu</label>
+          <input name="Title" id="edit-goal-title" type="text" class="sh-input" maxlength="200" required />
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="sh-label" for="edit-goal-target">Điểm mục tiêu</label>
+            <input name="TargetValue" id="edit-goal-target" type="number" min="0.1" max="10" step="0.1" class="sh-input" required />
+            <small class="text-muted" id="edit-goal-target-hint" style="font-size:10px;"></small>
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="edit-goal-deadline">Hạn hoàn thành (tùy chọn)</label>
+            <input name="EndDate" id="edit-goal-deadline" type="date" class="sh-input" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer gap-2 border-0 pt-0">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh"><i class="bi bi-save me-1"></i>Lưu thay đổi</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Add Goal Activity Modal ── -->
+<div class="modal fade" id="addActivityModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form id="addActivityForm" onsubmit="submitAddActivity(event)" class="modal-content">
+      <input type="hidden" name="GoalId" id="addActivityGoalId" />
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" style="font-size:15px;"><i class="bi bi-calendar-plus me-2 text-primary"></i>Thêm hoạt động rèn luyện</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-muted mb-3" style="font-size:12px;">Hoạt động này sẽ tự động xuất hiện trên Lịch học cá nhân của bạn dưới dạng phiên Tự học.</div>
+        <div class="mb-3">
+          <label class="sh-label" for="add-activity-title">Tên hoạt động</label>
+          <input name="Title" id="add-activity-title" type="text" class="sh-input" placeholder="Ví dụ: Làm bài tập chương 3" maxlength="200" required />
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="sh-label" for="add-activity-start">Thời gian bắt đầu</label>
+            <input name="StartAtLocal" id="add-activity-start" type="datetime-local" class="sh-input" required />
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="add-activity-end">Thời gian kết thúc</label>
+            <input name="EndAtLocal" id="add-activity-end" type="datetime-local" class="sh-input" required />
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="sh-label" for="add-activity-desc">Ghi chú / Mô tả (tùy chọn)</label>
+          <textarea name="Description" id="add-activity-desc" rows="2" class="sh-input" maxlength="2000" placeholder="Nội dung cần ôn tập hoặc ghi chú..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer gap-2 border-0 pt-0">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh"><i class="bi bi-calendar-check me-1"></i>Tạo hoạt động</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Edit Goal Activity Modal ── -->
+<div class="modal fade" id="editActivityModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form id="editActivityForm" onsubmit="submitEditActivity(event)" class="modal-content">
+      <input type="hidden" name="ActivityId" id="editActivityId" />
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" style="font-size:15px;"><i class="bi bi-pencil-square me-2 text-primary"></i>Sửa hoạt động rèn luyện</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="sh-label" for="edit-activity-title">Tên hoạt động</label>
+          <input name="Title" id="edit-activity-title" type="text" class="sh-input" maxlength="200" required />
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="sh-label" for="edit-activity-start">Thời gian bắt đầu</label>
+            <input name="StartAtLocal" id="edit-activity-start" type="datetime-local" class="sh-input" required />
+          </div>
+          <div class="col-6">
+            <label class="sh-label" for="edit-activity-end">Thời gian kết thúc</label>
+            <input name="EndAtLocal" id="edit-activity-end" type="datetime-local" class="sh-input" required />
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="sh-label" for="edit-activity-desc">Ghi chú / Mô tả (tùy chọn)</label>
+          <textarea name="Description" id="edit-activity-desc" rows="2" class="sh-input" maxlength="2000"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer gap-2 border-0 pt-0">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh"><i class="bi bi-save me-1"></i>Lưu thay đổi</button>
+      </div>
+    </form>
+  </div>
+</div>
+

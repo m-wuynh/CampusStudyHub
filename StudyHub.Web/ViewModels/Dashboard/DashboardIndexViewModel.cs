@@ -2,6 +2,7 @@ namespace StudyHub.Web.ViewModels.Dashboard;
 
 using StudyHub.BLL.DTOs;
 using StudyHub.BLL.DTOs.Flashcards;
+using StudyHub.BLL.Services.Dashboard;
 using System;
 using System.Collections.Generic;
 
@@ -12,9 +13,8 @@ public sealed record DashboardIndexViewModel(
     string TimeGreeting,
     int TodayTasksCount,
     int TodayCompletedTasksCount,
-    UpcomingEventSummaryDto? NextExam,
+    UpcomingEventSummaryDto? NextEvent,
     decimal? CurrentAverage10,
-    string? CurrentRankText,
     GoalSummaryDto? ActiveGoalSummary,
     List<ScheduleEventDto> TodaySchedule,
     List<UpcomingEventSummaryDto> UpcomingEvents,
@@ -22,7 +22,9 @@ public sealed record DashboardIndexViewModel(
     int WeeklyTotalEvents = 0,
     int WeeklyCompletedEvents = 0,
     int WeeklyMissedEvents = 0,
-    int StudyStreakDays = 0
+    int StudyStreakDays = 0,
+    IReadOnlyList<DashboardNoteDto>? RecentNotes = null,
+    bool NotesAvailable = true
 );
 
 public sealed record UpcomingEventSummaryDto(

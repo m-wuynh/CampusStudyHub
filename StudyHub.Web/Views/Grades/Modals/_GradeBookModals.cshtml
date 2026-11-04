@@ -1,0 +1,97 @@
+@model StudyHub.BLL.DTOs.GradesPageDto
+@{
+    var data = Model;
+    var gradeBook = data.GradeBook;
+}
+
+<!-- ── Wizard Create GradeBook Modal ── -->
+<div class="modal fade" id="wizardGradeBookModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form asp-action="CreateGradeBookWithColumns" method="post" class="modal-content" id="wizard-form">
+      <input type="hidden" name="GradeBookId" value="@data.SelectedGradeBookId" />
+      
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" style="font-size:14px;"><i class="bi bi-journal-plus me-2"></i>Thêm sổ điểm năm học</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <!-- Step 1 -->
+      <div class="modal-body" id="wizard-step-1">
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="sh-label">Năm bắt đầu</label>
+            <input type="number" name="FromYear" id="wizardFromYear" class="sh-input" value="@StudyHub.BLL.Constants.GradeClock.Today().Year" onchange="document.getElementById('wizardToYear').value = parseInt(this.value) + 1; document.getElementById('wizardNameInput').value = 'Sổ điểm năm học ' + this.value + '-' + (parseInt(this.value) + 1);" required />
+          </div>
+          <div class="col-6">
+            <label class="sh-label">Năm kết thúc</label>
+            <input type="number" name="ToYear" id="wizardToYear" class="sh-input" value="@(StudyHub.BLL.Constants.GradeClock.Today().Year + 1)" readonly />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="sh-label">Tên sổ điểm</label>
+          <input name="Name" id="wizardNameInput" type="text" class="sh-input" value="Sổ điểm năm học @StudyHub.BLL.Constants.GradeClock.Today().Year-@(StudyHub.BLL.Constants.GradeClock.Today().Year + 1)" required maxlength="200" />
+        </div>
+        <div class="row g-3">
+            <div class="col-6">
+                <label class="sh-label">Số môn khởi tạo</label>
+                <input type="number" id="wizard-subject-count" class="sh-input" value="3" min="0" max="10" />
+            </div>
+            <div class="col-6">
+                <label class="sh-label">Số cột khởi tạo</label>
+                <input type="number" id="wizard-column-count" class="sh-input" value="2" min="0" max="10" />
+            </div>
+        </div>
+        <p class="text-muted mt-2 mb-0" style="font-size: 11px;">(Bạn có thể thêm bớt tùy ý sau khi tạo xong)</p>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="modal-body" id="wizard-step-2" style="display: none; max-height: 400px; overflow-y: auto;">
+          <h6 class="fw-bold mb-2" style="font-size: 13px;">Cột đánh giá</h6>
+          <div id="wizard-columns-container"></div>
+          
+          <h6 class="fw-bold mt-4 mb-2" style="font-size: 13px;">Môn học</h6>
+          <div id="wizard-subjects-container"></div>
+      </div>
+
+      <div class="modal-footer gap-2">
+        <button type="button" class="btn-secondary-sh" id="btn-wizard-cancel" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn-secondary-sh" id="btn-wizard-back" style="display: none;" onclick="wizardGoToStep(1)">← Quay lại</button>
+        <button type="button" class="btn-primary-sh" id="btn-wizard-next" onclick="wizardGoToStep(2)">Tiếp theo →</button>
+        <button type="submit" class="btn-primary-sh" id="btn-wizard-submit" style="display: none;"><i class="bi bi-check-lg me-1"></i>Hoàn tất tạo sổ điểm</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Delete GradeBook Modal ── -->
+<div class="modal fade" id="deleteGradeBookModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <form asp-action="DeleteGradeBook" method="post" class="modal-content">
+      <input type="hidden" name="id" value="@(gradeBook?.GradeBookId ?? data.SelectedGradeBookId ?? 0)" />
+      <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Xóa bảng điểm?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Sổ điểm: <strong>@(gradeBook?.Name)</strong></p>
+        <p class="fw-bold mb-2">Thao tác này sẽ xóa vĩnh viễn sổ điểm và toàn bộ dữ liệu của sổ:</p>
+        <ul class="mb-3" style="font-size: 13px; color: var(--sh-slate-700);">
+            <li>Các môn học và cột điểm</li>
+            <li>Toàn bộ điểm đã nhập</li>
+            <li>Mục tiêu, lịch sử mục tiêu và hoạt động học tập (kể cả lịch học của các môn)</li>
+            <li>Deadline và phiên học của các môn</li>
+        </ul>
+        <p class="mb-3" style="font-size: 13px; color: var(--sh-slate-700);">Ghi chú, tài liệu và bộ flashcard được <strong>giữ lại</strong> nhưng sẽ không còn gắn với môn học.</p>
+        <div class="alert alert-danger mb-0" style="font-size:12px;">
+          <i class="bi bi-exclamation-circle me-1"></i> Thao tác không thể hoàn tác. Các sổ điểm khác không bị ảnh hưởng.
+        </div>
+      </div>
+      <div class="modal-footer gap-2 border-0 pt-0">
+        <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn-primary-sh bg-danger border-danger"><i class="bi bi-trash3 me-1"></i>Xác nhận xóa</button>
+      </div>
+    </form>
+  </div>
+</div>
+
