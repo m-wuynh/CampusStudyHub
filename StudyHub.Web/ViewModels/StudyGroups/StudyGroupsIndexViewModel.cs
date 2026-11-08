@@ -1,3 +1,4 @@
+using StudyHub.BLL.DTOs;
 namespace StudyHub.Web.ViewModels.StudyGroups;
 
-public sealed record StudyGroupsIndexViewModel(string? SearchText = null, int? SubjectId = null);
+public sealed record StudyGroupsIndexViewModel(IReadOnlyList<GroupSummaryResponse> Groups, string? SearchText = null);
