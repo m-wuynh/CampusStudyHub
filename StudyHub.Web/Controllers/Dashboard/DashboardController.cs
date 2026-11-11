@@ -78,51 +78,77 @@ public sealed class DashboardController(
         }
 
         // ── 3. Schedule & Events Data ──────────────────────────────────
-        var todayEvents = await calendarService.GetEventsAsync(userId, today, today);
-        var upcomingEventsRaw = await calendarService.GetEventsAsync(userId, today, today.AddDays(7));
+        var allCandidateEvents = await calendarService.GetEventsAsync(userId, today, today.AddDays(7));
+
+        var todayEvents = new List<ScheduleEventDto>();
+        foreach (var ev in allCandidateEvents)
+        {
+            var starts = ScheduleOccurrenceService.GetStarts(ev, today, today);
+            var duration = ev.EndAtLocal - ev.StartAtLocal;
+            foreach (var startDt in starts)
+            {
+                todayEvents.Add(ev with { StartAtLocal = startDt, EndAtLocal = startDt.Add(duration) });
+            }
+        }
+        todayEvents = todayEvents.OrderBy(e => e.StartAtLocal).ToList();
 
         // Sự kiện sắp diễn ra: mọi loại sự kiện chưa bắt đầu, trong 7 ngày tới.
         var upcomingSummary = new List<UpcomingEventSummaryDto>();
 
-        foreach (var ev in upcomingEventsRaw.OrderBy(e => e.StartAtLocal))
+        foreach (var ev in allCandidateEvents)
         {
-            var evDate = DateOnly.FromDateTime(ev.StartAtLocal);
-            int daysLeft = evDate.DayNumber - today.DayNumber;
-
-            if (ev.StartAtLocal < now || daysLeft > 7)
+            var starts = ScheduleOccurrenceService.GetStarts(ev, today, today.AddDays(7));
+            var duration = ev.EndAtLocal - ev.StartAtLocal;
+            foreach (var startDt in starts)
             {
-                continue;
+                if (startDt < now)
+                {
+                    continue;
+                }
+
+                var evDate = DateOnly.FromDateTime(startDt);
+                int daysLeft = evDate.DayNumber - today.DayNumber;
+
+                if (daysLeft > 7)
+                {
+                    continue;
+                }
+
+                string typeLabel = ev.EventType switch
+                {
+                    "Exam" => "Kiểm tra",
+                    "Class" => "Lịch học",
+                    "Other" => "Bài tập",
+                    _ => "Tự học"
+                };
+
+                string badgeCss = ev.EventType switch
+                {
+                    "Exam" => "exam",
+                    "Class" => "group",
+                    "Other" => "homework",
+                    _ => "study"
+                };
+
+                var dto = new UpcomingEventSummaryDto(
+                    ev.Id,
+                    ev.Title,
+                    ev.EventType,
+                    typeLabel,
+                    badgeCss,
+                    startDt.ToString("dd/MM/yyyy"),
+                    startDt.ToString("HH:mm"),
+                    daysLeft
+                );
+
+                upcomingSummary.Add(dto);
             }
-
-            string typeLabel = ev.EventType switch
-            {
-                "Exam" => "Kiểm tra",
-                "Class" => "Lịch học",
-                "Other" => "Bài tập",
-                _ => "Tự học"
-            };
-
-            string badgeCss = ev.EventType switch
-            {
-                "Exam" => "exam",
-                "Class" => "group",
-                "Other" => "homework",
-                _ => "study"
-            };
-
-            var dto = new UpcomingEventSummaryDto(
-                ev.Id,
-                ev.Title,
-                ev.EventType,
-                typeLabel,
-                badgeCss,
-                ev.StartAtLocal.ToString("dd/MM/yyyy"),
-                ev.StartAtLocal.ToString("HH:mm"),
-                daysLeft
-            );
-
-            upcomingSummary.Add(dto);
         }
+
+        upcomingSummary = upcomingSummary
+            .OrderBy(e => e.DaysLeftText)
+            .ThenBy(e => e.TimeText)
+            .ToList();
 
         var nextEvent = upcomingSummary.FirstOrDefault();
 
@@ -131,10 +157,29 @@ public sealed class DashboardController(
         var startOfWeek = today.AddDays(-1 * diff);
         var endOfWeek = startOfWeek.AddDays(6);
 
-        var weeklyEvents = await calendarService.GetEventsAsync(userId, startOfWeek, endOfWeek);
-        int weeklyTotal = weeklyEvents.Count;
-        int weeklyCompleted = weeklyEvents.Count(e => e.IsCompleted);
-        int weeklyMissed = weeklyEvents.Count(e => !e.IsCompleted && e.EndAtLocal < now);
+        var weeklyCandidateEvents = await calendarService.GetEventsAsync(userId, startOfWeek, endOfWeek);
+        int weeklyTotal = 0;
+        int weeklyCompleted = 0;
+        int weeklyMissed = 0;
+
+        foreach (var ev in weeklyCandidateEvents)
+        {
+            var starts = ScheduleOccurrenceService.GetStarts(ev, startOfWeek, endOfWeek);
+            var duration = ev.EndAtLocal - ev.StartAtLocal;
+            foreach (var startDt in starts)
+            {
+                weeklyTotal++;
+                var endDt = startDt.Add(duration);
+                if (ev.IsCompleted)
+                {
+                    weeklyCompleted++;
+                }
+                else if (endDt < now)
+                {
+                    weeklyMissed++;
+                }
+            }
+        }
 
         // ── 5. Flashcards Data ────────────────────────────────────────
         var decks = await flashcardDeckService.GetMyDecksAsync(userId, cancellationToken);
