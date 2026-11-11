@@ -71,6 +71,10 @@ public sealed class GoalService(IRepository repository, GoalStatusSyncService go
         GoalStatusEvaluator.ApplyTransition(goal, average, now, out _);
 
         await repository.AddAsync(goal, cancellationToken);
+        // Hành trình: mốc đầu tiên ghi ĐTB và trạng thái lúc tạo.
+        await repository.AddAsync(
+            GoalJourney.ForGoal(goal, GradeConstants.GoalJourneyEvent.GoalCreated, average, null, now),
+            cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
     }
 
@@ -110,6 +114,8 @@ public sealed class GoalService(IRepository repository, GoalStatusSyncService go
                 throw new ArgumentException($"Môn học này đã có mục tiêu {newTarget:0.0}.");
 
             var average = await goalStatusSync.GetSubjectAverageAsync(userId, goal.UserSubjectId, cancellationToken);
+            var oldTarget = goal.TargetValue;
+            var statusBefore = goal.Status;
 
             // Đánh giá theo mục tiêu cũ trước; nếu đang đạt thì lần đạt đó được lưu vào GoalHistory với mục tiêu cũ.
             var histories = new List<GoalHistory>();
@@ -121,6 +127,10 @@ public sealed class GoalService(IRepository repository, GoalStatusSyncService go
             GoalStatusEvaluator.ApplyTransition(goal, average, now, out _);
 
             foreach (var history in histories) await repository.AddAsync(history, cancellationToken);
+            // Hành trình: mốc đổi điểm mục tiêu (PreviousValue = mục tiêu cũ; StatusFrom/To = trạng thái trước/sau).
+            await repository.AddAsync(
+                GoalJourney.ForGoal(goal, GradeConstants.GoalJourneyEvent.TargetChanged, average, statusBefore, now, oldTarget),
+                cancellationToken);
         }
 
         goal.Title = title;
@@ -167,32 +177,15 @@ public sealed class GoalService(IRepository repository, GoalStatusSyncService go
             }
         }
 
+        var nowUtc = DateTime.UtcNow;
+        var average = await goalStatusSync.GetSubjectAverageAsync(userId, goal.UserSubjectId, cancellationToken);
         goal.IsCancelled = true;
-        goal.UpdatedAtUtc = DateTime.UtcNow;
+        goal.UpdatedAtUtc = nowUtc;
         repository.Update(goal);
-        await repository.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task ReorderGoalsAsync(long userId, List<ReorderGoalDto> items, CancellationToken cancellationToken = default)
-    {
-        if (items == null || !items.Any()) return;
-
-        var goalIds = items.Select(i => i.GoalId).ToList();
-        var goals = await repository.Query<Goal>(false)
-            .Where(g => g.UserId == userId && goalIds.Contains(g.GoalId) && !g.IsCancelled && !g.IsBaseGoal)
-            .ToListAsync(cancellationToken);
-
-        foreach (var item in items)
-        {
-            var g = goals.FirstOrDefault(x => x.GoalId == item.GoalId);
-            if (g != null)
-            {
-                g.DisplayOrder = item.NewDisplayOrder;
-                g.UpdatedAtUtc = DateTime.UtcNow;
-                repository.Update(g);
-            }
-        }
-
+        // Hành trình: mốc hủy nấc (bản ghi mục tiêu được giữ, IsCancelled = 1).
+        await repository.AddAsync(
+            GoalJourney.ForGoal(goal, GradeConstants.GoalJourneyEvent.GoalCancelled, average, goal.Status, nowUtc),
+            cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
     }
 
@@ -205,6 +198,7 @@ public sealed class GoalService(IRepository repository, GoalStatusSyncService go
 
     // ── Goal Activities (Đồng bộ hai chiều với Lịch học cá nhân) ─────────
     // Q18 = B: không ghi ActivityEvent. Q19 = A: cho phép thời gian ở quá khứ; kết thúc phải sau bắt đầu.
+    // Trạng thái hoàn thành chỉ được xác nhận ở Lịch học cá nhân (module Calendar); tab Mục tiêu chỉ hiển thị.
 
     public async Task<ScheduleEventDto> AddGoalActivityAsync(long userId, CreateGoalActivityDto dto, CancellationToken cancellationToken = default)
     {
@@ -260,6 +254,8 @@ public sealed class GoalService(IRepository repository, GoalStatusSyncService go
     {
         var activity = await GetGoalActivityAsync(userId, dto.ActivityId, cancellationToken)
             ?? throw new ArgumentException("Hoạt động không tồn tại.");
+        if (activity.IsCompleted)
+            throw new ArgumentException("Hoạt động đã hoàn thành nên không thể chỉnh sửa.");
 
         var (title, description) = ValidateActivity(dto.Title, dto.Description, dto.StartAtLocal, dto.EndAtLocal);
 
@@ -276,23 +272,13 @@ public sealed class GoalService(IRepository repository, GoalStatusSyncService go
     {
         var activity = await GetGoalActivityAsync(userId, activityId, cancellationToken);
         if (activity is null) return;
+        if (activity.IsCompleted)
+            throw new ArgumentException("Hoạt động đã hoàn thành nên không thể xóa.");
 
         activity.IsDeleted = true;
         activity.UpdatedAtUtc = DateTime.UtcNow;
 
         await repository.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task<bool> ToggleGoalActivityCompletionAsync(long userId, long activityId, CancellationToken cancellationToken = default)
-    {
-        var activity = await GetGoalActivityAsync(userId, activityId, cancellationToken)
-            ?? throw new ArgumentException("Hoạt động không tồn tại.");
-
-        activity.IsCompleted = !activity.IsCompleted;
-        activity.UpdatedAtUtc = DateTime.UtcNow;
-
-        await repository.SaveChangesAsync(cancellationToken);
-        return activity.IsCompleted;
     }
 
     /// <summary>Chỉ thao tác trên lịch thuộc một mục tiêu chưa hủy của người dùng (lịch thường do module Lịch quản lý).</summary>

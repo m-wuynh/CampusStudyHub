@@ -191,8 +191,6 @@ builder.Services.AddScoped<
 
 // Other application services
 builder.Services.AddScoped<
-    StudyHub.BLL.Services.Grades.GradeBookDeletionService>();
-builder.Services.AddScoped<
     StudyHub.BLL.Services.Grades.GoalStatusSyncService>();
 
 builder.Services.AddScoped<

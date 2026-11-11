@@ -29,6 +29,13 @@ public static class GoalStatusEvaluator
         _ => GoalStatus.NoData
     };
 
+    /// <summary>Mức của thanh tiến độ mục tiêu: <c>done</c> (đã đạt), <c>near</c> (≥ NearGoalProgressPercent), <c>far</c>; chưa có điểm → <c>none</c>.</summary>
+    public static string ProgressTone(string lifecycleStatus, int? progressPercent) =>
+        lifecycleStatus == Lifecycle.Done ? "done"
+        : progressPercent is null ? "none"
+        : progressPercent >= StudyHub.BLL.Constants.GradeConstants.NearGoalProgressPercent ? "near"
+        : "far";
+
     /// <summary>% tiến độ theo ĐTB hiển thị (Q08), dùng chung cho ladder, bảng điểm và Dashboard.</summary>
     public static int? ProgressPercent(decimal? average, decimal target) =>
         GradeCalculator.ComputeProgressPercent(GradeCalculator.RoundForDisplay(average), target);

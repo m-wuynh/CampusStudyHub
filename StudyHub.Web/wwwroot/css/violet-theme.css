@@ -1,0 +1,709 @@
+/* =====================================================================
+   Violet theme – chỉ áp dụng cho trang Tổng quan (#dashboard-view)
+   và Điểm số & Mục tiêu (#grades-view). Menu, thanh trên cùng và các
+   trang khác không bị ảnh hưởng.
+   ===================================================================== */
+
+#dashboard-view,
+#grades-view {
+  /* Bảng màu violet */
+  --sv-50: #f5f3ff;
+  --sv-100: #ede9fe;
+  --sv-200: #ddd6fe;
+  --sv-300: #c4b5fd;
+  --sv-400: #a78bfa;
+  --sv-500: #8b5cf6;
+  --sv-600: #7c3aed;
+  --sv-700: #6d28d9;
+  --sv-800: #5b21b6;
+  --sv-900: #4c1d95;
+  --sv-ink: #18181b;
+  --sv-shadow: 0 1px 2px rgba(24, 16, 64, .04), 0 8px 24px -12px rgba(24, 16, 64, .10);
+  --sv-shadow-hover: 0 2px 4px rgba(24, 16, 64, .05), 0 14px 32px -14px rgba(24, 16, 64, .18);
+  --sv-radius: 16px;
+
+  /* Trong phạm vi 2 trang này, các token "indigo" cũ trỏ sang violet */
+  --sh-indigo-50: var(--sv-50);
+  --sh-indigo-100: var(--sv-100);
+  --sh-indigo-200: var(--sv-200);
+  --sh-indigo-300: var(--sv-300);
+  --sh-indigo-500: var(--sv-500);
+  --sh-indigo-600: var(--sv-600);
+  --sh-indigo-700: var(--sv-700);
+  --sh-indigo-800: var(--sv-800);
+  --sh-indigo-900: var(--sv-900);
+
+  /* Bootstrap: màu primary trong phạm vi */
+  --bs-primary: #7c3aed;
+  --bs-primary-rgb: 124, 58, 237;
+  --bs-link-color: #7c3aed;
+  --bs-link-color-rgb: 124, 58, 237;
+  --bs-link-hover-color: #6d28d9;
+  --bs-link-hover-color-rgb: 109, 40, 217;
+}
+
+/* ── Thẻ ─────────────────────────────────────────────────────────── */
+#dashboard-view .sh-card,
+#grades-view .sh-card,
+#dashboard-view .stat-card,
+#grades-view .stat-card {
+  background: #fff;
+  border: 0;
+  border-radius: var(--sv-radius);
+  box-shadow: var(--sv-shadow);
+}
+#dashboard-view .sh-card:hover,
+#grades-view .sh-card:hover {
+  box-shadow: var(--sv-shadow-hover);
+}
+
+/* ── Tiêu đề khu vực (đặt ngoài thẻ) ─────────────────────────────── */
+.sv-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.sv-section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--sv-ink);
+}
+.sv-section-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--sh-slate-500);
+}
+.sv-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sv-600);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.sv-link:hover { color: var(--sv-800); }
+
+/* ── Banner chào mừng ────────────────────────────────────────────── */
+#dashboard-view .sv-hero {
+  background: var(--sv-600);
+  background-image: linear-gradient(115deg, #7c3aed 0%, #7c3aed 55%, #8b5cf6 100%);
+  border-radius: 20px;
+  padding: 26px 32px 28px;
+  box-shadow: 0 18px 40px -22px rgba(124, 58, 237, .65);
+}
+.sv-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .85);
+  margin-bottom: 10px;
+}
+.sv-hero-title {
+  font-size: clamp(20px, 2.6vw, 28px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  color: #fff;
+}
+.sv-hero-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, .88);
+  margin: 0 0 18px;
+}
+.sv-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #18181b;
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 6px 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform .15s ease, background .15s ease;
+}
+.sv-hero-btn:hover { background: #000; color: #fff; transform: translateY(-1px); }
+.sv-hero-btn .sv-hero-btn-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--sv-600);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.sv-hero-stars {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 46%;
+  pointer-events: none;
+  z-index: 1;
+}
+.sv-hero-stars svg { position: absolute; fill: rgba(255, 255, 255, .16); }
+
+/* ── Thẻ số liệu (icon tròn bên trái) ────────────────────────────── */
+.sv-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 100%;
+  padding: 16px 18px;
+  background: #fff;
+  border-radius: var(--sv-radius);
+  box-shadow: var(--sv-shadow);
+  min-width: 0;
+}
+.sv-stat-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: var(--sv-100);
+  color: var(--sv-600);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.sv-stat-icon.is-rose { background: var(--sh-rose-50); color: var(--sh-rose-600); }
+.sv-stat-icon.is-emerald { background: var(--sh-emerald-50); color: var(--sh-emerald-600); }
+.sv-stat-icon.is-amber { background: var(--sh-amber-50); color: var(--sh-amber-600); }
+.sv-stat-icon.is-neutral { background: var(--sh-slate-100); color: var(--sh-slate-400); }
+.sv-stat-body { min-width: 0; flex: 1 1 auto; }
+.sv-stat-label {
+  font-size: 11px;
+  color: var(--sh-slate-500);
+  margin: 0 0 2px;
+}
+.sv-stat-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--sv-ink);
+  margin: 0;
+  line-height: 1.3;
+}
+.sv-stat-value.is-big { font-size: 22px; line-height: 1.2; }
+.sv-stat-sub {
+  font-size: 11px;
+  color: var(--sh-slate-500);
+  margin: 2px 0 0;
+}
+
+/* ── Nhãn dạng pill ──────────────────────────────────────────────── */
+.sv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--sv-100);
+  color: var(--sv-700);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.sv-pill.is-neutral { background: var(--sh-slate-100); color: var(--sh-slate-600); }
+.sv-pill.is-rose { background: var(--sh-rose-50); color: var(--sh-rose-700); }
+.sv-pill.is-emerald { background: var(--sh-emerald-50); color: var(--sh-emerald-700); }
+.sv-pill.is-amber { background: var(--sh-amber-50); color: var(--sh-amber-800); }
+
+/* ── Thanh tiến độ mảnh ──────────────────────────────────────────── */
+.sv-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--sh-slate-200);
+  overflow: hidden;
+}
+.sv-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--sv-600);
+  transition: width .4s ease;
+}
+.sv-progress > span.is-emerald { background: var(--sh-emerald-500); }
+.sv-progress > span.is-amber { background: var(--sh-amber-500); }
+.sv-progress > span.is-rose { background: var(--sh-rose-500); }
+
+/* ── Dòng danh sách trong thẻ ────────────────────────────────────── */
+.sv-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--sh-slate-100);
+}
+.sv-row:first-child { border-top: 0; padding-top: 0; }
+.sv-time-chip {
+  min-width: 56px;
+  text-align: center;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--sv-50);
+  color: var(--sv-700);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── Bảng kiểu "danh sách" ───────────────────────────────────────── */
+.sv-table { width: 100%; margin: 0; border-collapse: collapse; }
+.sv-table thead th {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--sh-slate-500);
+  padding: 14px 18px 10px;
+  border: 0;
+  white-space: nowrap;
+  background: transparent;
+}
+.sv-table tbody td {
+  padding: 12px 18px;
+  border-top: 1px solid var(--sh-slate-100);
+  vertical-align: middle;
+  font-size: 13px;
+  color: var(--sh-slate-800);
+}
+.sv-action-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--sv-50);
+  color: var(--sv-700);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .15s ease;
+}
+.sv-action-pill:hover { background: var(--sv-100); color: var(--sv-800); }
+
+/* ── Thẻ bộ flashcard (kiểu "Continue Watching") ─────────────────── */
+.sv-media-card {
+  background: #fff;
+  border-radius: var(--sv-radius);
+  box-shadow: var(--sv-shadow);
+  padding: 10px 10px 14px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.sv-media-card:hover { box-shadow: var(--sv-shadow-hover); transform: translateY(-2px); }
+.sv-media-thumb {
+  position: relative;
+  height: 110px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, .92);
+  font-size: 34px;
+  margin-bottom: 12px;
+}
+.sv-media-thumb::after {
+  content: "";
+  position: absolute;
+  right: -24px;
+  bottom: -30px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .12);
+}
+.sv-media-thumb.t1 { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
+.sv-media-thumb.t2 { background: linear-gradient(135deg, #312e81, #7c3aed); }
+.sv-media-thumb.t3 { background: linear-gradient(135deg, #6d28d9, #ec4899); }
+.sv-media-body { padding: 0 4px; display: flex; flex-direction: column; flex: 1 1 auto; }
+.sv-media-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sv-ink);
+  margin: 8px 0 4px;
+  line-height: 1.4;
+}
+.sv-media-desc { font-size: 12px; color: var(--sh-slate-500); margin: 0; }
+.sv-media-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--sh-slate-500);
+}
+
+/* ── Nút trong phạm vi 2 trang ───────────────────────────────────── */
+#dashboard-view .btn-primary-sh,
+#grades-view .btn-primary-sh {
+  background: var(--sv-600);
+  border-radius: 999px;
+  box-shadow: 0 6px 16px -8px rgba(124, 58, 237, .6);
+}
+#dashboard-view .btn-primary-sh:hover,
+#grades-view .btn-primary-sh:hover { background: var(--sv-700); }
+#dashboard-view .btn-secondary-sh,
+#grades-view .btn-secondary-sh {
+  background: #fff;
+  color: var(--sh-slate-700);
+  border: 1px solid var(--sh-slate-200);
+  border-radius: 999px;
+}
+#dashboard-view .btn-secondary-sh:hover,
+#grades-view .btn-secondary-sh:hover {
+  background: var(--sv-50);
+  border-color: var(--sv-200);
+  color: var(--sv-700);
+}
+#grades-view .btn-outline-primary {
+  --bs-btn-color: #7c3aed;
+  --bs-btn-border-color: #c4b5fd;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #7c3aed;
+  --bs-btn-hover-border-color: #7c3aed;
+  --bs-btn-active-bg: #6d28d9;
+  --bs-btn-active-border-color: #6d28d9;
+  border-radius: 999px !important;
+}
+#grades-view .sh-input:focus { box-shadow: 0 0 0 3px var(--sv-100); }
+
+/* ── Modal ───────────────────────────────────────────────────────── */
+#grades-view .modal-content {
+  border: 0;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px -24px rgba(24, 16, 64, .35);
+}
+#grades-view .modal-header { border-bottom: 1px solid var(--sh-slate-100); }
+#grades-view .modal-footer { border-top: 1px solid var(--sh-slate-100); }
+
+/* ── Điểm số: tab ────────────────────────────────────────────────── */
+#grades-view .sv-tabs {
+  border-bottom: 1px solid var(--sh-slate-200);
+  gap: 24px;
+}
+#grades-view .sv-tabs .nav-link {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  padding: 10px 2px;
+  margin-bottom: -1px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sh-slate-500);
+}
+#grades-view .sv-tabs .nav-link:hover { color: var(--sv-700); }
+#grades-view .sv-tabs .nav-link.active {
+  color: var(--sv-600);
+  border-bottom-color: var(--sv-600);
+  font-weight: 700;
+}
+
+/* ── Điểm số: bảng điểm ──────────────────────────────────────────── */
+#grades-view .grade-table thead th {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--sh-slate-500);
+  background: #fff;
+  border-bottom: 1px solid var(--sh-slate-100);
+  padding-top: 14px;
+  padding-bottom: 12px;
+  vertical-align: bottom;
+}
+#grades-view .grade-table tbody td {
+  border-bottom: 1px solid var(--sh-slate-100);
+  padding-top: 12px;
+  padding-bottom: 12px;
+  vertical-align: middle;
+}
+#grades-view .grade-table tbody tr:last-child td { border-bottom: 0; }
+#grades-view .grade-table.table-hover > tbody > tr:hover > * {
+  --bs-table-bg-state: var(--sv-50);
+}
+#grades-view .sv-score-pill {
+  display: inline-block;
+  min-width: 44px;
+  text-align: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--sv-100);
+  color: var(--sv-700);
+  font-size: 13px;
+  font-weight: 700;
+}
+#grades-view .sv-score-pill.is-empty { background: var(--sh-slate-100); color: var(--sh-slate-500); }
+#grades-view .sv-score-pill.is-low { background: var(--sh-rose-50); color: var(--sh-rose-700); }
+#grades-view .sv-score-pill.is-mid { background: var(--sh-amber-50); color: var(--sh-amber-800); }
+#grades-view .sv-score-pill.is-high { background: var(--sh-emerald-50); color: var(--sh-emerald-700); }
+#grades-view .grade-table .progress { height: 6px !important; border-radius: 999px; }
+#grades-view .mode-panel > .bg-light {
+  background: var(--sv-50) !important;
+  border-bottom-color: var(--sv-100) !important;
+}
+
+/* ── Điểm số: bảng ở chế độ xem (cột, điểm thành phần, tiến độ) ── */
+/* Cột môn học co theo tên môn (tối đa 220px); mỗi cột điểm tối thiểu 150px để dãy điểm hiển thị gọn.
+   Khi có nhiều cột, bảng cuộn ngang (table-responsive) thay vì bóp cột. */
+#grades-view .sv-grade-table .sv-col-subject { width: 1%; min-width: 120px; max-width: 220px; white-space: nowrap; }
+#grades-view .sv-grade-table td:first-child .truncate { max-width: 200px; }
+#grades-view .sv-grade-table .sv-col-score { min-width: 140px; }
+#grades-view .sv-grade-table .sv-col-avg { width: 1%; min-width: 90px; white-space: nowrap; }
+#grades-view .sv-grade-table .sv-col-progress { width: 1%; min-width: 200px; }
+#grades-view .sv-grade-table thead th { white-space: nowrap; }
+#grades-view .sv-weight {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--sh-slate-100);
+  color: var(--sh-slate-500);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  vertical-align: middle;
+}
+/* Điểm thành phần: cột hệ số < 2 chữ thường màu xám ("9 • 8.5"), hệ số ≥ 2 chữ đậm ("9.0") */
+#grades-view .sv-score-minor,
+#grades-view .sv-score-major {
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: normal;
+}
+#grades-view .sv-score-minor { color: var(--sh-slate-600); font-weight: 400; word-spacing: 2px; }
+#grades-view .sv-score-major { color: var(--sv-ink); font-weight: 700; }
+#grades-view .sv-dash { color: var(--sh-slate-300); font-weight: 500; }
+#grades-view .sv-pct {
+  min-width: 38px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+#grades-view .sv-progress-caption {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--sh-slate-500);
+}
+
+/* Thu bớt khoảng trống phía trên (vùng main có padding lớn) */
+@media (min-width: 576px) { #grades-view { margin-top: -0.5rem; } }
+@media (min-width: 992px) { #grades-view { margin-top: -1rem; } }
+
+/* ── Mục tiêu: ladder (ghi đè màu cứng trong grades.css) ─────────── */
+#grades-view .subject-header-card,
+#grades-view .goal-card-full {
+  border: 0;
+  border-radius: var(--sv-radius);
+  box-shadow: var(--sv-shadow);
+}
+#grades-view .goal-card-full:hover { box-shadow: var(--sv-shadow-hover); }
+#grades-view .subject-icon-box {
+  border-radius: 50%;
+  background: var(--sv-100);
+  color: var(--sv-600);
+}
+#grades-view .goal-icon-bullseye { background: var(--sv-100); color: var(--sv-600); }
+#grades-view .subject-score-pill,
+#grades-view .goal-current-score-pill {
+  background: var(--sv-100);
+  color: var(--sv-700);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+#grades-view .subject-score-pill.no-score,
+#grades-view .goal-current-score-pill.no-score { background: var(--sh-slate-100); color: var(--sh-slate-500); }
+#grades-view .badge-base-goal {
+  background: var(--sv-100);
+  color: var(--sv-700);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+#grades-view .badge-academic-year {
+  border: 0;
+  background: var(--sh-slate-100);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+#grades-view .goal-progress-track { height: 6px; background: var(--sh-slate-200); }
+#grades-view .goal-progress-fill { background: var(--sv-600); }
+#grades-view .goal-progress-fill.tone-done { background: var(--sh-emerald-500); }
+#grades-view .goal-progress-fill.tone-near { background: var(--sh-amber-500); }
+#grades-view .goal-progress-fill.tone-far { background: var(--sh-rose-500); }
+#grades-view .goal-progress-text.tone-done { color: var(--sh-emerald-600); }
+#grades-view .goal-progress-text.tone-near { color: var(--sh-amber-600); }
+#grades-view .goal-progress-text.tone-far { color: var(--sh-rose-600); }
+#grades-view .status-pill-inprogress { background: var(--sv-50); color: var(--sv-700); }
+#grades-view .dot-inprogress { background: var(--sv-600); }
+#grades-view .goal-activities-box {
+  background: var(--sh-slate-50);
+  border: 0;
+  border-radius: 14px;
+}
+#grades-view .activity-row { background: transparent; }
+#grades-view .btn-add-activity-dashed {
+  border-color: var(--sv-200);
+  color: var(--sv-600);
+  border-radius: 12px;
+  background: #fff;
+}
+#grades-view .btn-add-activity-dashed:hover {
+  background: var(--sv-50);
+  border-color: var(--sv-400);
+  color: var(--sv-700);
+}
+#grades-view .btn-icon-subtle.primary:hover { background: var(--sv-100); color: var(--sv-700); }
+
+/* ── Hành trình mục tiêu (offcanvas) ──────────────────────────────── */
+#grades-view .sv-journey {
+  --bs-offcanvas-width: 500px;
+  border-left: 0;
+  box-shadow: -24px 0 60px -30px rgba(24, 16, 64, .35);
+}
+#grades-view .sv-journey-head {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--sh-slate-100);
+  padding: 20px 24px 16px;
+}
+#grades-view .sv-journey-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--sh-slate-500);
+}
+#grades-view .sv-journey-title { font-size: 18px; font-weight: 700; color: var(--sv-ink); margin: 2px 0 0; }
+#grades-view .sv-journey .offcanvas-body { padding: 20px 24px; background: var(--sh-slate-50); }
+#grades-view .sv-journey-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: var(--sv-shadow);
+  padding: 16px;
+}
+#grades-view .sv-journey-goal { padding: 12px 0; border-top: 1px solid var(--sh-slate-100); }
+#grades-view .sv-journey-goal:first-of-type { border-top: 0; padding-top: 0; }
+#grades-view .sv-journey-section {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--sh-slate-600);
+  margin: 0 0 10px;
+}
+#grades-view .sv-journey-section i { color: var(--sv-600); }
+#grades-view .sv-journey-chart { width: 100%; height: auto; display: block; }
+#grades-view .sv-journey-chart .grid { stroke: var(--sh-slate-200); stroke-width: 1; }
+#grades-view .sv-journey-chart .axis { font-size: 10px; fill: var(--sh-slate-400); }
+#grades-view .sv-journey-chart .target { stroke: var(--sh-emerald-500); stroke-width: 1.5; stroke-dasharray: 5 4; }
+#grades-view .sv-journey-chart .target-label { font-size: 10px; font-weight: 600; fill: var(--sh-emerald-600); }
+#grades-view .sv-journey-chart .line { fill: none; stroke: var(--sv-600); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+#grades-view .sv-journey-chart .dot { fill: #fff; stroke: var(--sv-600); stroke-width: 2; }
+#grades-view .sv-journey-empty {
+  background: #fff;
+  border: 1px dashed var(--sh-slate-200);
+  border-radius: 14px;
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--sh-slate-500);
+}
+#grades-view .sv-journey-empty > i { font-size: 22px; color: var(--sv-500); display: block; margin-bottom: 6px; }
+#grades-view .sv-journey-filter {
+  border: 1px solid var(--sh-slate-200);
+  background: #fff;
+  color: var(--sh-slate-600);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+#grades-view .sv-journey-filter.active { background: var(--sv-600); border-color: var(--sv-600); color: #fff; }
+#grades-view .sv-timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+#grades-view .sv-timeline::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--sh-slate-200);
+}
+#grades-view .sv-journey-item { position: relative; display: flex; gap: 12px; padding: 0 0 16px; }
+#grades-view .sv-timeline-icon {
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border: 3px solid var(--sh-slate-50);
+}
+#grades-view .sv-timeline-icon.is-violet { background: var(--sv-100); color: var(--sv-700); }
+#grades-view .sv-timeline-icon.is-emerald { background: var(--sh-emerald-100); color: var(--sh-emerald-700); }
+#grades-view .sv-timeline-icon.is-rose { background: var(--sh-rose-100); color: var(--sh-rose-700); }
+#grades-view .sv-timeline-icon.is-amber { background: var(--sh-amber-100); color: var(--sh-amber-800); }
+#grades-view .sv-timeline-icon.is-neutral { background: var(--sh-slate-200); color: var(--sh-slate-600); }
+#grades-view .sv-timeline-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: var(--sv-shadow);
+  padding: 10px 12px;
+}
+#grades-view .sv-timeline-time { font-size: 11px; color: var(--sh-slate-400); }
+#grades-view .sv-timeline-title { font-size: 13px; font-weight: 600; color: var(--sv-ink); margin-top: 2px; }
+#grades-view .sv-timeline-sub { font-size: 12px; color: var(--sh-slate-500); margin-top: 2px; }
+#grades-view .sv-journey-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--sh-slate-100);
+  background: #fff;
+  font-size: 11px;
+  color: var(--sh-slate-500);
+}
+
+/* ── Màn hình nhỏ ────────────────────────────────────────────────── */
+@media (max-width: 575.98px) {
+  #grades-view .sv-journey { --bs-offcanvas-width: 100%; }
+  #dashboard-view .sv-hero { padding: 22px 20px; }
+  .sv-hero-stars { display: none; }
+  .sv-stat { padding: 14px; gap: 12px; }
+  .sv-stat-icon { width: 38px; height: 38px; min-width: 38px; font-size: 16px; }
+  .sv-table thead th,
+  .sv-table tbody td { padding-left: 12px; padding-right: 12px; }
+}
