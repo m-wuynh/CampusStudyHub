@@ -33,9 +33,18 @@ public sealed class DashboardController(
     {
         if (User.Identity?.IsAuthenticated != true)
             return View(new DashboardIndexViewModel(
-                "Khách", DateTime.Today.ToString("dd/MM/yyyy"), null,
-                "Chào mừng đến với Study Hub", 0, 0, null, null, null, null,
-                [], [], new FlashcardSummaryDto(0, 0, [])));
+                DisplayName: "Khách",
+                FormattedDateText: DateTime.Today.ToString("dd/MM/yyyy"),
+                AcademicTermLabel: null,
+                TimeGreeting: "Chào mừng đến với Study Hub",
+                TodayTasksCount: 0,
+                TodayCompletedTasksCount: 0,
+                NextEvent: null,
+                CurrentAverage10: null,
+                ActiveGoalSummary: null,
+                TodaySchedule: [],
+                UpcomingEvents: [],
+                FlashcardSummary: new FlashcardSummaryDto(0, 0, [])));
 
         var userId = currentUser.UserId > 0 ? currentUser.UserId : CurrentUserId;
         var displayName = !string.IsNullOrWhiteSpace(currentUser.DisplayName) ? currentUser.DisplayName : (User.Identity?.Name ?? "Sinh viên");

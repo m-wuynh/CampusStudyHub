@@ -12,7 +12,6 @@
         if (control.matches('[data-bs-dismiss], .nav-link, .group-tab, .fc-button')) return;
         if (control.closest('form[method="get"], form[method="GET"]')) return;
         const mutation = control.matches('[data-requires-login], [data-bs-toggle="modal"], button[onclick]') ||
-            control.closest('#settings-view') ||
             (control.matches('button') && control.type === 'submit');
         if (!mutation) return;
         event.preventDefault();
