@@ -13,6 +13,8 @@ namespace StudyHub.Web.ViewModels.Flashcards
         public LearnSessionInfoDto? Session { get; init; }
 
         public LearnSessionQuestionDto? Question { get; init; }
+
+        public LearnResultDto? Result { get; init; }
     }
 
     public sealed class FlashcardLearnAnswerFormViewModel

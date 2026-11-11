@@ -54,6 +54,8 @@ public partial class StudyHubDbContext : DbContext
 
     public virtual DbSet<FlashcardReview> FlashcardReviews { get; set; }
 
+    public virtual DbSet<FlashcardLearnSession> FlashcardLearnSessions { get; set; }
+
     public virtual DbSet<Goal> Goals { get; set; }
 
     public virtual DbSet<GoalHistory> GoalHistories { get; set; }
@@ -590,6 +592,55 @@ public partial class StudyHubDbContext : DbContext
                 .HasConstraintName("FK_FlashcardProgress_User");
         });
 
+
+        modelBuilder.Entity<FlashcardLearnSession>(entity =>
+        {
+            entity.HasKey(e => e.SessionId);
+
+            entity.Property(e => e.StartedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.Property(e => e.CompletedAtUtc)
+                .HasPrecision(3);
+
+            entity.Property(e => e.InvalidatedAtUtc)
+                .HasColumnType("datetime2(3)");
+
+            entity.Property(e => e.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+
+            entity.Property(e => e.ShuffleEnabled)
+                .HasDefaultValue(false);
+
+            entity.HasIndex(e => new
+            {
+                e.UserId,
+                e.DeckId,
+                e.CompletedAtUtc
+            }, "IX_LearnSession_Resume");
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_LearnSession_User");
+
+            entity.HasOne<FlashcardDeck>()
+                .WithMany()
+                .HasForeignKey(e => e.DeckId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_LearnSession_Deck");
+
+            entity.HasOne<Flashcard>()
+                .WithMany()
+                .HasForeignKey(e => e.CurrentCardId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_LearnSession_CurrentCard");
+        });
+
+
         modelBuilder.Entity<FlashcardReview>(entity =>
         {
             entity.HasKey(e => e.ReviewId);
@@ -598,9 +649,17 @@ public partial class StudyHubDbContext : DbContext
 
             entity.HasIndex(e => e.RequestId, "UQ_FlashcardReviews_Request").IsUnique();
 
+            entity.HasIndex(e => new {e.SessionId, e.FlashcardId}, "IX_Reviews_LearnSession");
+
             entity.Property(e => e.ReviewedAtUtc)
                 .HasPrecision(3)
                 .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(e => e.LearnSession)
+                .WithMany(s => s.Reviews)
+                .HasForeignKey(e => e.SessionId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_Reviews_LearnSession");
 
             entity.HasOne(d => d.FlashcardProgress).WithMany(p => p.FlashcardReviews)
                 .HasForeignKey(d => new { d.UserId, d.FlashcardId })
