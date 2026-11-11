@@ -1,0 +1,377 @@
+@model StudyHub.BLL.DTOs.GradesPageDto
+@using StudyHub.BLL.DTOs
+@using StudyHub.BLL.Services.Grades
+@{
+    var data = Model;
+    var columns = Model.Columns;
+    var selectedGradeBook = data.GradeBooks.FirstOrDefault(t => t.GradeBookId == data.SelectedGradeBookId);
+    var gradeBook = data.GradeBook;
+}
+
+<!-- ═══ GRADES TAB ═══ -->
+<div id="grades-tab">
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-3">
+    
+    @if (gradeBook != null) {
+      <!-- VIEW MODE HEADER -->
+      <div id="view-mode-header" class="mode-header" style="display: block;">
+        <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">
+          @gradeBook.Name
+        </h3>
+      </div>
+      
+      <!-- SCORE MODE HEADER -->
+      <div id="score-mode-header" class="mode-header" style="display: none; width: 100%;">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">@gradeBook.Name <span class="badge bg-primary" style="font-size:10px; margin-left:4px;">Nhập điểm</span></h3>
+          </div>
+          <button type="button" class="btn-secondary-sh" style="padding: 4px 12px; font-size:12px;" onclick="setUiMode('view')"><i class="bi bi-arrow-left"></i> Quay lại</button>
+        </div>
+      </div>
+
+      <!-- STRUCTURE MODE HEADER -->
+      <div id="structure-mode-header" class="mode-header" style="display: none; width: 100%;">
+        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-between">
+          <div class="d-flex align-items-center gap-2 m-0 flex-grow-1">
+            <input type="text" id="gradebook-name-input" class="sh-input fw-bold" style="font-size:15px; max-width: 300px; padding: 4px 8px;" value="@gradeBook.Name" required maxlength="200" onchange="updateGradeBookName(@gradeBook.GradeBookId, this.value)" />
+            <span id="gradebook-name-status" class="text-success" style="font-size:11px; display:none;"><i class="bi bi-check-circle"></i> Đã lưu</span>
+            <button type="button" class="btn-secondary-sh ms-2" style="padding: 6px 14px; font-size:12px; white-space: nowrap;" onclick="setUiMode('view')">
+              <i class="bi bi-arrow-left me-1"></i> Lưu và quay lại
+            </button>
+          </div>
+          <button type="button" class="btn-icon-sh danger fw-bold" style="padding: 6px 14px; width: auto; font-size:12px; border-radius: 6px; white-space: nowrap;" data-bs-toggle="modal" data-bs-target="#deleteGradeBookModal">
+              <i class="bi bi-trash3 me-1"></i> Xóa bảng điểm
+          </button>
+        </div>
+      </div>
+    } else {
+      <div id="view-mode-header" class="mode-header" style="display: block;">
+        <h3 class="fw-bold mb-0" style="font-size:15px; color:var(--sh-slate-900);">
+          Chưa có bảng điểm
+        </h3>
+        <p class="mb-0" style="font-size:11px; color:var(--sh-slate-400);">@(selectedGradeBook?.Name ?? "")</p>
+      </div>
+    }
+
+    <!-- VIEW MODE ACTIONS -->
+    <div class="d-flex gap-2 flex-wrap align-items-center mode-header" id="view-mode-actions" style="display: flex !important;">
+      <!-- GradeBook selector -->
+      <form method="get" asp-action="Index" class="d-flex m-0">
+        <select name="gradeBookId" class="sh-input" style="font-size:12px; width:auto; padding:6px 12px;" onchange="this.form.submit()">
+          @if(!data.GradeBooks.Any()) {
+            <option value="">Chưa có sổ điểm</option>
+          }
+          @foreach(var term in data.GradeBooks) {
+            if (term.GradeBookId == data.SelectedGradeBookId) {
+              <option value="@term.GradeBookId" selected>@term.Name</option>
+            } else {
+              <option value="@term.GradeBookId">@term.Name</option>
+            }
+          }
+        </select>
+      </form>
+      <button class="btn-secondary-sh" style="padding: 6px 12px;" data-bs-toggle="modal" data-bs-target="#wizardGradeBookModal" title="Thêm sổ điểm">
+        <i class="bi bi-calendar-plus"></i> Thêm sổ điểm
+      </button>
+
+      @if(data.SelectedGradeBookId.HasValue && gradeBook != null) {
+        <button class="btn-primary-sh" style="padding: 6px 12px;" onclick="openEnterGradesModal()">
+          <i class="bi bi-pencil-square"></i> Nhập điểm
+        </button>
+        <button class="btn-secondary-sh" style="padding: 6px 12px;" onclick="setUiMode('structure')">
+          <i class="bi bi-gear"></i> Chỉnh sửa bảng
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (data.SelectedGradeBookId.HasValue && gradeBook == null) {
+    <div class="sh-card text-center py-5">
+      <div style="font-size:48px; margin-bottom:12px;">📋</div>
+      <h4 class="fw-bold" style="font-size:14px; color:var(--sh-slate-700);">Chưa có dữ liệu cho sổ điểm này</h4>
+      <p class="text-muted" style="font-size:12px;">Tạo bảng điểm để bắt đầu theo dõi điểm số của bạn.</p>
+      <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#wizardGradeBookModal">
+        <i class="bi bi-journal-plus"></i> Tạo bảng điểm
+      </button>
+    </div>
+  } else if (data.SelectedGradeBookId.HasValue) {
+    <text>
+<!-- ═══ Bảng điểm (trước đây là _GradeEntryTablePartial) ═══ -->
+<!-- ═══ TABLE VIEW MODE ═══ -->
+<div class="sh-card overflow-hidden mode-panel" id="table-view-mode" style="display: block;">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 grade-table sv-grade-table">
+      <thead>
+        <tr>
+          <th class="ps-4 sv-col-subject">Môn học</th>
+          @foreach(var col in columns) {
+            <th class="sv-col-score">
+              <span class="sv-col-name">@col.Name</span><span class="sv-weight">×@(col.Weight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))</span>
+            </th>
+          }
+          <th class="text-center sv-col-avg">ĐTB môn</th>
+          <th class="pe-4 sv-col-progress">Tiến độ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var s in data.SubjectDetails)
+        {
+          var ladder = data.GoalLadders.FirstOrDefault(l => l.UserSubjectId == s.UserSubjectId);
+          var currentAvg = s.CurrentAverage10;
+          // Nấc đang theo đuổi (chưa đạt thấp nhất; đạt hết → nấc cao nhất). Không có mục tiêu → null.
+          var currentGoal = ladder != null && ladder.Goals.Any() ? GoalOverviewCalculator.FocusGoal(ladder) : null;
+
+          int? pct = null;
+          string color = "var(--sh-slate-400)";
+          string barClass = "";
+          var achieved = false;
+          if (currentGoal != null && currentAvg.HasValue && currentGoal.TargetValue > 0) {
+              pct = currentGoal.ProgressPercent;
+              achieved = currentGoal.Status == GoalStatus.Achieved;
+              // Màu theo % so với mục tiêu: đã đạt xanh, ≥ 80% vàng cam (sắp đạt), còn lại đỏ (còn xa).
+              var tone = GoalStatusEvaluator.ProgressTone(currentGoal.GoalLifecycleStatus, pct);
+              color = tone == "done" ? "var(--sh-emerald-600)" : tone == "near" ? "var(--sh-amber-600)" : "var(--sh-rose-600)";
+              barClass = tone == "done" ? "is-emerald" : tone == "near" ? "is-amber" : "is-rose";
+          }
+
+          // Màu ĐTB môn theo mức điểm hiển thị: < 6 đỏ, 6 – dưới 8 vàng cam, ≥ 8 xanh lá.
+          var shownSubjectAvg = GradeCalculator.RoundForDisplay(currentAvg);
+          var avgClass = shownSubjectAvg is null ? ""
+              : shownSubjectAvg < StudyHub.BLL.Constants.GradeConstants.ScoreWarningBelow ? "is-low"
+              : shownSubjectAvg < StudyHub.BLL.Constants.GradeConstants.ScoreGoodFrom ? "is-mid"
+              : "is-high";
+
+          <tr>
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-2 overflow-hidden">
+                <span class="fw-semibold truncate" style="font-size:13px; color:var(--sh-slate-900);" title="@s.SubjectName">@s.SubjectName</span>
+                @if (s.CreditWeight != 1) {
+                  <span class="sv-weight" title="Hệ số môn">×@s.CreditWeight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)</span>
+                }
+              </div>
+            </td>
+
+            @foreach (var col in columns) {
+              var colEntries = s.Entries.Where(e => e.GradeColumnId == col.GradeColumnId).ToList();
+              <td class="sv-col-score">
+                @if (colEntries.Any()) {
+                  // Cột hệ số thấp (< 2): chữ thường màu xám; hệ số từ 2 trở lên: chữ đậm.
+                  var isMajor = col.Weight >= 2;
+                  <span class="@(isMajor ? "sv-score-major" : "sv-score-minor")">@string.Join(" • ", colEntries.Select(e => e.Score.ToString(isMajor ? "0.0" : "0.##")))</span>
+                } else {
+                  <span class="sv-dash">—</span>
+                }
+              </td>
+            }
+
+            <td class="subject-avg-cell text-center" data-subject-id="@s.UserSubjectId">
+              @if (s.CurrentAverage10.HasValue) {
+                <span class="sv-score-pill @avgClass">@s.CurrentAverage10.Value.ToString("0.0")</span>
+              } else {
+                <span class="sv-dash">—</span>
+              }
+            </td>
+
+            <td class="pe-4">
+              @if (currentGoal != null && pct.HasValue) {
+                <div class="d-flex align-items-center gap-2">
+                  <div class="sv-progress flex-grow-1"><span class="@barClass" style="width: @pct%;"></span></div>
+                  <span class="sv-pct" style="color: @color;">@pct%</span>
+                </div>
+                <div class="sv-progress-caption">Mục tiêu: @currentGoal.TargetValue.ToString("0.0")</div>
+              } else if (currentGoal != null) {
+                <span class="sv-progress-caption mt-0">Chưa có điểm · Mục tiêu: @currentGoal.TargetValue.ToString("0.0")</span>
+              } else {
+                <span class="sv-progress-caption mt-0">Chưa có mục tiêu</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ TABLE SCORE MODE ═══ -->
+<div class="sh-card overflow-hidden mode-panel" id="table-score-mode" style="display: none;">
+  
+  <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold" style="font-size:13px; color:var(--sh-indigo-700);">
+          <i class="bi bi-pencil-square me-1"></i> Chế độ nhập điểm
+      </h6>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 grade-table edit-table" id="score-table-grid">
+      <thead>
+        <tr id="score-mode-header-row">
+          <th class="ps-4" style="min-width: 150px;">Môn học</th>
+          @foreach(var col in columns) {
+            <th data-col-id="@col.GradeColumnId">
+                <div style="font-size: 11px;">@col.Name <span class="sv-weight">×@(col.Weight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))</span></div>
+            </th>
+          }
+          <th>ĐTB Môn</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var s in data.SubjectDetails)
+        {
+          <tr data-subject-id="@s.UserSubjectId">
+            <td class="ps-4 fw-semibold" style="font-size:12px; color:var(--sh-slate-900);">
+              <div class="d-flex align-items-center gap-2">
+                  <span>@s.SubjectName</span>
+              </div>
+            </td>
+
+            @foreach (var col in columns) {
+              var colEntries = s.Entries.Where(e => e.GradeColumnId == col.GradeColumnId).ToList();
+              <td style="font-size:12px; position: relative;">
+                <div class="d-flex flex-wrap align-items-center gap-1">
+                  @foreach (var entry in colEntries) {
+                    <span class="d-inline-flex align-items-center">
+                      <span class="fw-bold editable-grade" 
+                            style="color:var(--sh-indigo-600); cursor: text; padding: 4px; display: inline-block; min-width: 30px; border-bottom: 1px dashed var(--sh-indigo-300);" 
+                            onclick="openInlineEdit(this, @entry.Id, @s.UserSubjectId, @col.GradeColumnId, @entry.Score.ToString(System.Globalization.CultureInfo.InvariantCulture))">
+                          @entry.Score.ToString("0.0")
+                      </span>
+                      <button class="btn-icon-sh text-muted p-0 ms-1" style="font-size:9px;" onclick="deleteGradeInline(@entry.Id, this)"><i class="bi bi-x-circle"></i></button>
+                    </span>
+                  }
+                  <span class="editable-grade text-muted" 
+                        style="cursor: text; padding: 4px; display: inline-block; min-width: 30px; border-bottom: 1px dashed var(--sh-slate-200); font-style: italic; font-size: 11px;" 
+                        title="Thêm điểm"
+                        onclick="openInlineEdit(this, null, @s.UserSubjectId, @col.GradeColumnId, null)">
+                      @(colEntries.Any() ? "[+]" : "[nhập]")
+                  </span>
+                </div>
+              </td>
+            }
+
+            <td class="fw-black subject-avg-cell" style="font-size:14px; color:var(--sh-slate-600);" data-subject-id="@s.UserSubjectId">
+              @(s.CurrentAverage10?.ToString("0.0") ?? "—")
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ TABLE STRUCTURE MODE ═══ -->
+<div class="sh-card overflow-hidden mode-panel" id="table-structure-mode" style="display: none;">
+  
+  <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="mb-0 fw-bold" style="font-size:13px; color:var(--sh-indigo-700); white-space: nowrap;">
+          <i class="bi bi-gear me-1"></i> Chế độ chỉnh sửa cấu trúc bảng
+      </h6>
+      <div class="d-flex gap-2 align-items-center">
+          <button type="button" class="btn-secondary-sh" style="padding: 6px 12px; font-size:12px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;" data-bs-toggle="modal" data-bs-target="#addUserSubjectModal">
+            <i class="bi bi-journal-plus"></i> + Thêm môn
+          </button>
+          <button type="button" class="btn-secondary-sh" style="padding: 6px 12px; font-size:12px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;" data-bs-toggle="modal" data-bs-target="#addColumnModal">
+            <i class="bi bi-layout-three-columns"></i> + Thêm cột
+          </button>
+      </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 grade-table edit-table" id="structure-table-grid">
+      <thead>
+        <tr id="structure-mode-header-row">
+          <th class="ps-4" style="min-width: 150px;">Môn học</th>
+          @foreach(var col in columns) {
+            <th data-col-id="@col.GradeColumnId">
+              <div class="d-flex align-items-center justify-content-between gap-1">
+                <div class="d-flex align-items-center gap-1">
+                    <div class="d-flex flex-column me-1">
+                        <button type="button" class="btn-icon-sh p-0 m-0 text-muted" style="font-size:8px; line-height: 1;" onclick="moveColumn(@col.GradeColumnId, -1)"><i class="bi bi-caret-left-fill"></i></button>
+                        <button type="button" class="btn-icon-sh p-0 m-0 text-muted" style="font-size:8px; line-height: 1;" onclick="moveColumn(@col.GradeColumnId, 1)"><i class="bi bi-caret-right-fill"></i></button>
+                    </div>
+                    <span style="font-size: 11px;">@col.Name <span class="sv-weight">×@(col.Weight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))</span></span>
+                </div>
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn-icon-sh text-muted" style="padding:2px; font-size:10px;" title="Sửa cột"
+                            data-name="@col.Name"
+                            onclick="editColumn(@col.GradeColumnId, this.dataset.name, @col.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture), @col.DisplayOrder)">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <form asp-action="DeleteColumn" method="post" class="d-inline"
+                          data-confirm="Bạn chắc chắn muốn XÓA cột &quot;@col.Name&quot;? Toàn bộ điểm của cột này sẽ bị xóa."
+                          onsubmit="return confirm(this.dataset.confirm)">
+                      <input type="hidden" name="id" value="@col.GradeColumnId" />
+                      <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
+                      <button type="submit" class="btn-icon-sh danger" style="padding:2px; font-size:10px;" title="Xóa cột">
+                        <i class="bi bi-trash3"></i>
+                      </button>
+                    </form>
+                </div>
+              </div>
+            </th>
+          }
+          <th>ĐTB Môn</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var s in data.SubjectDetails)
+        {
+          <tr data-subject-id="@s.UserSubjectId">
+            <td class="ps-4 fw-semibold" style="font-size:12px; color:var(--sh-slate-900);">
+              <div class="d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                      <div class="d-flex flex-column me-1">
+                          <button type="button" class="btn-icon-sh p-0 m-0 text-muted" style="font-size:8px; line-height: 1;" onclick="moveSubject(@s.UserSubjectId, -1)"><i class="bi bi-caret-up-fill"></i></button>
+                          <button type="button" class="btn-icon-sh p-0 m-0 text-muted" style="font-size:8px; line-height: 1;" onclick="moveSubject(@s.UserSubjectId, 1)"><i class="bi bi-caret-down-fill"></i></button>
+                      </div>
+                      <span style="cursor: pointer;" data-name="@s.SubjectName" onclick="editSubject(@s.UserSubjectId, this.dataset.name, '@s.CreditWeight.ToString(System.Globalization.CultureInfo.InvariantCulture)')">@s.SubjectName</span>
+                  </div>
+                  <form asp-action="DeleteUserSubject" method="post" class="d-inline"
+                        data-confirm="Xóa vĩnh viễn môn &quot;@s.SubjectName&quot;? Điểm, mục tiêu, hoạt động, deadline và phiên học của môn sẽ bị xóa; ghi chú, tài liệu, flashcard được giữ nhưng không còn gắn môn. Thao tác không thể hoàn tác."
+                        onsubmit="return confirm(this.dataset.confirm)">
+                      <input type="hidden" name="id" value="@s.UserSubjectId" />
+                      <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
+                      <button type="submit" class="btn-icon-sh danger" style="padding: 2px; font-size:11px;" title="Xóa môn"><i class="bi bi-trash3"></i></button>
+                  </form>
+              </div>
+            </td>
+
+            @foreach (var col in columns) {
+              var colEntries = s.Entries.Where(e => e.GradeColumnId == col.GradeColumnId).ToList();
+              <td style="font-size:12px; position: relative;">
+                @if (colEntries.Any()) {
+                  <div class="d-flex justify-content-between align-items-center">
+                      <span class="fw-bold" style="color:var(--sh-slate-500); padding: 4px; display: inline-block;">
+                          @string.Join(" · ", colEntries.Select(e => e.Score.ToString("0.0")))
+                      </span>
+                  </div>
+                } else {
+                  <div class="d-flex justify-content-between align-items-center">
+                      <span class="text-muted" style="padding: 4px; display: inline-block; font-size: 11px;">
+                          —
+                      </span>
+                  </div>
+                }
+              </td>
+            }
+
+            <td class="fw-black subject-avg-cell" style="font-size:14px; color:var(--sh-slate-600);" data-subject-id="@s.UserSubjectId">
+              @(s.CurrentAverage10?.ToString("0.0") ?? "—")
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+    </text>
+  } else {
+    <div class="sh-card text-center py-5">
+      <p class="text-muted mb-3">Bạn chưa có sổ điểm nào. Hãy tạo sổ điểm năm học để bắt đầu.</p>
+      <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#wizardGradeBookModal">
+        <i class="bi bi-plus-lg"></i> Tạo sổ điểm
+      </button>
+    </div>
+  }
+</div>
+

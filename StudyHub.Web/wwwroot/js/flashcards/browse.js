@@ -23,11 +23,11 @@ const previousCardButton =
 const nextCardButton =
     document.getElementById('nextCardButton');
 
-const flipCardButton =
-    document.getElementById('flipCardButton');
+// const flipCardButton =
+//     document.getElementById('flipCardButton');
 
-const flipButtonText =
-    document.getElementById('flipButtonText');
+// const flipButtonText =
+//     document.getElementById('flipButtonText');
 
 const currentCardNumber =
     document.getElementById('currentCardNumber');
@@ -81,8 +81,8 @@ function renderCard() {
 
     flashcard.classList.remove('is-flipped');
 
-    flipButtonText.textContent =
-        'Hiện đáp án';
+    // flipButtonText.textContent =
+    //     'Hiện đáp án';
 
 
     // Không vượt quá biên deck.
@@ -103,10 +103,10 @@ function flipCard() {
         isFlipped
     );
 
-    flipButtonText.textContent =
-        isFlipped
-            ? 'Xem câu hỏi'
-            : 'Hiện đáp án';
+    // flipButtonText.textContent =
+    //     isFlipped
+    //         ? 'Xem câu hỏi'
+    //         : 'Hiện đáp án';
 }
 
 
@@ -138,15 +138,21 @@ nextCardButton?.addEventListener(
     });
 
 
-flipCardButton?.addEventListener(
-    'click',
-    flipCard
-);
+// flipCardButton?.addEventListener(
+//     'click',
+//     flipCard
+// );
 
 
 
 // Cho phép click trực tiếp lên card để lật.
 flashcard?.addEventListener('click', flipCard);
+flashcard?.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        flipCard();
+    }
+});
 finishStudyButton?.addEventListener(
     'click',
     function () {

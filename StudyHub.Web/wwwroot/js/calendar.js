@@ -73,16 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventClick: function(info) {
             showEventPopover(info.event, info.el);
         },
-        datesSet: function(info) {
-            var titleEl = document.getElementById('calendar-progress-title');
-            if (titleEl) {
-                if (info.view.type === 'timeGridDay') {
-                    titleEl.innerHTML = '<i class="bi bi-calendar-check text-primary me-1"></i>Tiến độ học tập hôm nay';
-                } else {
-                    titleEl.innerHTML = '<i class="bi bi-calendar-check text-primary me-1"></i>Tiến độ học tập tuần này';
-                }
-            }
-        },
+   
         eventsSet: function(events) {
             updateWeeklyProgress(events);
         }
@@ -299,24 +290,76 @@ document.addEventListener('DOMContentLoaded', function() {
 
         updateCompletionUI(isCompleted);
 
+        var activeTogglePromise = null;
+        var desiredState = null;
+
         function doToggle() {
             if (isPast) {
                 alert('Ca học đã kết thúc, không thể thay đổi trạng thái.');
                 return;
             }
-            fetch('/Calendar/ToggleCompletion/' + eventApi.id, { method: 'POST' })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.ok) {
-                        eventApi.setExtendedProp('isCompleted', data.isCompleted);
-                        updateCompletionUI(data.isCompleted);
-                        updateWeeklyProgress();
-                        calendar.refetchEvents();
-                    } else {
-                        alert("Lỗi: " + (data.error || "Không thể cập nhật"));
-                    }
-                })
-                .catch(() => alert("Lỗi kết nối máy chủ"));
+
+            var currentVal = desiredState !== null ? desiredState : !!eventApi.extendedProps.isCompleted;
+            desiredState = !currentVal;
+
+            // 1. Phản hồi giao diện tức thì 0ms (Optimistic UI - triệt tiêu delay)
+            eventApi.setExtendedProp('isCompleted', desiredState);
+            updateCompletionUI(desiredState);
+            updateWeeklyProgress();
+
+            if (targetEl) {
+                targetEl.classList.remove('event-state-completed', 'event-state-pending', 'event-state-missed');
+                targetEl.classList.add(desiredState ? 'event-state-completed' : 'event-state-pending');
+            }
+
+            // 2. Đồng bộ an toàn với server, gửi tuần tự tránh nghẽn/lỗi DbContext khi click dồn dập
+            syncToggleWithServer();
+        }
+
+        function syncToggleWithServer() {
+            if (activeTogglePromise) {
+                // Đang có request gửi dở, khi xong sẽ tự động kiểm tra desiredState và gửi tiếp
+                return;
+            }
+
+            var stateToSend = desiredState;
+            var targetEventId = eventApi.id;
+            var originalState = !stateToSend;
+
+            activeTogglePromise = fetch('/Calendar/ToggleEventCompletion/' + targetEventId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(stateToSend)
+            })
+            .then(function(res) {
+                if (!res.ok) {
+                    return res.json().catch(function() { return {}; }).then(function(err) {
+                        throw new Error(err.error || 'Cập nhật thất bại');
+                    });
+                }
+            })
+            .catch(function(err) {
+                console.error('Toggle error:', err);
+                // Khôi phục lại trạng thái cũ nếu lỗi mạng / lỗi server
+                eventApi.setExtendedProp('isCompleted', originalState);
+                updateCompletionUI(originalState);
+                updateWeeklyProgress();
+                if (targetEl) {
+                    targetEl.classList.remove('event-state-completed', 'event-state-pending', 'event-state-missed');
+                    targetEl.classList.add(originalState ? 'event-state-completed' : 'event-state-pending');
+                }
+                alert(err.message || 'Lỗi khi cập nhật trạng thái');
+                desiredState = null;
+            })
+            .finally(function() {
+                activeTogglePromise = null;
+                // Nếu người dùng click thêm lần nữa trong lúc request đang gửi, tiếp tục gửi trạng thái mới nhất
+                if (desiredState !== null && desiredState !== stateToSend) {
+                    syncToggleWithServer();
+                } else {
+                    desiredState = null;
+                }
+            });
         }
 
         if (toggleBtn) {
@@ -331,12 +374,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (chkComplete) {
-            var newChk = chkComplete.cloneNode(true);
-            chkComplete.parentNode.replaceChild(newChk, chkComplete);
-            chkComplete = newChk;
             if (isPast) {
+                chkComplete.disabled = true;
                 chkComplete.onclick = function(e) { e.preventDefault(); };
             } else {
+                chkComplete.disabled = false;
                 chkComplete.onclick = function(e) {
                     e.preventDefault();
                     doToggle();

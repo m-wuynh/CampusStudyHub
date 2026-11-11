@@ -1,0 +1,216 @@
+﻿@model StudyHub.BLL.DTOs.GoalLadderDto
+@using System.Globalization
+@using StudyHub.BLL.DTOs
+@using StudyHub.BLL.Constants
+@using StudyHub.BLL.Services.Grades
+@{
+    // Hành trình mục tiêu của một môn: chỉ hiển thị dữ liệu đã ghi trong GoalProgressLogs (không tính lại).
+    var ladder = Model;
+    var panelId = $"journey-{ladder.UserSubjectId}";
+    var journey = ladder.Journey ?? new GoalJourneyDto(new List<GoalJourneyEventDto>(), new List<GoalJourneyPointDto>());
+    var events = journey.Events;
+    var points = journey.Points;
+    var activeGoals = ladder.Goals
+        .OrderByDescending(g => g.IsBaseGoal)
+        .ThenBy(g => g.TargetValue)
+        .ToList();
+    var inv = CultureInfo.InvariantCulture;
+
+    string F(decimal? v) => v.HasValue ? v.Value.ToString("0.0") : "—";
+    string StatusLabel(string? s) => s switch
+    {
+        GradeConstants.GoalLifecycle.Done => "Đã xong",
+        GradeConstants.GoalLifecycle.InProgress => "Đang thực hiện",
+        GradeConstants.GoalLifecycle.ToDo => "To do",
+        _ => "—"
+    };
+    string StatusPill(string? s) => s switch
+    {
+        GradeConstants.GoalLifecycle.Done => "is-emerald",
+        GradeConstants.GoalLifecycle.InProgress => "is-amber",
+        _ => "is-neutral"
+    };
+    string BarClass(GoalDto g) => GoalStatusEvaluator.ProgressTone(g.GoalLifecycleStatus, g.ProgressPercent) switch
+    {
+        "done" => "is-emerald",
+        "near" => "is-amber",
+        _ => "is-rose"
+    };
+    var shownAvg = GradeCalculator.RoundForDisplay(ladder.CurrentAverage10);
+    var avgBand = shownAvg is null ? "is-empty"
+        : shownAvg < GradeConstants.ScoreWarningBelow ? "is-low"
+        : shownAvg < GradeConstants.ScoreGoodFrom ? "is-mid"
+        : "is-high";
+
+    // ── Hình học biểu đồ (SVG) ───────────────────────────────
+    const double W = 440, H = 200, PL = 34, PR = 14, PT = 14, PB = 28;
+    var targets = activeGoals.Select(g => g.TargetValue).Distinct().ToList();
+    var allValues = points.Select(p => p.Average).Concat(targets).ToList();
+    var minY = allValues.Any() ? Math.Min(5m, Math.Floor(allValues.Min())) : 5m;
+    const decimal maxY = 10m;
+    var yStep = (maxY - minY) > 6 ? 2m : 1m;
+    double Y(decimal v) => PT + (double)((maxY - v) / (maxY - minY)) * (H - PT - PB);
+    var t0 = points.Count > 0 ? points[0].AtLocal : DateTime.MinValue;
+    var span = points.Count > 1 ? (points[^1].AtLocal - t0).TotalSeconds : 0d;
+    double X(int i) => points.Count <= 1
+        ? PL + (W - PL - PR) / 2
+        : span > 0
+            ? PL + (points[i].AtLocal - t0).TotalSeconds / span * (W - PL - PR)
+            : PL + (double)i / (points.Count - 1) * (W - PL - PR);
+    string N(double v) => v.ToString("0.##", inv);
+}
+
+<div class="offcanvas offcanvas-end sv-journey" tabindex="-1" id="@panelId" aria-labelledby="@(panelId)-title">
+  <div class="offcanvas-header sv-journey-head">
+    <div class="overflow-hidden">
+      <div class="sv-journey-eyebrow">
+        Môn @ladder.SubjectName
+        @if (!string.IsNullOrWhiteSpace(ladder.AcademicYearName)) {
+          <span> · @ladder.AcademicYearName</span>
+        }
+      </div>
+      <h5 class="offcanvas-title sv-journey-title" id="@(panelId)-title">Hành trình mục tiêu</h5>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Đóng"></button>
+  </div>
+
+  <div class="offcanvas-body">
+    <!-- Tóm tắt hiện tại -->
+    <div class="sv-journey-card mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="sv-stat-label mb-0">ĐTB hiện tại</span>
+        <span class="sv-score-pill @avgBand">@(shownAvg?.ToString("0.0") ?? "Chưa có điểm")</span>
+      </div>
+      @foreach (var g in activeGoals) {
+        <div class="sv-journey-goal">
+          <div class="d-flex justify-content-between align-items-center gap-2">
+            <div class="overflow-hidden">
+              <div class="fw-semibold truncate" style="font-size:13px; color:var(--sv-ink);" title="@g.Title">@g.Title</div>
+              <div class="d-flex align-items-center gap-1 mt-1">
+                <span class="sv-pill @(g.IsBaseGoal ? "" : "is-neutral")">@(g.IsBaseGoal ? "Mục tiêu gốc" : "Nấc bổ sung")</span>
+                <span class="sv-pill @StatusPill(g.GoalLifecycleStatus)">@StatusLabel(g.GoalLifecycleStatus)</span>
+              </div>
+            </div>
+            <span class="fw-bold flex-shrink-0" style="font-size:13px; color:var(--sh-slate-700);">@g.TargetValue.ToString("0.0")</span>
+          </div>
+          @if (g.ProgressPercent.HasValue) {
+            <div class="d-flex align-items-center gap-2 mt-2">
+              <div class="sv-progress flex-grow-1"><span class="@BarClass(g)" style="width:@g.ProgressPercent%;"></span></div>
+              <span class="sv-pct">@g.ProgressPercent%</span>
+            </div>
+          } else {
+            <div class="sv-progress-caption">Chưa có điểm</div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Biểu đồ ĐTB theo thời gian -->
+    <h6 class="sv-journey-section"><i class="bi bi-graph-up me-1"></i> ĐTB theo thời gian</h6>
+    @if (points.Count >= 2) {
+      <div class="sv-journey-card mb-4 p-2">
+        <svg viewBox="0 0 @N(W) @N(H)" class="sv-journey-chart" role="img" aria-label="Biểu đồ ĐTB môn @ladder.SubjectName theo thời gian">
+          @* Thân vòng lặp bọc trong <g> để thẻ SVG <text> không bị Razor hiểu là thẻ <text> đặc biệt. *@
+          @for (var v = minY; v <= maxY; v += yStep) {
+            <g>
+              <line x1="@N(PL)" x2="@N(W - PR)" y1="@N(Y(v))" y2="@N(Y(v))" class="grid" />
+              <text x="@N(PL - 6)" y="@N(Y(v) + 3)" class="axis" text-anchor="end">@v.ToString("0", inv)</text>
+            </g>
+          }
+          @foreach (var target in targets) {
+            <g>
+              <line x1="@N(PL)" x2="@N(W - PR)" y1="@N(Y(target))" y2="@N(Y(target))" class="target" />
+              <text x="@N(W - PR)" y="@N(Y(target) - 4)" class="target-label" text-anchor="end">Mục tiêu @target.ToString("0.0", inv)</text>
+            </g>
+          }
+          <polyline class="line" points="@(string.Join(" ", points.Select((p, i) => $"{N(X(i))},{N(Y(p.Average))}")))" />
+          @for (var i = 0; i < points.Count; i++) {
+            <circle cx="@N(X(i))" cy="@N(Y(points[i].Average))" r="4" class="dot">
+              <title>@points[i].AtLocal.ToString("dd/MM/yyyy HH:mm") – ĐTB @points[i].Average.ToString("0.0")</title>
+            </circle>
+          }
+          <g>
+            <text x="@N(PL)" y="@N(H - 8)" class="axis">@points[0].AtLocal.ToString("dd/MM")</text>
+            <text x="@N(W - PR)" y="@N(H - 8)" class="axis" text-anchor="end">@(points[^1].AtLocal.ToString("dd/MM"))</text>
+          </g>
+        </svg>
+      </div>
+    } else {
+      <div class="sv-journey-empty mb-4">
+        <i class="bi bi-bar-chart"></i>
+        <p class="mb-0">@(points.Count == 1 ? "Mới có 1 mốc điểm. Biểu đồ sẽ hiện khi ĐTB thay đổi thêm ít nhất một lần." : "Chưa có đủ dữ liệu để vẽ biểu đồ.")</p>
+      </div>
+    }
+
+    <!-- Danh sách mốc -->
+    <h6 class="sv-journey-section"><i class="bi bi-clock-history me-1"></i> Lịch sử hành trình (@events.Count mốc)</h6>
+    @if (events.Any()) {
+      <div class="d-flex gap-2 mb-3">
+        <button type="button" class="sv-journey-filter active" onclick="filterJourney(this, @ladder.UserSubjectId, 'all')">Tất cả</button>
+        <button type="button" class="sv-journey-filter" onclick="filterJourney(this, @ladder.UserSubjectId, '@GoalJourneyEventDto.CategoryScore')">Điểm số</button>
+        <button type="button" class="sv-journey-filter" onclick="filterJourney(this, @ladder.UserSubjectId, '@GoalJourneyEventDto.CategoryGoal')">Mục tiêu</button>
+      </div>
+      <ol class="sv-timeline">
+        @foreach (var e in events) {
+          string icon, tone, title;
+          string? note = null;
+          switch (e.EventType) {
+            case GradeConstants.GoalJourneyEvent.GoalCreated:
+              icon = "bi-flag"; tone = "is-violet"; title = $"Tạo mục tiêu {F(e.TargetValue)}"; break;
+            case GradeConstants.GoalJourneyEvent.ScoreChanged:
+              if (e.PreviousValue is null) { icon = "bi-graph-up"; tone = "is-violet"; title = $"Có điểm đầu tiên: ĐTB {F(e.AverageScore)}"; }
+              else if (e.AverageScore is null) { icon = "bi-dash-circle"; tone = "is-neutral"; title = $"Không còn điểm nào (trước đó {F(e.PreviousValue)})"; }
+              else if (e.AverageScore > e.PreviousValue) { icon = "bi-arrow-up-right"; tone = "is-emerald"; title = $"ĐTB tăng {F(e.PreviousValue)} → {F(e.AverageScore)}"; }
+              else { icon = "bi-arrow-down-right"; tone = "is-rose"; title = $"ĐTB giảm {F(e.PreviousValue)} → {F(e.AverageScore)}"; }
+              break;
+            case GradeConstants.GoalJourneyEvent.StatusChanged when e.StatusTo == GradeConstants.GoalLifecycle.Done:
+              icon = "bi-trophy"; tone = "is-emerald"; title = $"Đạt mục tiêu {F(e.TargetValue)}"; break;
+            case GradeConstants.GoalJourneyEvent.StatusChanged when e.StatusFrom == GradeConstants.GoalLifecycle.Done:
+              icon = "bi-exclamation-triangle"; tone = "is-rose"; title = $"Tụt dưới mục tiêu {F(e.TargetValue)}";
+              note = "Lần đạt trước đã được lưu vào lịch sử thành tích."; break;
+            case GradeConstants.GoalJourneyEvent.StatusChanged:
+              icon = "bi-arrow-repeat"; tone = "is-amber"; title = $"Chuyển trạng thái: {StatusLabel(e.StatusFrom)} → {StatusLabel(e.StatusTo)}"; break;
+            case GradeConstants.GoalJourneyEvent.TargetChanged:
+              icon = "bi-pencil"; tone = "is-amber"; title = $"Đổi điểm mục tiêu {F(e.PreviousValue)} → {F(e.TargetValue)}"; break;
+            case GradeConstants.GoalJourneyEvent.GoalCancelled:
+              icon = "bi-x-circle"; tone = "is-neutral"; title = $"Hủy nấc mục tiêu {F(e.TargetValue)}"; break;
+            default:
+              icon = "bi-dot"; tone = "is-neutral"; title = e.EventType; break;
+          }
+          <li class="sv-journey-item" data-cat="@e.Category">
+            <span class="sv-timeline-icon @tone"><i class="bi @icon"></i></span>
+            <div class="sv-timeline-body">
+              <div class="sv-timeline-time">@e.OccurredAtLocal.ToString("dd/MM/yyyy HH:mm")</div>
+              <div class="sv-timeline-title">@title</div>
+              @if (!string.IsNullOrWhiteSpace(e.GoalTitle)) {
+                <div class="sv-timeline-sub">@e.GoalTitle · @(e.IsBaseGoal ? "Mục tiêu gốc" : "Nấc bổ sung")</div>
+              }
+              @if (note != null) {
+                <div class="sv-timeline-sub">@note</div>
+              }
+              @if (e.Category == GoalJourneyEventDto.CategoryGoal) {
+                <span class="sv-pill is-neutral mt-1" style="text-transform:none; letter-spacing:0;">
+                  @(e.AverageScore.HasValue ? $"ĐTB {F(e.AverageScore)}" : "Chưa có điểm")@(e.ProgressPercent.HasValue ? $" · {e.ProgressPercent}%" : "")
+                </span>
+              }
+            </div>
+          </li>
+        }
+      </ol>
+      <div class="sv-journey-empty sv-journey-filter-empty" style="display:none;">
+        <p class="mb-0">Không có mốc thuộc loại này.</p>
+      </div>
+    } else {
+      <div class="sv-journey-empty">
+        <i class="bi bi-stars"></i>
+        <p class="fw-semibold mb-1" style="color:var(--sv-ink);">Chưa có mốc nào</p>
+        <p class="mb-0">Hành trình được ghi tự động khi bạn tạo mục tiêu và khi ĐTB môn thay đổi.</p>
+      </div>
+    }
+  </div>
+
+  <div class="sv-journey-foot">
+    <span>Hệ thống tự ghi mốc khi ĐTB hoặc trạng thái mục tiêu thay đổi.</span>
+    <button type="button" class="btn-secondary-sh" data-bs-dismiss="offcanvas">Đóng</button>
+  </div>
+</div>

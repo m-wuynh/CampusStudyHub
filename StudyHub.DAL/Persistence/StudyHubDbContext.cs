@@ -58,6 +58,8 @@ public partial class StudyHubDbContext : DbContext
 
     public virtual DbSet<GoalHistory> GoalHistories { get; set; }
 
+    public virtual DbSet<GoalProgressLog> GoalProgressLogs { get; set; }
+
     public virtual DbSet<GradeBook> GradeBooks { get; set; }
 
     public virtual DbSet<GradeColumn> GradeColumns { get; set; }
@@ -660,6 +662,39 @@ public partial class StudyHubDbContext : DbContext
                 .HasForeignKey(d => d.GoalId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_GoalHistories_Goal");
+        });
+
+        // Hành trình mục tiêu: chỉ thêm mới; xóa do GradeBookService (phần xóa sổ/môn) đảm nhận (FK NO ACTION).
+        modelBuilder.Entity<GoalProgressLog>(entity =>
+        {
+            entity.HasKey(e => e.GoalProgressLogId);
+            entity.HasIndex(e => new { e.UserSubjectId, e.OccurredAtUtc }, "IX_GoalProgressLogs_Subject");
+            entity.HasIndex(e => e.GoalId, "IX_GoalProgressLogs_Goal");
+
+            entity.Property(e => e.EventType).HasMaxLength(30).IsUnicode(false);
+            entity.Property(e => e.AverageScore).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.PreviousValue).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.TargetValue).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.StatusFrom).HasMaxLength(20);
+            entity.Property(e => e.StatusTo).HasMaxLength(20);
+            entity.Property(e => e.OccurredAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne<User>().WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_GoalProgressLogs_User");
+
+            entity.HasOne<UserSubject>().WithMany()
+                .HasForeignKey(e => e.UserSubjectId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_GoalProgressLogs_UserSubject");
+
+            entity.HasOne(e => e.Goal).WithMany()
+                .HasForeignKey(e => e.GoalId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_GoalProgressLogs_Goal");
         });
 
 

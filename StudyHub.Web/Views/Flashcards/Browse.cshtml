@@ -10,12 +10,19 @@
         align-items-center mb-4">
 
         <div>
-            <a asp-controller="Flashcards"
+            @* <a asp-controller="Flashcards"
                asp-action="Details"
                asp-route-deckId="@Model.DeckId"
                class="text-decoration-none">
                 <i class="bi bi-arrow-left"></i>
                 Quay lại Deck
+            </a> *@
+            <a asp-controller="Flashcards"
+               asp-action="Index"
+               asp-route-deckId="@Model.DeckId"
+               class="btn btn-outline-secondary browse-back-button">
+                <i class="bi bi-arrow-left me-1"></i>
+                Quay lại
             </a>
 
             <h2 class="fw-bold mt-3 mb-1">
@@ -69,13 +76,16 @@
             <div class="flashcard-scene">
 
                 <div id="flashcard"
-                     class="flashcard">
+                     class="flashcard"
+                     role="button"
+                     tabindex="0"
+                     aria-label="Lật Flashcard">
 
                     <div class="flashcard-face flashcard-front">
 
-                        <div class="text-muted small mb-3">
+                        @* <div class="text-muted small mb-3">
                             MẶT TRƯỚC
-                        </div>
+                        </div> *@
 
                         <h3 id="frontText"
                             class="fw-bold mb-0">
@@ -86,9 +96,9 @@
 
                     <div class="flashcard-face flashcard-back">
 
-                        <div class="text-muted small mb-3">
+                        @* <div class="text-muted small mb-3">
                             MẶT SAU
-                        </div>
+                        </div> *@
 
                         <h3 id="backText"
                             class="fw-bold mb-0">
@@ -113,7 +123,7 @@
                 </button>
 
 
-                <button type="button"
+                @* <button type="button"
                         id="flipCardButton"
                         class="btn btn-primary px-4">
                     <i class="bi bi-arrow-repeat"></i>
@@ -121,7 +131,7 @@
                     <span id="flipButtonText">
                         Hiện đáp án
                     </span>
-                </button>
+                </button> *@
 
 
                 <button type="button"
@@ -132,6 +142,9 @@
                 </button>
 
             </div>
+            <p class="text-center text-muted small mt-3 mb-0">
+                Nhấn vào Flashcard để lật thẻ
+            </p>
 
             <div class="d-flex justify-content-center mt-3">
                 <button type="button"
@@ -156,7 +169,7 @@
        style="font-size:48px;"></i>
 
     <h3 class="fw-bold mt-3">
-        Bạn đã xem hết bộ thẻ
+        Đã kết thúc xem thẻ
     </h3>
 
     <p class="text-muted">
@@ -185,7 +198,7 @@
            asp-action="Index"
            class="btn btn-outline-secondary">
             <i class="bi bi-collection"></i>
-            My Decks
+            Deck của tôi
         </a>
 
         <a asp-controller="Flashcards"
@@ -194,7 +207,7 @@
            class="btn btn-primary">
 
             <i class="bi bi-mortarboard"></i>
-            Bắt đầu Learn
+            Luyện tập
         </a>
 
     </div>

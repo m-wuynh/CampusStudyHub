@@ -2,6 +2,7 @@ namespace StudyHub.BLL.DTOs;
 
 using System;
 using System.Collections.Generic;
+using StudyHub.BLL.Constants;
 
 // ── Grade Book ──────────────────────────────────────────────
 public sealed record GradeBookDto(long GradeBookId, string Name, int FromYear, int ToYear);
@@ -38,9 +39,6 @@ public sealed record YearGradeSummaryDto(
     decimal? LowestScore,
     string LowestSubjectName,
     int SubjectsBelowTarget);
-
-// ── Academic Term ────────────────────────────────────────────
-public sealed record AcademicTermDto(long Id, string TermName, DateOnly StartDate, DateOnly EndDate);
 
 // ── Grade Subject Option (for lookup across academic years) ──
 public sealed record GradeSubjectOptionDto(
@@ -86,12 +84,41 @@ public sealed record GoalLadderDto(
     bool HasBaseGoal = false,
     GoalDto? BaseGoal = null,
     List<GoalDto>? AdditionalGoals = null,
-    string? AcademicYearName = null);
+    string? AcademicYearName = null,
+    bool IsDetached = false,
+    GoalJourneyDto? Journey = null);
+
+// ── Hành trình mục tiêu (GoalProgressLogs) ──────────────────
+/// <summary>Một mốc trong hành trình của môn. Điểm số đã làm tròn hiển thị; thời gian theo giờ ứng dụng.</summary>
+public sealed record GoalJourneyEventDto(
+    long Id,
+    string EventType,
+    string Category,
+    long? GoalId,
+    string? GoalTitle,
+    bool IsBaseGoal,
+    decimal? AverageScore,
+    decimal? PreviousValue,
+    decimal? TargetValue,
+    int? ProgressPercent,
+    string? StatusFrom,
+    string? StatusTo,
+    DateTime OccurredAtLocal)
+{
+    public const string CategoryScore = "score";
+    public const string CategoryGoal = "goal";
+}
+
+public sealed record GoalJourneyPointDto(DateTime AtLocal, decimal Average);
+
+/// <summary>Events: mới nhất trước. Points: tăng dần theo thời gian (vẽ biểu đồ ĐTB).</summary>
+public sealed record GoalJourneyDto(List<GoalJourneyEventDto> Events, List<GoalJourneyPointDto> Points);
 
 /// <summary>
 /// Represents a single rung on the Goal Ladder.
 /// CurrentValue is derived from the subject's CurrentAverage10 – never user-entered.
 /// Status can be ToDo, InProgress, Done (or mapped to GoalStatus).
+/// ProgressPercent do BLL tính theo ĐTB hiển thị (Q08); view và Dashboard không tự tính.
 /// </summary>
 public sealed record GoalDto(
     long Id,
@@ -102,31 +129,33 @@ public sealed record GoalDto(
     long UserSubjectId,
     GoalStatus Status,
     bool IsBaseGoal = false,
-    string GoalLifecycleStatus = "ToDo",
+    string GoalLifecycleStatus = GradeConstants.GoalLifecycle.ToDo,
     int DisplayOrder = 0,
     decimal? AchievedScore = null,
     DateTime? AchievedAtUtc = null,
     List<GoalActivityDto>? Activities = null,
-    List<GoalHistoryDto>? Histories = null);
+    List<GoalHistoryDto>? Histories = null,
+    int? ProgressPercent = null,
+    bool IsOverdue = false);
 
+// ── Dashboard: tổng quan mục tiêu ───────────────────────────
+public sealed record GoalHighlightDto(string SubjectName, decimal TargetValue, decimal? CurrentValue, int ProgressPercent);
+public sealed record GoalOverviewDto(int OverallProgressPercent, decimal TargetAverage, List<GoalHighlightDto> Highlights);
+
+/// <summary>Ánh xạ 1-1 từ trạng thái lifecycle (Done / InProgress / ToDo), xem GoalStatusEvaluator.ToLegacyStatus.</summary>
 public enum GoalStatus
 {
-    /// <summary>Goal is cancelled by user – no longer tracked.</summary>
-    Cancelled,
-    /// <summary>CurrentAverage10 >= TargetValue or status is Done.</summary>
+    /// <summary>Done: ĐTB hiển thị ≥ mục tiêu.</summary>
     Achieved,
-    /// <summary>Lowest TargetValue that is still > CurrentAverage10, or user set InProgress.</summary>
+    /// <summary>InProgress: đã có điểm nhưng chưa đạt.</summary>
     InProgress,
-    /// <summary>TargetValue > the current InProgress goal – future rungs.</summary>
-    Future,
-    /// <summary>No grade data yet – cannot determine status.</summary>
+    /// <summary>ToDo: chưa có điểm.</summary>
     NoData
 }
 
 // ── Command DTOs ─────────────────────────────────────────────
 
 // GradeBook
-public sealed record CreateGradeBookDto(int FromYear, int ToYear, string Name);
 public sealed record UpdateGradeBookDto(long GradeBookId, string Name);
 
 // GradeColumn
@@ -153,9 +182,6 @@ public sealed record UpdateGoalDto(
     decimal? TargetValue,
     DateOnly? EndDate);
 
-public sealed record DesignateBaseGoalDto(long GoalId);
-public sealed record SetGoalStatusDto(long GoalId, string Status);
-public sealed record ReorderGoalDto(long GoalId, int NewDisplayOrder);
 
 public sealed record CreateGoalActivityDto(
     long GoalId,
@@ -170,10 +196,6 @@ public sealed record UpdateGoalActivityDto(
     DateTime StartAtLocal,
     DateTime EndAtLocal,
     string? Description);
-
-// AcademicTerm
-public sealed record CreateTermDto(string TermName, DateOnly StartDate, DateOnly EndDate);
-public sealed record UpdateTermDto(long Id, string TermName, DateOnly StartDate, DateOnly EndDate);
 
 // UserSubject
 public sealed record CreateUserSubjectDto(long GradeBookId, string SubjectName, decimal CreditWeight);
