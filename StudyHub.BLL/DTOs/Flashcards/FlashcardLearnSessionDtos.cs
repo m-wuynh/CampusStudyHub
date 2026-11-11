@@ -20,7 +20,8 @@ namespace StudyHub.BLL.DTOs.Flashcards
         int NewCount,
         int LearningCount,
         int LearnedCount,
-        bool IsCompleted);
+        bool IsCompleted,
+        bool ShuffleEnabled = false);
 
     public sealed record LearnSessionQuestionDto(
         Guid SessionId,
@@ -31,5 +32,21 @@ namespace StudyHub.BLL.DTOs.Flashcards
         FlashcardLearnAnswerResultDto Answer,
         LearnCardSnapshotDto Card,
         LearnSessionInfoDto Session);
-    
+
+    public sealed record DbLearnStateDto(
+        LearnSessionInfoDto Session,
+        long? NextCardId);
+
+    public sealed record LearnResultDto(
+    Guid SessionId,
+    long DeckId,
+    int TotalAttempts,
+    int Correct,
+    int Incorrect,
+    double Accuracy,
+    int TotalCards,
+    int Learned,
+    int Remaining,
+    bool IsCompleted);
+
 }

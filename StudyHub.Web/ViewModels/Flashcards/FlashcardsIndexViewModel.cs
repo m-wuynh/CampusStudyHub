@@ -6,6 +6,12 @@ public sealed class FlashcardsIndexViewModel
 {
     public IReadOnlyList<FlashcardDeckSummaryDto> Decks { get; init; } = [];
 
+    public int TotalDecks { get; init; }
+
+    public int NewDecksLast7Days { get; init; }
+
+    public int UpdatedDecksLast7Days { get; init; }
+
     public string? SearchText { get; set; }
 
     public long? UserSubjectId { get; init; }
