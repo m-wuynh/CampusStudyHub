@@ -14,7 +14,8 @@
     }
     if (additionalGoals.Any())
     {
-        allSubjectGoals.AddRange(additionalGoals.OrderBy(g => g.DisplayOrder).ThenBy(g => g.TargetValue));
+        // Bậc bổ sung luôn xếp theo điểm mục tiêu tăng dần (đã bỏ chức năng sắp xếp thủ công).
+        allSubjectGoals.AddRange(additionalGoals.OrderBy(g => g.TargetValue));
     }
 
     string GetSubjectIcon(string name)
@@ -63,14 +64,13 @@
       <span style="font-size: 13px; color: var(--sh-slate-500); font-weight: 500;">
         @allSubjectGoals.Count mục tiêu
       </span>
-      @if (!ladder.IsDetached) {
-        <button class="btn btn-sm btn-outline-primary py-1 px-2 d-flex align-items-center gap-1" style="font-size: 12px; border-radius: 6px;"
-                type="button"
-                onclick="openAddGoalForSubject(@ladder.UserSubjectId)"
-                title="Thêm nấc mục tiêu cho môn @ladder.SubjectName">
-          <i class="bi bi-plus-lg"></i> Thêm nấc
-        </button>
-      } else {
+      <button class="btn btn-sm btn-outline-primary py-1 px-3 d-flex align-items-center gap-1" style="font-size: 12px;"
+              type="button"
+              data-bs-toggle="offcanvas" data-bs-target="#journey-@ladder.UserSubjectId" aria-controls="journey-@ladder.UserSubjectId"
+              title="Xem hành trình mục tiêu môn @ladder.SubjectName">
+        <i class="bi bi-graph-up"></i> Xem hành trình
+      </button>
+      @if (ladder.IsDetached) {
         <form asp-controller="Grades" asp-action="DeleteUserSubject" method="post" class="d-inline"
               data-confirm="Xóa vĩnh viễn môn &quot;@ladder.SubjectName&quot;? Mục tiêu, hoạt động, deadline và phiên học của môn sẽ bị xóa; ghi chú, tài liệu, flashcard được giữ nhưng không còn gắn môn. Thao tác không thể hoàn tác."
               onsubmit="return confirm(this.dataset.confirm)">
@@ -93,7 +93,7 @@
       <div class="p-4 text-center rounded-3 bg-white border mb-3" style="font-size:13px; color:var(--sh-slate-500);">
         <p class="mb-2">Môn học này chưa có mục tiêu nào.</p>
         @if (!ladder.IsDetached) {
-          <button class="btn btn-sm" style="background:#4f46e5; color:#fff; font-weight:600; border-radius:6px; padding:6px 14px;"
+          <button class="btn-primary-sh" style="font-size:12px; padding:6px 14px;"
                   type="button"
                   onclick="openAddGoalForSubject(@ladder.UserSubjectId)">
             <i class="bi bi-trophy me-1"></i>Đặt mục tiêu
@@ -112,6 +112,8 @@
 
           int progressPct = goal.ProgressPercent ?? 0;
           string progressText = goal.ProgressPercent.HasValue ? $"{progressPct}%" : "Chưa có điểm";
+          // Màu theo % so với mục tiêu (giống bảng điểm): đã đạt / sắp đạt (≥ 80%) / còn xa.
+          string progressTone = "tone-" + StudyHub.BLL.Services.Grades.GoalStatusEvaluator.ProgressTone(goal.GoalLifecycleStatus, goal.ProgressPercent);
 
           <div class="goal-card-full">
             <!-- Main Goal Header Row -->
@@ -151,9 +153,9 @@
                 <div class="goal-progress-label">Tiến độ thực hiện</div>
                 <div class="d-flex align-items-center gap-2">
                   <div class="goal-progress-track">
-                    <div class="goal-progress-fill" style="width: @progressPct%;"></div>
+                    <div class="goal-progress-fill @progressTone" style="width: @progressPct%;"></div>
                   </div>
-                  <span class="goal-progress-text">@progressText</span>
+                  <span class="goal-progress-text @progressTone">@progressText</span>
                 </div>
               </div>
 
@@ -172,17 +174,6 @@
                   <span class="goal-status-pill status-pill-todo">
                     <span class="status-dot dot-todo"></span>To do
                   </span>
-                }
-
-                <!-- Reorder Buttons (Only for additional rungs) -->
-                @if (!isBase) {
-                  var addIndex = additionalGoals.IndexOf(goal);
-                  <button type="button" class="btn-icon-subtle" title="Di chuyển lên" @(addIndex <= 0 ? "disabled" : "") onclick="moveGoalOrder(@ladder.UserSubjectId, @goal.Id, -1)">
-                    <i class="bi bi-arrow-up"></i>
-                  </button>
-                  <button type="button" class="btn-icon-subtle" title="Di chuyển xuống" @(addIndex >= additionalGoals.Count - 1 ? "disabled" : "") onclick="moveGoalOrder(@ladder.UserSubjectId, @goal.Id, 1)">
-                    <i class="bi bi-arrow-down"></i>
-                  </button>
                 }
 
                 <!-- Edit Button -->
@@ -210,12 +201,14 @@
 
             <!-- Activities Collapsible Section -->
             <div class="collapse @(isExpanded ? "show" : "")" id="activities-collapse-@goal.Id">
-              <partial name="_GoalActivitiesPartial" model="goal" />
+              <partial name="Goals/_GoalActivitiesPartial" model="goal" />
             </div>
           </div>
         }
       </div>
     }
   </div>
-</div>
 
+  <!-- Hành trình mục tiêu của môn (offcanvas) -->
+  <partial name="Goals/_GoalJourneyPartial" model="ladder" />
+</div>

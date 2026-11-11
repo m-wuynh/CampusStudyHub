@@ -1,7 +1,23 @@
 /**
- * Grades Module - Goals & Goal Ladder (goals-ladder.js)
+ * Điểm số & Mục tiêu – Tab "Mục tiêu học tập" (goals.js, trước đây goals-ladder.js)
  * Manages Goal Ladder interactions, creating rungs, editing goals, reordering, and activity sync.
  */
+
+// Chế độ của modal thêm mục tiêu:
+//  'base' – "Đặt mục tiêu mới": chỉ liệt kê môn chưa có mục tiêu gốc.
+//  'rung' – "Thêm bậc": chỉ liệt kê môn đã có mục tiêu gốc.
+//  'any'  – không lọc.
+let addGoalMode = 'any';
+
+function ladderOfSubject(subjectId) {
+    const ladders = (window.GradesState && window.GradesState.goalLadders) ? window.GradesState.goalLadders : [];
+    return ladders.find(l => (l.userSubjectId || l.UserSubjectId) == subjectId) || null;
+}
+
+function subjectHasBaseGoal(subjectId) {
+    const ladder = ladderOfSubject(subjectId);
+    return !!(ladder && (ladder.hasBaseGoal || ladder.HasBaseGoal));
+}
 
 function onAddGoalGradeBookChanged(gradeBookId) {
     const gbId = parseInt(gradeBookId);
@@ -13,11 +29,21 @@ function onAddGoalGradeBookChanged(gradeBookId) {
     if (hiddenGb) hiddenGb.value = gbId || '';
 
     const allSubjectsData = (window.GradesState && window.GradesState.allSubjects) ? window.GradesState.allSubjects : [];
-    const filtered = (allSubjectsData || []).filter(s => (s.gradeBookId || s.GradeBookId) === gbId);
+    const inBook = (allSubjectsData || []).filter(s => (s.gradeBookId || s.GradeBookId) === gbId);
+    const filtered = inBook.filter(s => {
+        const id = s.userSubjectId || s.UserSubjectId;
+        if (addGoalMode === 'base') return !subjectHasBaseGoal(id);
+        if (addGoalMode === 'rung') return subjectHasBaseGoal(id);
+        return true;
+    });
     if (!filtered || filtered.length === 0) {
         const opt = document.createElement('option');
         opt.value = '';
-        opt.textContent = '(Bảng điểm này chưa có môn học nào)';
+        opt.textContent = inBook.length === 0
+            ? '(Bảng điểm này chưa có môn học nào)'
+            : addGoalMode === 'rung'
+                ? '(Chưa có môn nào có mục tiêu gốc – hãy đặt mục tiêu mới trước)'
+                : '(Mọi môn đã có mục tiêu gốc – dùng "Thêm bậc")';
         subSelect.appendChild(opt);
     } else {
         // Tên môn là duy nhất trong mỗi sổ nên liệt kê trực tiếp.
@@ -31,9 +57,10 @@ function onAddGoalGradeBookChanged(gradeBookId) {
     onAddGoalSubjectChanged();
 }
 
-function resetAddGoalModal() {
+function resetAddGoalModal(mode) {
+    addGoalMode = mode === 'base' || mode === 'rung' ? mode : 'any';
     const titleEl = document.getElementById('addGoalModalTitle');
-    if (titleEl) titleEl.innerText = 'Đặt mục tiêu học tập';
+    if (titleEl) titleEl.innerText = addGoalMode === 'rung' ? 'Thêm bậc mục tiêu' : 'Đặt mục tiêu mới';
 
     const currentGbId = (window.GradesState && window.GradesState.selectedGradeBookId) ? window.GradesState.selectedGradeBookId : 0;
     const gbSelect = document.getElementById('addGoalGradeBookSelect');
@@ -51,6 +78,7 @@ function resetAddGoalModal() {
 }
 
 function openAddGoalForSubject(id) {
+    addGoalMode = 'any';
     const allSubjectsData = (window.GradesState && window.GradesState.allSubjects) ? window.GradesState.allSubjects : [];
     const sub = (allSubjectsData || []).find(s => (s.userSubjectId || s.UserSubjectId) == id);
     const gbId = sub ? (sub.gradeBookId || sub.GradeBookId) : null;
@@ -167,46 +195,6 @@ async function confirmDeleteAdditionalGoal(goalId, targetVal) {
     }
 }
 
-async function moveGoalOrder(userSubjectId, goalId, dir) {
-    const listEl = document.getElementById('goal-list-' + userSubjectId);
-    if (!listEl) return;
-    const goalLaddersData = (window.GradesState && window.GradesState.goalLadders) ? window.GradesState.goalLadders : [];
-    const ladder = (goalLaddersData || []).find(l => (l.userSubjectId || l.UserSubjectId) == userSubjectId);
-    if (!ladder) return;
-    const addGoals = ladder.additionalGoals || ladder.AdditionalGoals;
-    if (!addGoals) return;
-
-    const goals = [...addGoals];
-    const idx = goals.findIndex(g => (g.id || g.Id) == goalId);
-    if (idx < 0) return;
-    if (dir === -1 && idx === 0) return;
-    if (dir === 1 && idx === goals.length - 1) return;
-
-    const targetIdx = idx + dir;
-    const temp = goals[idx];
-    goals[idx] = goals[targetIdx];
-    goals[targetIdx] = temp;
-
-    const items = goals.map((g, i) => ({
-        GoalId: g.id || g.Id,
-        NewDisplayOrder: i + 1
-    }));
-
-    try {
-        const token = window.GradesState ? window.GradesState.getCsrfToken() : (document.querySelector('input[name="__RequestVerificationToken"]')?.value || '');
-        const resp = await fetch('/Grades/ReorderGoals', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
-            body: JSON.stringify(items)
-        });
-        const res = await resp.json();
-        if (res.ok) window.location.reload();
-        else alert(res.error);
-    } catch (e) {
-        alert("Lỗi kết nối");
-    }
-}
-
 // ── Goal Activity AJAX ───────────────────────────────────────
 function toLocalInputValue(date) {
     const pad = n => String(n).padStart(2, '0');
@@ -299,63 +287,17 @@ async function deleteActivity(id) {
     }
 }
 
-async function toggleActivity(id, goalId, iconEl) {
-    try {
-        const token = window.GradesState ? window.GradesState.getCsrfToken() : (document.querySelector('input[name="__RequestVerificationToken"]')?.value || '');
-        const resp = await fetch('/Grades/ToggleGoalActivity', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
-            body: JSON.stringify({ ActivityId: id })
-        });
-        const res = await resp.json();
-        if (res.ok) {
-            const row = iconEl ? iconEl.closest('.activity-row') : document.getElementById('activity-item-' + id);
-            if (row) {
-                const titleSpan = row.querySelector('.activity-title');
-                const badgeSpan = row.querySelector('.activity-badge');
-                if (res.isCompleted) {
-                    if (iconEl) {
-                        iconEl.className = 'bi bi-check-circle-fill text-success fs-5 cursor-pointer flex-shrink-0';
-                        iconEl.title = 'Nhấn để đổi trạng thái';
-                    }
-                    if (titleSpan) {
-                        titleSpan.className = 'text-truncate text-decoration-line-through text-muted activity-title';
-                        titleSpan.style.color = '';
-                    }
-                    if (badgeSpan) {
-                        badgeSpan.className = 'badge activity-badge activity-badge-done';
-                        badgeSpan.textContent = 'Đã xong';
-                    }
-                } else {
-                    if (iconEl) {
-                        iconEl.className = 'bi bi-circle text-muted fs-5 cursor-pointer flex-shrink-0';
-                        iconEl.title = 'Nhấn để đánh dấu hoàn thành';
-                    }
-                    if (titleSpan) {
-                        titleSpan.className = 'text-truncate fw-medium activity-title';
-                        titleSpan.style.color = 'var(--sh-slate-800)';
-                    }
-                    if (badgeSpan) {
-                        badgeSpan.className = 'badge activity-badge activity-badge-todo';
-                        badgeSpan.textContent = 'To do';
-                    }
-                }
-            }
-            // Cập nhật bộ đếm tiến độ hoàn thành dạng 1/3 hoàn thành
-            if (goalId) {
-                const list = document.getElementById('activities-list-' + goalId);
-                const progressEl = document.getElementById('activity-progress-' + goalId);
-                if (list && progressEl) {
-                    const allRows = list.querySelectorAll('.activity-row');
-                    const doneRows = list.querySelectorAll('.activity-row .bi-check-circle-fill');
-                    progressEl.textContent = `${doneRows.length}/${allRows.length} hoàn thành`;
-                }
-            }
-        } else {
-            alert("Lỗi: " + (res.error || res.message || "Không thể cập nhật"));
-        }
-    } catch (err) {
-        alert("Lỗi kết nối khi cập nhật hoạt động.");
-    }
+// ── Hành trình mục tiêu: lọc mốc theo loại ───────────────────
+function filterJourney(btn, subjectId, category) {
+    const panel = document.getElementById('journey-' + subjectId);
+    if (!panel) return;
+    panel.querySelectorAll('.sv-journey-filter').forEach(b => b.classList.toggle('active', b === btn));
+    let visible = 0;
+    panel.querySelectorAll('.sv-journey-item').forEach(item => {
+        const show = category === 'all' || item.dataset.cat === category;
+        item.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    const empty = panel.querySelector('.sv-journey-filter-empty');
+    if (empty) empty.style.display = visible === 0 ? '' : 'none';
 }
-
