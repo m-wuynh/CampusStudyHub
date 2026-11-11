@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using StudyHub.BLL.Constants;
 using StudyHub.DAL.Entities;
 using StudyHub.DAL.Repositories.Common;
 
@@ -11,6 +12,8 @@ namespace StudyHub.BLL.Services.Grades;
 
 /// <summary>
 /// Ghi trạng thái mục tiêu xuống DB sau mọi thao tác làm đổi ĐTB (POST). Trang GET chỉ đọc.
+/// Đồng thời ghi hành trình (GoalProgressLogs): mốc "ĐTB thay đổi" khi ĐTB hiển thị của môn đổi,
+/// mốc "Chuyển trạng thái" khi trạng thái mục tiêu đổi.
 /// Người gọi chịu trách nhiệm bọc transaction cùng thao tác gốc.
 /// </summary>
 public sealed class GoalStatusSyncService(IRepository repository)
@@ -55,15 +58,35 @@ public sealed class GoalStatusSyncService(IRepository repository)
             .ToListAsync(cancellationToken);
         if (goals.Count == 0) return;
 
-        var averages = await GetSubjectAveragesAsync(userId, goals.Select(g => g.UserSubjectId).Distinct().ToList(), cancellationToken);
+        var subjectIds = goals.Select(g => g.UserSubjectId).Distinct().ToList();
+        var averages = await GetSubjectAveragesAsync(userId, subjectIds, cancellationToken);
+        var lastLogged = await GetLastLoggedAveragesAsync(userId, subjectIds, cancellationToken);
         var now = DateTime.UtcNow;
         var changed = false;
+
+        // Hành trình: một mốc cấp môn khi ĐTB hiển thị khác mốc ĐTB gần nhất đã ghi.
+        foreach (var subjectId in subjectIds)
+        {
+            averages.TryGetValue(subjectId, out var avg);
+            var hasPrevious = lastLogged.TryGetValue(subjectId, out var previous);
+            if (hasPrevious && GradeCalculator.RoundForDisplay(previous) == GradeCalculator.RoundForDisplay(avg)) continue;
+
+            await repository.AddAsync(GoalJourney.ScoreChanged(userId, subjectId, previous, avg, now), cancellationToken);
+            changed = true;
+        }
 
         foreach (var goal in goals)
         {
             averages.TryGetValue(goal.UserSubjectId, out var avg);
+            var statusBefore = goal.Status;
             if (!GoalStatusEvaluator.ApplyTransition(goal, avg, now, out var history)) continue;
             if (history is not null) await repository.AddAsync(history, cancellationToken);
+            if (goal.Status != statusBefore)
+            {
+                await repository.AddAsync(
+                    GoalJourney.ForGoal(goal, GradeConstants.GoalJourneyEvent.StatusChanged, avg, statusBefore, now),
+                    cancellationToken);
+            }
             changed = true;
         }
 
@@ -72,6 +95,26 @@ public sealed class GoalStatusSyncService(IRepository repository)
 
     public Task SyncSubjectAsync(long userId, long userSubjectId, CancellationToken cancellationToken = default) =>
         SyncSubjectsAsync(userId, new[] { userSubjectId }, cancellationToken);
+
+    /// <summary>
+    /// ĐTB ở mốc gần nhất có ghi ĐTB của từng môn (mốc "ĐTB thay đổi" hoặc "Tạo mục tiêu").
+    /// Môn chưa có mốc nào thì không có trong kết quả.
+    /// </summary>
+    private async Task<Dictionary<long, decimal?>> GetLastLoggedAveragesAsync(long userId, IReadOnlyCollection<long> userSubjectIds, CancellationToken cancellationToken)
+    {
+        var logs = await repository.Query<GoalProgressLog>()
+            .Where(l => l.UserId == userId && userSubjectIds.Contains(l.UserSubjectId) &&
+                        (l.EventType == GradeConstants.GoalJourneyEvent.ScoreChanged ||
+                         l.EventType == GradeConstants.GoalJourneyEvent.GoalCreated))
+            .Select(l => new { l.UserSubjectId, l.AverageScore, l.OccurredAtUtc, l.GoalProgressLogId })
+            .ToListAsync(cancellationToken);
+
+        return logs
+            .GroupBy(l => l.UserSubjectId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(l => l.OccurredAtUtc).ThenByDescending(l => l.GoalProgressLogId).First().AverageScore);
+    }
 
     /// <summary>Đồng bộ mọi môn của một sổ (sau khi đổi hệ số hoặc xóa cột).</summary>
     public async Task SyncGradeBookAsync(long userId, long gradeBookId, CancellationToken cancellationToken = default)

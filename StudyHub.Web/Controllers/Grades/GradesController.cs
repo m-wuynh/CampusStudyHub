@@ -298,21 +298,6 @@ public sealed class GradesController : Controller
         }
     }
 
-    [HttpPost("ReorderGoals")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ReorderGoals([FromBody] List<ReorderGoalDto> items, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await goalService.ReorderGoalsAsync(currentUser.UserId, items, cancellationToken);
-            return Json(new { ok = true });
-        }
-        catch (Exception ex)
-        {
-            return Json(new { ok = false, error = ToUserMessage(ex) });
-        }
-    }
-
     // ── Goal Activities ──────────────────────────────────────────
 
     [HttpPost("AddGoalActivity")]
@@ -353,21 +338,6 @@ public sealed class GradesController : Controller
         {
             await goalService.DeleteGoalActivityAsync(currentUser.UserId, req.ActivityId, cancellationToken);
             return Json(new { ok = true });
-        }
-        catch (Exception ex)
-        {
-            return Json(new { ok = false, error = ToUserMessage(ex) });
-        }
-    }
-
-    [HttpPost("ToggleGoalActivity")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ToggleGoalActivity([FromBody] ToggleActivityRequest req, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var isCompleted = await goalService.ToggleGoalActivityCompletionAsync(currentUser.UserId, req.ActivityId, cancellationToken);
-            return Json(new { ok = true, isCompleted });
         }
         catch (Exception ex)
         {

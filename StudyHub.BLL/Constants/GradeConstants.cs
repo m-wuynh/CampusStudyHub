@@ -20,8 +20,12 @@ public static class GradeConstants
     /// <summary>Số chữ số thập phân khi hiển thị ĐTB.</summary>
     public const int DisplayDecimals = 1;
 
-    /// <summary>Khoảng "gần đạt" mục tiêu (tô màu vàng trên bảng điểm).</summary>
-    public const decimal NearTargetMargin = 0.5m;
+    /// <summary>Tiến độ từ mức này (%) trở lên mà chưa đạt được coi là "sắp đạt" (vàng cam); thấp hơn là "còn xa" (đỏ).</summary>
+    public const int NearGoalProgressPercent = 80;
+
+    /// <summary>Mức màu ĐTB môn (theo ĐTB hiển thị): &lt; 6.0 đỏ (cảnh báo), 6.0–&lt; 8.0 vàng cam (trung bình), ≥ 8.0 xanh lá (tốt).</summary>
+    public const decimal ScoreWarningBelow = 6m;
+    public const decimal ScoreGoodFrom = 8m;
 
     // ── Độ dài tối đa (khớp HasMaxLength trong StudyHubDbContext) ─
     public const int GradeBookNameMaxLength = 200;
@@ -46,6 +50,21 @@ public static class GradeConstants
         public const string ToDo = "ToDo";
         public const string InProgress = "InProgress";
         public const string Done = "Done";
+    }
+
+    /// <summary>Loại mốc trong hành trình mục tiêu (cột <c>GoalProgressLog.EventType</c>).</summary>
+    public static class GoalJourneyEvent
+    {
+        /// <summary>Tạo mục tiêu (mốc cấp mục tiêu).</summary>
+        public const string GoalCreated = "GoalCreated";
+        /// <summary>ĐTB hiển thị của môn thay đổi (mốc cấp môn, GoalId = null).</summary>
+        public const string ScoreChanged = "ScoreChanged";
+        /// <summary>Trạng thái mục tiêu đổi do ĐTB (ToDo / InProgress / Done).</summary>
+        public const string StatusChanged = "StatusChanged";
+        /// <summary>Đổi điểm của nấc bổ sung.</summary>
+        public const string TargetChanged = "TargetChanged";
+        /// <summary>Hủy (xóa) nấc bổ sung.</summary>
+        public const string GoalCancelled = "GoalCancelled";
     }
 }
 

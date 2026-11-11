@@ -13,6 +13,8 @@
     <div class="d-flex align-items-center gap-2">
       <i class="bi bi-list-task text-muted fs-5"></i>
       <span class="fw-bold" style="font-size:13.5px; color:var(--sh-slate-900);">Hoạt động cần thực hiện</span>
+      <span class="text-muted d-none d-md-inline" style="font-size:11px;">· Xác nhận hoàn thành tại
+        <a asp-controller="Calendar" asp-action="Index" class="sv-link" style="font-size:11px;">Lịch học cá nhân</a></span>
     </div>
     <div class="d-flex align-items-center gap-2">
       <span class="fw-bold" style="font-size:12px; color:var(--sh-slate-900);" id="activity-progress-@goal.Id">
@@ -52,17 +54,15 @@
           <!-- Left: Clickable Icon + Title + Date -->
           <div class="d-flex align-items-center gap-3 overflow-hidden me-2 flex-grow-1">
             @if (act.IsCompleted) {
-              <i class="bi bi-check-circle-fill text-success fs-5 cursor-pointer flex-shrink-0"
-                 title="Nhấn để đổi trạng thái"
-                 onclick="toggleActivity(@act.Id, @goal.Id, this)"></i>
+              <i class="bi bi-check-circle-fill text-success fs-5 flex-shrink-0"
+                 title="Đã xác nhận hoàn thành ở Lịch học cá nhân"></i>
               <div class="d-flex flex-column overflow-hidden text-truncate">
                 <span class="activity-title text-truncate fw-medium text-decoration-line-through text-muted" style="font-size:13px;" title="@act.Title">@act.Title</span>
                 <span class="text-muted" style="font-size:11px; margin-top:1px;">@act.StartAtLocal.ToString("dd/MM/yyyy HH:mm") – @(act.EndAtLocal.Date == act.StartAtLocal.Date ? act.EndAtLocal.ToString("HH:mm") : act.EndAtLocal.ToString("dd/MM/yyyy HH:mm"))</span>
               </div>
             } else {
-              <i class="bi bi-circle text-muted fs-5 cursor-pointer flex-shrink-0"
-                 title="Nhấn để đánh dấu hoàn thành"
-                 onclick="toggleActivity(@act.Id, @goal.Id, this)"></i>
+              <i class="bi bi-circle text-muted fs-5 flex-shrink-0"
+                 title="Chưa hoàn thành – xác nhận tại Lịch học cá nhân"></i>
               <div class="d-flex flex-column overflow-hidden text-truncate">
                 <span class="activity-title text-truncate fw-medium" style="font-size:13px; color:var(--sh-slate-900);" title="@act.Title">@act.Title</span>
                 <span class="text-muted" style="font-size:11px; margin-top:1px;">@act.StartAtLocal.ToString("dd/MM/yyyy HH:mm") – @(act.EndAtLocal.Date == act.StartAtLocal.Date ? act.EndAtLocal.ToString("HH:mm") : act.EndAtLocal.ToString("dd/MM/yyyy HH:mm"))</span>
@@ -75,9 +75,10 @@
             @if (act.IsCompleted) {
               <span class="badge activity-badge activity-badge-done">Đã xong</span>
             } else {
-              <span class="badge activity-badge activity-badge-todo">To do</span>
+              <span class="badge activity-badge activity-badge-todo">Chưa hoàn thành</span>
             }
 
+            @if (!act.IsCompleted) {
             <button type="button" class="btn-icon-subtle" title="Sửa hoạt động"
                     data-title="@act.Title" data-description="@(act.Description ?? "")"
                     data-start="@act.StartAtLocal.ToString("yyyy-MM-ddTHH:mm", System.Globalization.CultureInfo.InvariantCulture)"
@@ -89,6 +90,7 @@
                     onclick="deleteActivity(@act.Id)">
               <i class="bi bi-trash"></i>
             </button>
+            }
           </div>
         </div>
       }

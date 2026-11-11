@@ -13,6 +13,9 @@ public interface IGradeBookService
 
     Task DeleteGradeBookAsync(long userId, long gradeBookId, CancellationToken cancellationToken = default);
 
+    /// <summary>Xóa cứng môn học và dữ liệu phụ thuộc; dùng chung cho xóa môn (GradeService) và xóa sổ.</summary>
+    Task DeleteUserSubjectsAsync(long userId, IReadOnlyCollection<long> userSubjectIds, CancellationToken cancellationToken = default);
+
     // ── Column operations ────────────────────────────────────────
     Task<GradeColumnDto> AddColumnAsync(long userId, CreateGradeColumnDto dto, CancellationToken cancellationToken = default);
 

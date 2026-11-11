@@ -5,23 +5,30 @@
 <div id="goals-tab" style="display:none;">
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
     <div>
-      <h3 class="fw-bold mb-1" style="font-size:18px; color:var(--sh-slate-900);">Mục tiêu học tập – Goal Ladder</h3>
-      <p class="text-muted mb-0" style="font-size:13px;">Thiết lập mục tiêu học tập cố định và theo dõi tiến độ thực hiện theo từng môn học.</p>
+      <h3 class="sv-section-title">Mục tiêu học tập – Goal Ladder</h3>
+      <p class="sv-section-sub">Thiết lập mục tiêu học tập cố định và theo dõi tiến độ thực hiện theo từng môn học.</p>
     </div>
     @if(Model.SubjectDetails.Any() || Model.GoalLadders.Any() || (Model.AllSubjects != null && Model.AllSubjects.Any())) {
-      <button class="btn" style="background:#4f46e5; color:#ffffff; font-weight:600; font-size:13px; border-radius:8px; padding:8px 18px; border:none; box-shadow:0 1px 2px rgba(79,70,229,0.2);" data-bs-toggle="modal" data-bs-target="#addGoalModal" onclick="resetAddGoalModal()">
-        <i class="bi bi-plus-lg me-1"></i> Đặt mục tiêu mới
-      </button>
+      <div class="d-flex gap-2 flex-wrap">
+        @if (Model.GoalLadders.Any(l => !l.IsDetached && l.HasBaseGoal)) {
+          <button type="button" class="btn-secondary-sh" data-bs-toggle="modal" data-bs-target="#addGoalModal" onclick="resetAddGoalModal('rung')">
+            <i class="bi bi-bar-chart-steps me-1"></i> Thêm bậc
+          </button>
+        }
+        <button type="button" class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#addGoalModal" onclick="resetAddGoalModal('base')">
+          <i class="bi bi-plus-lg me-1"></i> Đặt mục tiêu mới
+        </button>
+      </div>
     }
   </div>
 
   @if (!Model.GoalLadders.Any()) {
-    <div class="sh-card text-center py-5" style="border:1px solid var(--sh-slate-200); border-radius:14px; background:#ffffff;">
+    <div class="sh-card text-center py-5 px-3">
       <div style="font-size:48px; margin-bottom:12px;">🎯</div>
       <h4 class="fw-bold" style="font-size:16px; color:var(--sh-slate-800);">Chưa có mục tiêu nào</h4>
       <p class="text-muted" style="font-size:13px;">Hãy đặt mục tiêu gốc điểm số đầu tiên để bắt đầu hành trình cải thiện kết quả học tập!</p>
       @if(Model.SubjectDetails.Any() || (Model.AllSubjects != null && Model.AllSubjects.Any())) {
-        <button class="btn" style="background:#4f46e5; color:#ffffff; font-weight:600; font-size:13px; border-radius:8px; padding:8px 18px; border:none;" data-bs-toggle="modal" data-bs-target="#addGoalModal" onclick="resetAddGoalModal()">
+        <button type="button" class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#addGoalModal" onclick="resetAddGoalModal('base')">
           <i class="bi bi-trophy me-1"></i> Đặt mục tiêu đầu tiên
         </button>
       }
@@ -30,7 +37,7 @@
     ViewData["CurrentGradeBookId"] = Model.SelectedGradeBookId;
     @foreach (var ladder in Model.GoalLadders.Where(l => !l.IsDetached))
     {
-      <partial name="_GoalLadderPartial" model="ladder" />
+      <partial name="Goals/_GoalLadderPartial" model="ladder" />
     }
 
     var detachedLadders = Model.GoalLadders.Where(l => l.IsDetached).ToList();
@@ -41,7 +48,7 @@
       </div>
       @foreach (var ladder in detachedLadders)
       {
-        <partial name="_GoalLadderPartial" model="ladder" />
+        <partial name="Goals/_GoalLadderPartial" model="ladder" />
       }
     }
   }

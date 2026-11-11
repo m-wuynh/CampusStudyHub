@@ -13,7 +13,7 @@ namespace StudyHub.BLL.Services.Grades;
 
 public sealed class GradeService(
     IRepository repository,
-    GradeBookDeletionService deletionService,
+    IGradeBookService gradeBookService,
     GoalStatusSyncService goalStatusSync) : IGradeService
 {
     public async Task<GradesPageDto> GetGradePageAsync(long userId, long? gradeBookId, CancellationToken cancellationToken = default, bool includeSubjectOptions = true)
@@ -132,6 +132,20 @@ public sealed class GradeService(
                 .ToListAsync(cancellationToken)
             : new List<Goal>();
 
+        // Hành trình mục tiêu (chỉ đọc): mốc của các môn đang hiển thị + tên các mục tiêu được nhắc tới (kể cả đã hủy).
+        var journeyLogs = allGoalSubjectIds.Any()
+            ? await repository.Query<GoalProgressLog>()
+                .Where(l => l.UserId == userId && allGoalSubjectIds.Contains(l.UserSubjectId))
+                .ToListAsync(cancellationToken)
+            : new List<GoalProgressLog>();
+        var journeyGoalIds = journeyLogs.Where(l => l.GoalId.HasValue).Select(l => l.GoalId!.Value).Distinct().ToList();
+        var journeyGoals = journeyGoalIds.Any()
+            ? await repository.Query<Goal>()
+                .Where(g => g.UserId == userId && journeyGoalIds.Contains(g.GoalId))
+                .Select(g => new GoalJourney.GoalInfo(g.GoalId, g.Title, g.TargetValue, g.IsBaseGoal))
+                .ToDictionaryAsync(g => g.GoalId, cancellationToken)
+            : new Dictionary<long, GoalJourney.GoalInfo>();
+
         // ── 3. Compute summary stats cho Sổ điểm được chọn ──────────────────────────
         if (subjectDetails.Any())
         {
@@ -177,7 +191,7 @@ public sealed class GradeService(
         }
 
         // ── 4. Build Goal Ladder per subject ───────────────────────────────────────
-        var goalLadders = BuildGoalLadders(goalSubjectSources, allGoals);
+        var goalLadders = BuildGoalLadders(goalSubjectSources, allGoals, journeyLogs, journeyGoals);
 
         // ── 5. Load All Active Subjects for GradeBook dropdown lookup in Goal modals ──
         var allSubjects = includeSubjectOptions
@@ -405,7 +419,7 @@ public sealed class GradeService(
         var exists = await repository.AnyAsync<UserSubject>(us => us.UserSubjectId == userSubjectId, cancellationToken);
         if (!exists) return;
 
-        await deletionService.DeleteUserSubjectsAsync(userId, new[] { userSubjectId }, cancellationToken);
+        await gradeBookService.DeleteUserSubjectsAsync(userId, new[] { userSubjectId }, cancellationToken);
     }
 
     private static readonly System.Text.RegularExpressions.Regex ColorHexPattern =
@@ -459,7 +473,9 @@ public sealed class GradeService(
     /// <summary>Một ladder cho mỗi môn có mục tiêu, theo đúng UserSubjectId (không gộp môn theo tên).</summary>
     private static List<GoalLadderDto> BuildGoalLadders(
         IEnumerable<GoalSubjectSource> subjects,
-        List<Goal> goals)
+        List<Goal> goals,
+        List<GoalProgressLog> journeyLogs,
+        IReadOnlyDictionary<long, GoalJourney.GoalInfo> journeyGoals)
     {
         var result = new List<GoalLadderDto>();
         var today = GradeClock.Today();
@@ -484,7 +500,6 @@ public sealed class GradeService(
             var goalDtos = new List<GoalDto>();
             foreach (var g in subjectGoals
                          .OrderByDescending(g => g.GoalId == baseGoalId)
-                         .ThenBy(g => g.DisplayOrder)
                          .ThenBy(g => g.TargetValue))
             {
                 var activities = g.ScheduleEvents.Select(e => new GoalActivityDto(
@@ -540,7 +555,8 @@ public sealed class GradeService(
                 baseGoal,
                 additionalGoals,
                 subject.AcademicYearName,
-                IsDetached: subject.GradeBookId is null));
+                IsDetached: subject.GradeBookId is null,
+                Journey: GoalJourney.Build(journeyLogs.Where(l => l.UserSubjectId == subject.UserSubjectId), journeyGoals)));
         }
 
         return result.OrderBy(l => l.SubjectName).ToList();
