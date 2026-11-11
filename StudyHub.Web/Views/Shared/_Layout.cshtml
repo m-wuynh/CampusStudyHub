@@ -1,7 +1,8 @@
 @using System.Security.Claims
 @{
-  var displayName = User.Identity?.Name ?? "Sinh viên";
-  var email = User.FindFirstValue(ClaimTypes.Email) ?? "Tài khoản Google";
+  var isAuthenticated = User.Identity?.IsAuthenticated == true;
+  var displayName = isAuthenticated ? User.Identity?.Name ?? "Sinh viên" : "Khách";
+  var email = isAuthenticated ? User.FindFirstValue(ClaimTypes.Email) ?? "Tài khoản Google" : "Đang khám phá Study Hub";
   var avatarUrl = User.FindFirstValue("urn:google:picture");
   var initial = string.IsNullOrWhiteSpace(displayName) ? "S" : displayName.Trim()[0].ToString().ToUpperInvariant();
 }
@@ -28,7 +29,11 @@
 
   @await RenderSectionAsync("Styles", required: false)
 </head>
-<body class="app-wrapper">
+<body class="app-wrapper" data-guest="@(!isAuthenticated ? "true" : "false")">
+  @if (!isAuthenticated)
+  {
+    <script src="~/js/guest-access.js" asp-append-version="true"></script>
+  }
 
   <!-- ── Sidebar Backdrop (Mobile) ── -->
   <div id="sidebar-backdrop"></div>
@@ -132,11 +137,18 @@
             <p class="mb-0 truncate" style="font-size:10px; color:var(--sh-slate-500);">@email</p>
           </div>
         </div>
+        @if (isAuthenticated)
+        {
         <button id="sidebar-logout-btn"
                 class="btn-icon-sh danger"
                 title="Đăng xuất">
           <i class="bi bi-box-arrow-right"></i>
         </button>
+        }
+        else
+        {
+          <a asp-controller="Account" asp-action="Login" class="btn-icon-sh" title="Đăng nhập" aria-label="Đăng nhập"><i class="bi bi-box-arrow-in-right"></i></a>
+        }
       </div>
     </div>
   </aside>
@@ -170,6 +182,8 @@
       <!-- Right: Search + Actions + User -->
       <div class="d-flex align-items-center gap-2 gap-sm-3">
 
+        @if (isAuthenticated)
+        {
         <!-- Search Bar (md+) -->
         <div class="topbar-search d-none d-md-block">
           <i class="bi bi-search search-icon" style="font-size:13px;"></i>
@@ -255,6 +269,12 @@
           </div>
         </div>
 
+        }
+        else
+        {
+          <a asp-controller="Account" asp-action="Login" class="btn-primary-sh">Đăng nhập</a>
+        }
+
         <!-- User Avatar -->
         <div class="d-flex align-items-center gap-2 ps-2"
              style="border-left:1px solid var(--sh-slate-200);">
@@ -281,6 +301,14 @@
 
     <!-- ── PAGE CONTENT ── -->
     <main class="flex-grow-1 p-3 p-sm-4 p-lg-5">
+      @if (!isAuthenticated)
+      {
+        <div class="alert alert-info mb-4" role="status">
+          Bạn đang xem với tư cách khách. Bạn có thể khám phá các trang và chuyển tab.
+          <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)" class="fw-semibold">Đăng nhập</a>
+          để tạo nội dung và sử dụng các công cụ học tập. Dữ liệu cá nhân sẽ hiển thị sau khi đăng nhập.
+        </div>
+      }
       @RenderBody()
     </main>
     <!-- ── /PAGE CONTENT ── -->
@@ -355,6 +383,7 @@
   <!-- Notification JS -->
   <script>
     (function () {
+      if (@(isAuthenticated ? "false" : "true")) return;
       const btn = document.getElementById('topbar-notifications-btn');
       const menu = document.getElementById('notifications-menu');
       const list = document.getElementById('notif-list');

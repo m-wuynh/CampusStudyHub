@@ -12,9 +12,12 @@ namespace StudyHub.Web.Controllers.StudyGroups;
 [Route("Groups")]
 public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubContext<StudyGroupHub> hub) : Controller
 {
+    [AllowAnonymous]
     [HttpGet("")]
     public async Task<IActionResult> Index([FromQuery(Name = "q")] string? searchText, CancellationToken cancellationToken) =>
-        View(new StudyGroupsIndexViewModel(await studyGroups.GetGroupsAsync(searchText?.Trim(), cancellationToken), searchText?.Trim()));
+        View(new StudyGroupsIndexViewModel(User.Identity?.IsAuthenticated == true
+            ? await studyGroups.GetGroupsAsync(searchText?.Trim(), cancellationToken)
+            : [], searchText?.Trim()));
 
     [HttpGet("Create")]
     public async Task<IActionResult> Create(CancellationToken cancellationToken) =>

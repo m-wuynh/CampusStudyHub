@@ -24,10 +24,17 @@ public sealed class DashboardController(
 {
     private long CurrentUserId => currentUser.UserId > 0 ? currentUser.UserId : (long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 1);
 
+    [AllowAnonymous]
     [HttpGet("/")]
     [HttpGet("/Dashboard")]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
+        if (User.Identity?.IsAuthenticated != true)
+            return View(new DashboardIndexViewModel(
+                "Khách", DateTime.Today.ToString("dd/MM/yyyy"), null,
+                "Chào mừng đến với Study Hub", 0, 0, null, null, null, null,
+                [], [], new FlashcardSummaryDto(0, 0, [])));
+
         var userId = currentUser.UserId > 0 ? currentUser.UserId : CurrentUserId;
         var displayName = !string.IsNullOrWhiteSpace(currentUser.DisplayName) ? currentUser.DisplayName : (User.Identity?.Name ?? "Sinh viên");
 
