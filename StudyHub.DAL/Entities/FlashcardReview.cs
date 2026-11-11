@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace StudyHub.DAL.Entities;
@@ -19,5 +19,8 @@ public partial class FlashcardReview
 
     public DateTime ReviewedAtUtc { get; set; }
 
+    public Guid? SessionId { get; set; }
+
+    public virtual FlashcardLearnSession? LearnSession { get; set; }
     public virtual FlashcardProgress FlashcardProgress { get; set; } = null!;
 }

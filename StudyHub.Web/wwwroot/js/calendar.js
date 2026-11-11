@@ -393,21 +393,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (targetEl && targetEl.getBoundingClientRect) {
             var rect = targetEl.getBoundingClientRect();
-            top = rect.top - calendarRect.top + 20;
+            top = rect.top - calendarRect.top + 10;
             left = rect.right - calendarRect.left + 10;
 
-            if (left + 360 > calendarRect.width) {
+            if (left + 370 > calendarRect.width) {
                 left = rect.left - calendarRect.left - 370;
             }
-            if (left < 0) left = 10;
+            if (left < 10) left = 10;
         } else {
             top = 100;
             left = Math.max(10, (calendarRect.width - 360) / 2);
         }
 
+        popover.style.left = Math.max(10, left) + 'px';
         popover.style.top = Math.max(10, top) + 'px';
-        popover.style.left = left + 'px';
         popover.classList.remove('d-none');
+
+        // Tự động kiểm tra và đẩy popover lên nếu chạm đáy hoặc tràn container
+        function adjustPopoverVertical() {
+            var popoverHeight = popover.offsetHeight || 280;
+            var calHeight = calendarEl.offsetHeight || calendarRect.height;
+            var maxTop = calHeight - popoverHeight - 15;
+
+            if (top > maxTop) {
+                if (targetEl && targetEl.getBoundingClientRect) {
+                    var r = targetEl.getBoundingClientRect();
+                    var flippedTop = (r.bottom - calendarRect.top) - popoverHeight;
+                    top = Math.max(10, Math.min(flippedTop, maxTop));
+                } else {
+                    top = Math.max(10, maxTop);
+                }
+            } else if (top < 10) {
+                top = 10;
+            }
+            popover.style.top = top + 'px';
+        }
+
+        adjustPopoverVertical();
 
         // Fetch Reminders
         var remRow = document.getElementById('popover-reminders-row');
@@ -436,6 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             return '<div>' + text + '</div>';
                         }).join('');
                         remRow.style.setProperty('display', 'flex', 'important');
+                        adjustPopoverVertical();
                     }
                 })
                 .catch(() => {});
