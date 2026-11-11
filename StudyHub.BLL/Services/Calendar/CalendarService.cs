@@ -14,26 +14,35 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
     {
         var entities = await repository.ListAsync<ScheduleEvent>(e => e.UserId == userId && !e.IsDeleted);
         
-        return entities.Select(e => new ScheduleEventDto(
-            e.ScheduleEventId,
-            e.Title,
-            e.EventType,
-            e.StartAtLocal,
-            e.EndAtLocal,
-            e.TimeZoneId,
-            e.RepeatMode,
-            e.RepeatUntilDate,
-            e.Location,
-            e.Description,
-            e.GoalId,
-            e.IsCompleted
-        )).ToList();
+        return entities
+            .Select(e => new ScheduleEventDto(
+                e.ScheduleEventId,
+                e.Title,
+                e.EventType,
+                e.StartAtLocal,
+                e.EndAtLocal,
+                e.TimeZoneId,
+                e.RepeatMode,
+                e.RepeatUntilDate,
+                e.Location,
+                e.Description,
+                e.GoalId,
+                e.IsCompleted
+            ))
+            .Where(dto => ScheduleOccurrenceService.GetStarts(dto, fromDate, toDate).Count > 0)
+            .ToList();
     }
 
     public async Task<List<ScheduleEventDto>> GetActiveRemindersAsync(long userId)
     {
         var utcNow = DateTime.UtcNow;
-        var reminders = await repository.ListAsync<Reminder>(r => r.UserId == userId && r.Status == "Pending" && r.RemindAtUtc <= utcNow);
+        // Chỉ lấy nhắc nhở dạng thông báo thường trên web (InApp), loại trừ thông báo Gmail/Email
+        var reminders = await repository.ListAsync<Reminder>(r => 
+            r.UserId == userId && 
+            r.Status == "Pending" && 
+            r.RemindAtUtc <= utcNow && 
+            r.Channel != "Email" && 
+            r.Channel != "gmail");
         
         var eventIds = reminders.Select(r => r.ScheduleEventId).Distinct().Where(id => id.HasValue).Select(id => id!.Value).ToList();
         
