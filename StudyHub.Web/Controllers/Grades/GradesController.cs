@@ -63,9 +63,13 @@ public sealed class GradesController : Controller
 
     // ── Index ────────────────────────────────────────────────────
 
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
     [HttpGet("")]
     public async Task<IActionResult> Index(long? gradeBookId, CancellationToken cancellationToken)
     {
+        if (User.Identity?.IsAuthenticated != true)
+            return View(new GradesIndexViewModel(new GradesPageDto(
+                [], null, null, [], new YearGradeSummaryDto(null, null, "", null, "", 0), [], [], [])));
         var userId = currentUser.UserId;
         var data = await gradeService.GetGradePageAsync(userId, gradeBookId, cancellationToken);
         return View(new GradesIndexViewModel(data));

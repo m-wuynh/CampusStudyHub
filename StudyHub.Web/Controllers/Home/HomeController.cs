@@ -7,6 +7,7 @@ namespace StudyHub.Web.Controllers.Home;
 
 public sealed class HomeController : Controller
 {
+    [AllowAnonymous]
     [HttpGet("/Privacy")]
     public IActionResult Privacy() => View();
 

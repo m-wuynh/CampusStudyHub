@@ -10,9 +10,12 @@ namespace StudyHub.Web.Controllers.NotesV3;
 public sealed class NotesV3Controller(
     INotesIndexService indexService) : Controller
 {
+    [AllowAnonymous]
     [HttpGet("Trash")]
     public async Task<IActionResult> Trash(CancellationToken ct)
     {
+        if (User.Identity?.IsAuthenticated != true)
+            return View(new NotesTrashViewModel([], []));
         var data = await indexService.GetTrashAsync(ct);
         var model = new NotesTrashViewModel(
             data.Notebooks.Select(x => new TrashedNotebookViewModel(
@@ -24,9 +27,12 @@ public sealed class NotesV3Controller(
         return View("~/Views/NotesV3/Trash.cshtml", model);
     }
 
+    [AllowAnonymous]
     [HttpGet("")]
     public async Task<IActionResult> Index(long? groupId, CancellationToken ct)
     {
+        if (User.Identity?.IsAuthenticated != true)
+            return View(new NotesIndexViewModel(0, 0, 0, [], [], [], null, [], []));
         var data = await indexService.GetAsync(groupId, ct);
 
         var model = new NotesIndexViewModel(

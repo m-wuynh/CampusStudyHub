@@ -22,35 +22,18 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
 
     //deck management
 
+    [AllowAnonymous]
     [HttpGet("")]
     public async Task<IActionResult> Index(
         string? searchText,
         CancellationToken cancellationToken)
     {
-        //var decks = await flashcardDeckService.GetMyDecksAsync(
-        //    currentUser.UserId,
-        //    cancellationToken);
+        if (User.Identity?.IsAuthenticated != true)
+            return View(new FlashcardsIndexViewModel { SearchText = searchText });
 
-        //if (!string.IsNullOrWhiteSpace(searchText))
-        //{
-        //    var keyword = searchText.Trim();
-
-        //    decks = decks
-        //        .Where(d => d.Title.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-        //        .ToList();
-
-        //}
-
-        //var model = new FlashcardsIndexViewModel
-        //{
-        //    Decks = decks,
-        //    SearchText = searchText
-        //};
-
-        //return View(model);
         var allDecks = await flashcardDeckService.GetMyDecksAsync(
-    currentUser.UserId,
-    cancellationToken);
+            currentUser.UserId,
+            cancellationToken);
 
         var since = DateTime.UtcNow.AddDays(-7);
 
