@@ -97,7 +97,7 @@
     <div id="calendar" style="height: 100%;"></div>
 
     <!-- Event Popover (Hidden by default) -->
-    <div id="event-popover" class="position-absolute bg-white rounded-3 p-2 d-none" style="width: 360px; z-index: 1050; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: opacity 0.1s;">
+    <div id="event-popover" class="position-absolute bg-white rounded-3 p-2 d-none" style="width: 360px; max-width: calc(100% - 20px); max-height: calc(100% - 20px); overflow-y: auto; z-index: 1050; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: opacity 0.1s;">
       <div class="d-flex justify-content-end mb-1 gap-1 align-items-center">
         <button class="btn btn-sm btn-outline-secondary border py-1 px-2 d-flex align-items-center gap-1 me-auto" id="btn-toggle-complete" style="border-radius: 16px; font-size: 11px; font-weight: 600;">
           <i class="bi bi-circle" id="popover-complete-icon"></i>

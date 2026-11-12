@@ -6,6 +6,8 @@ using StudyHub.BLL.Services.Flashcards;
 using Microsoft.AspNetCore.DataProtection.KeyManagement.Internal;
 using StudyHub.BLL.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 
 
 namespace StudyHub.Web.Controllers.Flashcards;
@@ -14,7 +16,7 @@ namespace StudyHub.Web.Controllers.Flashcards;
 [Route("Flashcards")]
 public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckService,
     IFlashcardService flashcardService,
-    ILearnSessionService learnSessionService,
+    IDbLearnSessionService dbLearnSessionService,
     ICurrentUser currentUser) : Controller
 {
 
@@ -26,27 +28,50 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         string? searchText,
         CancellationToken cancellationToken)
     {
-        if (User.Identity?.IsAuthenticated != true)
-            return View(new FlashcardsIndexViewModel { SearchText = searchText });
+        //var decks = await flashcardDeckService.GetMyDecksAsync(
+        //    currentUser.UserId,
+        //    cancellationToken);
 
-        var decks = await flashcardDeckService.GetMyDecksAsync(
-            currentUser.UserId,
-            cancellationToken);
+        //if (!string.IsNullOrWhiteSpace(searchText))
+        //{
+        //    var keyword = searchText.Trim();
 
-        if (!string.IsNullOrWhiteSpace(searchText))
-        {
-            var keyword = searchText.Trim();
+        //    decks = decks
+        //        .Where(d => d.Title.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+        //        .ToList();
 
-            decks = decks
-                .Where(d => d.Title.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+        //}
+
+        //var model = new FlashcardsIndexViewModel
+        //{
+        //    Decks = decks,
+        //    SearchText = searchText
+        //};
+
+        //return View(model);
+        var allDecks = await flashcardDeckService.GetMyDecksAsync(
+    currentUser.UserId,
+    cancellationToken);
+
+        var since = DateTime.UtcNow.AddDays(-7);
+
+        var decks = string.IsNullOrWhiteSpace(searchText)
+            ? allDecks
+            : allDecks
+                .Where(d => d.Title.Contains(
+                    searchText.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
                 .ToList();
-
-        }
 
         var model = new FlashcardsIndexViewModel
         {
             Decks = decks,
-            SearchText = searchText
+            SearchText = searchText,
+            TotalDecks = allDecks.Count,
+            NewDecksLast7Days = allDecks.Count(
+                d => d.CreatedAtUtc >= since),
+            UpdatedDecksLast7Days = allDecks.Count(
+                d => d.UpdatedAtUtc >= since)
         };
 
         return View(model);
@@ -333,29 +358,57 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
             return NotFound();
         }
 
-        var session = await learnSessionService.StartAsync(
-            deckId,
-            currentUser.UserId,
-            cancellationToken);
+        //var sessionId = await dbLearnSessionService.StartOrResumeAsync(
+        //    deckId,
+        //    currentUser.UserId,
+        //    cancellationToken);
 
-        if (session is null)
+        //if (sessionId is null)
+        //{
+        //    return View("Learn", new FlashcardLearnViewModel
+        //    {
+        //        DeckId = deck.DeckId,
+        //        DeckTitle = deck.Title
+        //    });
+        //}
+
+        //return RedirectToAction(
+        //    nameof(LearnSession),
+        //    new { deckId, sessionId = sessionId.Value });
+        return View("LearnSetup", new FlashcardLearnViewModel
         {
-            return View("Learn", new FlashcardLearnViewModel
-            {
-                DeckId = deck.DeckId,
-                DeckTitle = deck.Title
-            });
-        }
-
-        return RedirectToAction(
-            nameof(LearnSession),
-            new
-            {
-                deckId,
-                sessionId = session.SessionId
-            });
+            DeckId = deck.DeckId,
+            DeckTitle = deck.Title
+        });
 
     }
+
+
+    [HttpPost("{deckId:long}/Learn/Start")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> StartLearn(
+        long deckId,
+        bool shuffleEnabled,
+        CancellationToken cancellationToken)
+    {
+        var sessionId = await dbLearnSessionService.StartOrResumeAsync(
+            deckId,
+            currentUser.UserId,
+            cancellationToken,
+            shuffleEnabled);
+
+        if (sessionId is null)
+        {
+            TempData["FlashcardError"] =
+                "Không thể bắt đầu phiên học.";
+
+            return RedirectToAction(nameof(Learn), new { deckId });
+        }
+
+        return RedirectToAction(nameof(LearnSession),
+            new { deckId, sessionId = sessionId.Value });
+    }
+
 
     [HttpGet("{deckId:long}/Learn/{sessionId:guid}")]
     public async Task<IActionResult> LearnSession(
@@ -373,66 +426,49 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
             return NotFound();
         }
 
-        var session = learnSessionService.GetInfo(
-            sessionId,
-            deckId,
-            currentUser.UserId);
-
-        if(session is null)
+        try
         {
-            TempData["FlashcardError"] = "Phiên học không tồn tại hoặc đã hết hạn";
-            return RedirectToAction(nameof(Learn), new { deckId });
-        }
+            var state = await dbLearnSessionService.GetStateAsync(
+                sessionId, deckId, currentUser.UserId, cancellationToken);
 
-        LearnSessionQuestionDto? question = null;
+            if (state is null)
+                return NotFound();
 
-        if (!session.IsCompleted)
-        {
-            try
+            LearnSessionQuestionDto? question = null;
+
+            if (!state.Session.IsCompleted && state.NextCardId.HasValue)
             {
-                question = await learnSessionService
-                    .GetCurrentQuestionAsync(
+                question = await dbLearnSessionService.GetOrIssueQuestionAsync(
+                    sessionId,
+                    deckId,
+                    currentUser.UserId,
+                    state.NextCardId.Value,
+                    cancellationToken);
+            }
+
+            LearnResultDto? result = null;
+            if (state.Session.IsCompleted)
+            {
+                result = await dbLearnSessionService.GetResultAsync(
                     sessionId,
                     deckId,
                     currentUser.UserId,
                     cancellationToken);
             }
-            catch (InvalidOperationException)
+
+            return View("Learn", new FlashcardLearnViewModel
             {
-                return Conflict(
-                    "Trạng thái phiên học đã thay đổi. Hãy tải lại trang");
-            }
-
-            session = learnSessionService.GetInfo(
-                sessionId,
-                deckId,
-                currentUser.UserId);
-
-            if(session is null)
-            {
-                TempData["FlashcardError"] = "Phiên học không tồn tại hoặc đã hết hạn";
-                return RedirectToAction(nameof(Details), new { deckId });
-            }
-
-            if(question is null && !session.IsCompleted)
-            {
-                TempData["FlashcardError"] = "Không thể lấy câu hỏi hiện tại. Hãy tải lại trang";
-                return RedirectToAction(nameof(Details), new { deckId });
-            }
-
-
-
-            
-        }
-
-            var model = new FlashcardLearnViewModel {
                 DeckId = deck.DeckId,
                 DeckTitle = deck.Title,
-                Session = session,
-                Question = question
-            };
-
-            return View("Learn", model);
+                Session = state.Session,
+                Question = question,
+                Result = result
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 
     [HttpPost("{deckId:long}/Learn/{sessionId:guid}/Answer")]
@@ -453,7 +489,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
 
         try
         {
-            var result = await learnSessionService.AnswerAsync(
+            var answer = await dbLearnSessionService.SubmitAnswerAsync(
                 sessionId,
                 deckId,
                 currentUser.UserId,
@@ -463,26 +499,30 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
                     model.SelectedAnswer),
                 cancellationToken);
 
-            if(result is null)
-            {
-                return NotFound(new
-                {
-                    message = "Phiên học không tồn tại hoặc đã hết hạn"
-                });
-            }
+            if (answer is null)
+                return NotFound(new { message = "Phiên học không tồn tại." });
+
+            // Submit đã lưu DB; đọc lại tiến độ mới nhất.
+            var state = await dbLearnSessionService.GetStateAsync(
+                sessionId, deckId, currentUser.UserId, cancellationToken);
+
+            if (state is null)
+                return NotFound();
+
+            var progress = state.Session;
 
             return Json(new
             {
-                questionCardId = result.Answer.QuestionCardId,
-                selectedAnswer = result.Answer.SelectedAnswer,
-                correctAnswer = result.Answer.CorrectAnswer,
-                isCorrect = result.Answer.IsCorrect,
+                questionCardId = answer.QuestionCardId,
+                selectedAnswer = answer.SelectedAnswer,
+                correctAnswer = answer.CorrectAnswer,
+                isCorrect = answer.IsCorrect,
 
-                cardStatus = result.Card.Status.ToString(),
-                totalCards = result.Session.NewCount,
-                learningCount = result.Session.LearningCount,
-                learnedCount = result.Session.LearnedCount,
-                isCompleted = result.Session.IsCompleted
+                totalCards = progress.TotalCards,
+                newCount = progress.NewCount,
+                learningCount = progress.LearningCount,
+                learnedCount = progress.LearnedCount,
+                isCompleted = progress.IsCompleted
             });
         }
         catch(ArgumentException ex)
@@ -497,6 +537,22 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
             return Conflict(new
             {
                 message = ex.Message
+            });
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new
+            {
+                message = "Phiên học đã thay đổi. Hãy tải lại trang."
+            });
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is SqlException sql &&
+                  sql.Number is 2601 or 2627)
+        {
+            return Conflict(new
+            {
+                message = "Lượt trả lời đã được ghi nhận. Hãy tải lại trang."
             });
         }
     }
