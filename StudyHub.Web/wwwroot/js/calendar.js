@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
                        '<div class="sh-date-num">' + dateNum + '</div>';
             return { html: html };
         },
-        events: '/Calendar/GetEvents',
+        events: document.body.dataset.guest === 'true' ? [] : '/Calendar/GetEvents',
         eventClassNames: function(arg) {
             var isCompleted = !!arg.event.extendedProps.isCompleted;
             var end = arg.event.end || arg.event.start;
@@ -521,6 +521,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>`;
             }
 
+            if (document.body.dataset.guest === 'true') {
+                renderSearchResults([], q);
+                return;
+            }
             fetch('/Calendar/SearchEvents?q=' + encodeURIComponent(q))
                 .then(r => r.json())
                 .then(data => {

@@ -22,6 +22,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
 
     //deck management
 
+    [AllowAnonymous]
     [HttpGet("")]
     public async Task<IActionResult> Index(
         string? searchText,
