@@ -34,9 +34,18 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
             </p>
     </div>
     <div class="d-flex gap-2">
-      <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#newSetModal">
+      @* <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#newSetModal">
         <i class="bi bi-plus-lg"></i><span>Tạo bộ thẻ</span>
-      </button>
+      </button> *@
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <button class="btn-primary-sh"
+                    data-bs-toggle="modal"
+                    data-bs-target="#newSetModal">
+                <i class="bi bi-plus-lg"></i>
+                <span>Tạo bộ thẻ</span>
+            </button>
+        }
     </div>
   </div>
 
@@ -143,7 +152,7 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                     <i class="bi bi-layers"
                        style="font-size:40px; color:var(--sh-slate-300);"></i>
 
-                    <h3 class="fw-bold mt-3 mb-2"
+                    @* <h3 class="fw-bold mt-3 mb-2"
                         style="font-size:16px;">
                         @(string.IsNullOrWhiteSpace(Model.SearchText)
                             ? "Chưa có bộ flashcard"
@@ -165,6 +174,40 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                             <i class="bi bi-plus-lg"></i>
                             Tạo bộ thẻ
                         </button>
+                    } *@
+
+                    @if (User.Identity?.IsAuthenticated != true)
+                    {
+                        <h3 class="fw-bold mt-3 mb-2">
+                            Đăng nhập để sử dụng Flashcard
+                        </h3>
+
+                        <p class="mb-3 text-muted">
+                            Đăng nhập để tạo, quản lý và luyện tập với bộ thẻ của bạn.
+                        </p>
+                    }
+                    else
+                    {
+                        <h3 class="fw-bold mt-3 mb-2">
+                            @(string.IsNullOrWhiteSpace(Model.SearchText)
+                                ? "Chưa có bộ flashcard"
+                                : "Không tìm thấy bộ thẻ phù hợp")
+                        </h3>
+
+                        <p class="mb-3 text-muted">
+                            @(string.IsNullOrWhiteSpace(Model.SearchText)
+                                ? "Hãy tạo bộ flashcard đầu tiên của bạn."
+                                : "Thử tìm kiếm bằng tên bộ thẻ khác.")
+                        </p>
+
+                        @if (string.IsNullOrWhiteSpace(Model.SearchText))
+                        {
+                            <button class="btn-primary-sh"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#newSetModal">
+                                Tạo bộ thẻ
+                            </button>
+                        }
                     }
                 </div>
             </div>
