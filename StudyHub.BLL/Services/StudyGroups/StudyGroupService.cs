@@ -7,6 +7,10 @@ namespace StudyHub.BLL.Services.StudyGroups;
 
 public sealed class StudyGroupService(IRepository repository, ICurrentUser currentUser) : IStudyGroupService
 {
+    public Task DeleteGroupAsync(string groupId, CancellationToken cancellationToken = default) =>
+        ExecuteAsync(() => repository.StudyGroups.DeleteAsync(
+            ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken));
+
     public async Task<IReadOnlyList<GroupSubjectOptionResponse>> GetSubjectOptionsAsync(
         CancellationToken cancellationToken = default) =>
         (await repository.StudyGroups.GetSubjectOptionsAsync(currentUser.UserId, cancellationToken))

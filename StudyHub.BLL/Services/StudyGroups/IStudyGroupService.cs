@@ -4,6 +4,8 @@ namespace StudyHub.BLL.Services.StudyGroups;
 
 public interface IStudyGroupService
 {
+    Task DeleteGroupAsync(string groupId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<GroupSubjectOptionResponse>> GetSubjectOptionsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<GroupSummaryResponse>> GetGroupsAsync(string? searchText = null, CancellationToken cancellationToken = default);
     Task<GroupDetailsResponse?> GetGroupAsync(string groupId, CancellationToken cancellationToken = default);

@@ -9,6 +9,24 @@ namespace StudyHub.DAL.Repositories.StudyGroups;
 
 public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyGroupRepository
 {
+    public async Task DeleteAsync(long groupId, long ownerUserId, CancellationToken cancellationToken = default)
+    {
+        var group = await context.StudyGroups.SingleOrDefaultAsync(
+            item => item.StudyGroupId == groupId && !item.IsArchived, cancellationToken)
+            ?? throw new StudyGroupRepositoryException("not_found", "Nhóm học tập không tồn tại.");
+        if (group.OwnerUserId != ownerUserId)
+            throw new StudyGroupRepositoryException("forbidden", "Chỉ chủ sở hữu mới có thể xóa nhóm học tập.");
+
+        // Preserve related data while disabling group access, membership actions and invites.
+        group.IsArchived = true;
+        group.UpdatedAtUtc = DateTime.UtcNow;
+        try { await context.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new StudyGroupRepositoryException("update_conflict", "Nhóm đã thay đổi. Hãy tải lại trang và thử lại.");
+        }
+    }
+
     public async Task<IReadOnlyList<GroupSubjectOptionData>> GetSubjectOptionsAsync(
         long currentUserId,
         CancellationToken cancellationToken = default)

@@ -4,6 +4,8 @@ namespace StudyHub.DAL.Repositories.StudyGroups;
 
 public interface IStudyGroupRepository
 {
+    Task DeleteAsync(long groupId, long ownerUserId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<GroupSubjectOptionData>> GetSubjectOptionsAsync(
         long currentUserId,
         CancellationToken cancellationToken = default);
