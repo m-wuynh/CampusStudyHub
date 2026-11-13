@@ -28,6 +28,11 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         string? searchText,
         CancellationToken cancellationToken)
     {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return View(new FlashcardsIndexViewModel { SearchText = searchText });
+        }
+
         //var decks = await flashcardDeckService.GetMyDecksAsync(
         //    currentUser.UserId,
         //    cancellationToken);
