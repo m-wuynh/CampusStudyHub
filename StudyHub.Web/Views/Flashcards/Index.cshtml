@@ -37,15 +37,13 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
       @* <button class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#newSetModal">
         <i class="bi bi-plus-lg"></i><span>Tạo bộ thẻ</span>
       </button> *@
-        @if (User.Identity?.IsAuthenticated == true)
-        {
             <button class="btn-primary-sh"
                     data-bs-toggle="modal"
                     data-bs-target="#newSetModal">
                 <i class="bi bi-plus-lg"></i>
                 <span>Tạo bộ thẻ</span>
             </button>
-        }
+        
     </div>
   </div>
 
@@ -175,19 +173,6 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                             Tạo bộ thẻ
                         </button>
                     } *@
-
-                    @if (User.Identity?.IsAuthenticated != true)
-                    {
-                        <h3 class="fw-bold mt-3 mb-2">
-                            Đăng nhập để sử dụng Flashcard
-                        </h3>
-
-                        <p class="mb-3 text-muted">
-                            Đăng nhập để tạo, quản lý và luyện tập với bộ thẻ của bạn.
-                        </p>
-                    }
-                    else
-                    {
                         <h3 class="fw-bold mt-3 mb-2">
                             @(string.IsNullOrWhiteSpace(Model.SearchText)
                                 ? "Chưa có bộ flashcard"
@@ -208,7 +193,7 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                                 Tạo bộ thẻ
                             </button>
                         }
-                    }
+                    
                 </div>
             </div>
         }

@@ -21,7 +21,6 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
 {
 
     //deck management
-    [AllowAnonymous]
     [HttpGet("")]
     public async Task<IActionResult> Index(
         string? searchText,
@@ -48,14 +47,6 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         //};
 
         //return View(model);
-
-        if(User.Identity?.IsAuthenticated != true)
-        {
-            return View(new FlashcardsIndexViewModel
-            {
-                SearchText = searchText
-            });
-        }
 
         var allDecks = await flashcardDeckService.GetMyDecksAsync(
             currentUser.UserId,
