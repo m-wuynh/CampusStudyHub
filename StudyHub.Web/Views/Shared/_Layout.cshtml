@@ -373,6 +373,11 @@
         localStorage.setItem('sh_notif_toasted', JSON.stringify(toastedIds));
       }
 
+      function getNotifKey(item) {
+        if (!item) return '';
+        return item.startAt ? `${item.id}_${item.startAt}` : `${item.id}_${item.timeLabel || ''}`;
+      }
+
       function typeLabel(type) {
         switch (type) {
           case 'Exam': return 'Kiểm tra / Thi';
@@ -398,7 +403,7 @@
             return;
           }
 
-          const unreadItems = data.items.filter(i => !readIds.includes(i.id));
+          const unreadItems = data.items.filter(i => !readIds.includes(getNotifKey(i)));
           const unreadCount = unreadItems.length;
 
           // Update badge
@@ -413,7 +418,8 @@
 
           // Render items
           list.innerHTML = data.items.map((item, idx) => {
-            const isUnread = !readIds.includes(item.id);
+            const itemKey = getNotifKey(item);
+            const isUnread = !readIds.includes(itemKey);
             const urgentBg = item.isUrgent && isUnread ? 'background:rgba(79,70,229,0.04);' : '';
             const border = idx > 0 ? 'border-top:1px solid var(--sh-slate-100);' : '';
             const dot = isUnread
@@ -422,6 +428,7 @@
             return `
               <div class="p-3 d-flex gap-3 align-items-start notif-item"
                    data-id="${item.id}"
+                   data-key="${itemKey}"
                    style="font-size:12px;cursor:pointer;${urgentBg}${border}">
                 <div class="p-2 rounded-3 flex-shrink-0"
                      style="background:${item.iconBg};color:${item.iconColor};height:fit-content;">
@@ -440,8 +447,9 @@
           list.querySelectorAll('.notif-item').forEach(el => {
             el.addEventListener('click', () => {
               const id = el.dataset.id;
-              if (!readIds.includes(Number(id))) {
-                readIds.push(Number(id));
+              const key = el.dataset.key || id;
+              if (!readIds.includes(key)) {
+                readIds.push(key);
                 saveRead();
               }
               window.location.href = '/Calendar/Update/' + id;
@@ -476,7 +484,7 @@
         fetch('/Calendar/GetUpcomingNotifications')
           .then(r => r.json())
           .then(data => {
-            readIds = data.items.map(i => i.id);
+            readIds = data.items.map(i => getNotifKey(i));
             saveRead();
             badge.style.display = 'none';
             indicator.style.display = 'none';
@@ -490,7 +498,7 @@
         fetch('/Calendar/GetUpcomingNotifications')
           .then(r => r.json())
           .then(data => {
-            const unreadItems = data.items.filter(i => !readIds.includes(i.id));
+            const unreadItems = data.items.filter(i => !readIds.includes(getNotifKey(i)));
             if (unreadItems.length > 0) {
               badge.textContent = unreadItems.length + ' mới';
               badge.style.display = '';
@@ -498,8 +506,11 @@
               
               // Pop toast for new notifications
               unreadItems.forEach(item => {
-                  if (!toastedIds.includes(item.id)) {
+                  const notifKey = getNotifKey(item);
+                  if (!toastedIds.includes(notifKey)) {
                       // Custom on-screen notification that cannot be blocked by browser!
+                      const NOTIF_DISPLAY_DURATION = 6000; // Thời gian hiển thị (6000ms = 6 giây, có thể đổi tùy ý)
+
                       const pop = document.createElement('div');
                       pop.style.position = 'fixed';
                       pop.style.top = '20px';
@@ -507,17 +518,21 @@
                       pop.style.backgroundColor = '#fff';
                       pop.style.borderLeft = '5px solid var(--sh-indigo-600)';
                       pop.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
-                      pop.style.padding = '20px';
-                      pop.style.borderRadius = '8px';
+                      pop.style.padding = '16px 20px';
+                      pop.style.borderRadius = '10px';
                       pop.style.zIndex = '999999';
                       pop.style.width = '320px';
                       pop.style.transition = 'all 0.4s ease';
                       pop.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h5 class="mb-0 fw-bold" style="color: var(--sh-slate-900); font-size: 16px;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0 fw-bold d-flex align-items-center" style="color: var(--sh-slate-900); font-size: 15px;">
                                 <i class="bi bi-bell-fill text-warning me-2"></i>Nhắc nhở sự kiện
                             </h5>
-                            <button class="btn-close" style="font-size: 12px;"></button>
+                            <button type="button" class="btn-close-pop btn btn-sm p-0 border-0 text-muted" 
+                                    style="line-height: 1; font-size: 16px; cursor: pointer; background: transparent;" 
+                                    title="Đóng thông báo" aria-label="Close">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
                         </div>
                         <p class="mb-1 fw-bold" style="color: var(--sh-indigo-700);">${item.title}</p>
                         <p class="mb-0 text-muted" style="font-size: 13px;">${item.timeLabel}</p>
@@ -525,14 +540,16 @@
                       
                       document.body.appendChild(pop);
                       
-                      // Auto remove after 10 seconds or on click
+                      // Auto remove after NOTIF_DISPLAY_DURATION ms or on click
                       const removePop = () => {
                           pop.style.opacity = '0';
                           pop.style.transform = 'translateX(100%)';
                           setTimeout(() => pop.remove(), 400);
                       };
-                      pop.querySelector('.btn-close').onclick = removePop;
-                      setTimeout(removePop, 10000);
+                      
+                      const closeBtn = pop.querySelector('.btn-close-pop');
+                      if (closeBtn) closeBtn.onclick = removePop;
+                      setTimeout(removePop, NOTIF_DISPLAY_DURATION);
                       
                       // Play sound if possible
                       try {
@@ -540,7 +557,7 @@
                           audio.play().catch(e => console.log('Autoplay blocked'));
                       } catch(e) {}
                       
-                      toastedIds.push(item.id);
+                      toastedIds.push(notifKey);
                   }
               });
               saveToasted();

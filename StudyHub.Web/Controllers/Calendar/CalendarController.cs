@@ -12,7 +12,7 @@ namespace StudyHub.Web.Controllers.Calendar;
 [Route("Calendar")]
 public sealed class CalendarController(ICalendarService calendarService) : Controller
 {
-    private long CurrentUserId => long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "1");
+    private long CurrentUserId => long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 
     [HttpGet("")]
     public async Task<IActionResult> Index(DateOnly? date)
@@ -219,7 +219,9 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
             {
                 var diff = e.StartAtLocal - now;
                 string timeLabel;
-                if (diff.TotalMinutes < 60)
+                if (diff.TotalMinutes <= 0)
+                    timeLabel = $"Đang diễn ra (từ {e.StartAtLocal:HH:mm})";
+                else if (diff.TotalMinutes < 60)
                     timeLabel = $"Còn {(int)diff.TotalMinutes} phút nữa";
                 else if (diff.TotalHours < 24)
                     timeLabel = $"Hôm nay lúc {e.StartAtLocal:HH:mm}";
@@ -254,6 +256,7 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
                 return new
                 {
                     id = e.Id,
+                    startAt = e.StartAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
                     title = e.Title,
                     timeLabel,
                     icon,

@@ -46,7 +46,8 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         
         var eventIds = reminders.Select(r => r.ScheduleEventId).Distinct().Where(id => id.HasValue).Select(id => id!.Value).ToList();
         
-        var events = await repository.ListAsync<ScheduleEvent>(e => eventIds.Contains(e.ScheduleEventId) && !e.IsDeleted);
+        var now = DateTime.Now;
+        var events = await repository.ListAsync<ScheduleEvent>(e => eventIds.Contains(e.ScheduleEventId) && !e.IsDeleted && e.EndAtLocal >= now);
 
         return events.Select(e => new ScheduleEventDto(
             e.ScheduleEventId,
@@ -251,6 +252,15 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         entity.IsDeleted = true;
         entity.UpdatedAtUtc = DateTime.UtcNow;
         repository.Update(entity);
+
+        // Hủy toàn bộ nhắc nhở đang chờ (Pending) của sự kiện vừa bị xóa
+        var pendingReminders = await repository.ListAsync<Reminder>(r => r.ScheduleEventId == id && r.Status == "Pending");
+        foreach (var rem in pendingReminders)
+        {
+            rem.Status = "Cancelled";
+            repository.Update(rem);
+        }
+
         await repository.SaveChangesAsync();
     }
 

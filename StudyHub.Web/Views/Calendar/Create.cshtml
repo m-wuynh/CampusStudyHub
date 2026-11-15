@@ -4,9 +4,23 @@
     ViewData["PageTitle"] = "Thêm sự kiện mới";
     ViewData["PageSubtitle"] = "Lên lịch cho học tập, bài tập, và kiểm tra";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var todayStr = DateTime.Today.ToString("yyyy-MM-dd");
-    var nowTimeStr = DateTime.Now.ToString("HH:mm");
-    var nowPlusOneHourStr = DateTime.Now.AddHours(1).ToString("HH:mm");
+    var now = DateTime.Now;
+    var todayStr = now.ToString("yyyy-MM-dd");
+    var defaultDateStr = todayStr;
+    var startDt = now;
+    var endDt = now.AddHours(1);
+    if (endDt.Date > startDt.Date)
+    {
+        endDt = startDt.Date.AddHours(23).AddMinutes(59);
+        if (endDt <= startDt)
+        {
+            defaultDateStr = now.AddDays(1).ToString("yyyy-MM-dd");
+            startDt = now.Date.AddDays(1).AddHours(8);
+            endDt = startDt.AddHours(1);
+        }
+    }
+    var nowTimeStr = startDt.ToString("HH:mm");
+    var nowPlusOneHourStr = endDt.ToString("HH:mm");
 }
 
 @section Styles {
@@ -52,7 +66,7 @@
                 <label class="calendar-form-label" for="event-date">
                     <i class="bi bi-calendar-event"></i><span>Ngày <span class="text-danger">*</span></span>
                 </label>
-                <input id="event-date" type="date" class="calendar-form-input" value="@todayStr" min="@todayStr" />
+                <input id="event-date" type="date" class="calendar-form-input" value="@defaultDateStr" min="@todayStr" />
             </div>
             <div class="col-md-3 col-6">
                 <label class="calendar-form-label" for="event-start">
@@ -163,7 +177,7 @@
             }
 
             if (end <= start) {
-				showToast('Giờ không hợp lệ , Vui lòng đặt lại', 'error');
+                showToast(`Giờ kết thúc (${end}) phải sau giờ bắt đầu (${start}) trong cùng ngày. Lưu ý: 12h đêm là SA, 12h trưa là CH.`, 'error');
                 return;
             }
 

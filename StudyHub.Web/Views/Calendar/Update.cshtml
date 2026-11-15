@@ -221,13 +221,13 @@
             }
 
             if (end <= start) {
-				showToast('Giờ không hợp lệ , Vui lòng đặt lại', 'error');
+                showToast(`Giờ kết thúc (${end}) phải sau giờ bắt đầu (${start}) trong cùng ngày. `, 'error');
                 return;
             }
 
-            const selectedStart = new Date(`${date}T${start}`);
-            if (selectedStart < new Date(Date.now() - 60000)) {
-                showToast('Thời gian bắt đầu không thể ở trong quá khứ', 'error');
+            const selectedEnd = new Date(`${date}T${end}`);
+            if (selectedEnd < new Date(Date.now() - 60000)) {
+                showToast('Thời gian kết thúc ca học không thể ở trong quá khứ', 'error');
                 return;
             }
 
@@ -272,6 +272,18 @@
                 });
                 if (res.ok) {
                     showToast('Đã cập nhật sự kiện!', 'success');
+                    
+                    // Xóa ID sự kiện này khỏi bộ nhớ thông báo đã đọc/đã nổ để lịch mới được thông báo lại
+                    try {
+                        let toasted = JSON.parse(localStorage.getItem('sh_notif_toasted') || '[]');
+                        toasted = toasted.filter(id => id != @Model.Id && !String(id).startsWith('@Model.Id' + '_'));
+                        localStorage.setItem('sh_notif_toasted', JSON.stringify(toasted));
+
+                        let reads = JSON.parse(localStorage.getItem('sh_notif_read') || '[]');
+                        reads = reads.filter(id => id != @Model.Id && !String(id).startsWith('@Model.Id' + '_'));
+                        localStorage.setItem('sh_notif_read', JSON.stringify(reads));
+                    } catch(e) {}
+
                     // Navigate back to calendar view
                     setTimeout(() => window.location.href = '/Calendar', 1000);
                 } else {
