@@ -27,23 +27,23 @@
     <link rel="stylesheet" href="~/css/calendar.css" asp-append-version="true" />
 }
 
-<div style="max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+<div class="calendar-form-container">
 
     <!-- ROW 1: Purple Hero Banner matching Index -->
-    <div class="calendar-hero-card position-relative overflow-hidden text-white" style="padding: 24px 28px;">
+    <div class="calendar-hero-card calendar-hero-card-sm position-relative overflow-hidden text-white">
         <!-- Decorative 4-point Sparkle Star Watermark -->
-        <svg class="hero-watermark-star" viewBox="0 0 100 100" fill="currentColor" style="width: 140px; height: 140px; right: 24px;">
+        <svg class="hero-watermark-star hero-watermark-star-sm" viewBox="0 0 100 100" fill="currentColor">
             <path d="M50 0 C50 27.6 27.6 50 0 50 C27.6 50 50 72.4 50 100 C50 72.4 72.4 50 100 50 C72.4 50 50 27.6 50 0 Z" />
         </svg>
 
-        <div class="position-relative" style="z-index: 2;">
-            <a href="/Calendar" class="text-white text-decoration-none d-inline-flex align-items-center gap-1 opacity-75 mb-2" style="font-size: 13px;">
+        <div class="hero-card-z2">
+            <a href="/Calendar" class="hero-back-link">
                 <i class="bi bi-arrow-left"></i><span>Quay lại Lịch học</span>
             </a>
-            <h2 class="fw-bold mb-1 d-flex align-items-center gap-2" style="font-size: 22px; color: #ffffff;">
+            <h2 class="hero-heading-title">
                 <i class="bi bi-calendar-plus"></i><span>Thêm sự kiện mới</span>
             </h2>
-            <p class="mb-0 text-white-50" style="font-size: 13.5px;">
+            <p class="hero-subtitle-text">
                 Lên lịch cho buổi tự học, bài tập, kỳ thi và nhắc nhở
             </p>
         </div>
@@ -58,7 +58,7 @@
                 <i class="bi bi-type"></i><span>Tên sự kiện <span class="text-danger">*</span></span>
             </label>
             <input id="event-title" type="text" class="calendar-form-input" placeholder="Ví dụ: Kiểm tra 1 tiết Toán, Học nhóm giải tích..." />
-            <div id="event-title-error" class="text-danger small mt-1 d-none" style="font-size: 12.5px; font-weight: 500;">
+            <div id="event-title-error" class="calendar-field-error text-danger small mt-1 d-none">
                 <i class="bi bi-exclamation-circle-fill me-1"></i>Vui lòng nhập tên sự kiện
             </div>
         </div>
@@ -91,7 +91,7 @@
                 <label class="calendar-form-label" for="event-category">
                     <i class="bi bi-tag"></i><span>Loại sự kiện <span class="text-danger">*</span></span>
                 </label>
-                <select id="event-category" class="calendar-form-input" style="cursor: pointer;">
+                <select id="event-category" class="calendar-form-input">
                     <option value="SelfStudy">📘 Tự học</option>
                     <option value="Other">📝 Bài tập / Nộp bài</option>
                     <option value="Exam">⏰ Kiểm tra / Thi</option>
@@ -145,7 +145,7 @@
             const row = document.createElement('div');
             row.className = 'notif-row-purple d-flex align-items-center gap-2 flex-wrap';
             row.innerHTML = `
-                <i class="bi bi-bell-fill" style="color: #7c3aed; font-size: 1.05rem;"></i>
+                <i class="bi bi-bell-fill notif-bell-icon"></i>
                 <select class="notif-select-purple">
                     <option value="notification">Thông báo hệ thống</option>
                     <option value="email">Email</option>
@@ -159,7 +159,7 @@
                     <option value="weeks">tuần</option>
                 </select>
                 <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-auto" title="Xóa thông báo" onclick="this.closest('.notif-row-purple').remove()">
-                    <i class="bi bi-x-circle-fill" style="font-size: 1.1rem;"></i>
+                    <i class="bi bi-x-circle-fill notif-remove-icon"></i>
                 </button>
             `;
             container.appendChild(row);
@@ -190,7 +190,7 @@
             const loc = document.getElementById('event-location').value;
             const desc = document.getElementById('event-description').value;
 
-            // Kiểm tra riêng trường Tên sự kiện: hiện chữ đỏ ngay bên dưới và focus
+            // Kiểm tra riêng trường Tên sự kiện
             if (!title || !title.trim()) {
                 if (titleError) titleError.classList.remove('d-none');
                 if (titleInput) {
