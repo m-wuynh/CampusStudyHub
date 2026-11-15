@@ -14,16 +14,6 @@
 @Html.AntiForgeryToken()
 
 <div id="grades-view" style="max-width:1280px; margin:0 auto;">
-    @* Thông báo TempData (thành công / lỗi) *@
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="d-none js-tempdata-alert" data-type="error" data-message="@TempData["ErrorMessage"]"></div>
-    }
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="d-none js-tempdata-alert" data-type="success" data-message="@TempData["SuccessMessage"]"></div>
-    }
-
     @{ ViewData["HasActiveGoals"] = data.GoalLadders.Any(l => !l.IsDetached && l.Goals.Any()); }
     <partial name="_GradeSummaryCardsPartial" model="data.Summary" />
 

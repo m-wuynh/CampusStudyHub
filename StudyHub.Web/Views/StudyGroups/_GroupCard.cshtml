@@ -14,11 +14,11 @@
       @if (Model.IsOwner) { <span class="btn-secondary-sh">Trưởng nhóm</span> }
       else if (Model.IsMember || Model.MembershipStatus == "Pending")
       {
-        <form asp-controller="StudyGroups" asp-action="Leave" asp-route-groupId="@Model.Id" method="post"><button class="btn-secondary-sh" type="submit">@(Model.IsMember ? "Rời nhóm" : "Rút yêu cầu")</button></form>
+        <form asp-controller="StudyGroups" asp-action="Leave" asp-route-groupId="@Model.Id" method="post"><button class="@(Model.IsMember ? "btn-primary-sh group-leave-button" : "btn-secondary-sh")" type="submit">@(Model.IsMember ? "Rời nhóm" : "Rút yêu cầu")</button></form>
       }
       else if (Model.JoinMode != "InviteOnly" && Model.MembershipStatus != "Banned")
       {
-        <form asp-controller="StudyGroups" asp-action="Join" asp-route-groupId="@Model.Id" method="post"><button class="btn-secondary-sh" type="submit">@(Model.JoinMode == "Open" ? "Tham gia ngay" : "Gửi yêu cầu")</button></form>
+        <form asp-controller="StudyGroups" asp-action="Join" asp-route-groupId="@Model.Id" method="post"><button class="@(Model.JoinMode == "Open" ? "btn-primary-sh group-join-button" : "btn-secondary-sh")" type="submit">@(Model.JoinMode == "Open" ? "Tham gia ngay" : "Gửi yêu cầu")</button></form>
       }
     </div>
   </article>

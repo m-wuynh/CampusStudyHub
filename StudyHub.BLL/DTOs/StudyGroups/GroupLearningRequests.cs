@@ -11,7 +11,6 @@ public sealed record SaveGroupAssignmentRequest(string? Title, string? Descripti
 public sealed record RevisionRequest(int Revision);
 public sealed record SubmitGroupAssignmentRequest(string? Content, string? ResourceUrl, int ExpectedVersion = 0);
 public sealed record ReviewGroupSubmissionRequest(string Status, string? Feedback);
-public sealed record SaveGroupGoalRequest(DateOnly WeekStart, string? Title, int TargetSessions, int TargetAssignments, int Revision = 0);
 public sealed record AskGroupQuestionRequest(string? Title, string? Subject, string? Body);
 public sealed record AnswerGroupQuestionRequest(string? Body);
 public sealed record AcceptGroupAnswerRequest(long? AnswerId, int Revision);

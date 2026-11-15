@@ -27,8 +27,6 @@ public interface IGroupLearningService
 
     Task<SharedContentData> ReadResourceAsync(long groupId, string kind, long id, CancellationToken ct);
 
-    Task SaveGoalAsync(long groupId, SaveGroupGoalRequest r, CancellationToken ct);
-
     Task AskAsync(long groupId, AskGroupQuestionRequest r, CancellationToken ct);
 
     Task AnswerAsync(long groupId, long id, AnswerGroupQuestionRequest r, CancellationToken ct);

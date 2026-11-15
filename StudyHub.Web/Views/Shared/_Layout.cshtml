@@ -25,7 +25,7 @@
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
   <!-- Study Hub Custom CSS -->
-  <link rel="stylesheet" href="~/css/site.css" />
+  <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
   @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -311,7 +311,7 @@
   <!-- ── /MAIN CONTENT AREA ── -->
 
   <!-- ── Toast Container ── -->
-  <div id="toast-container" class="sh-toast-container" aria-live="polite"></div>
+  <partial name="_ToastMessages" />
 
   <!-- ── Logout Confirm Modal ── -->
   <div class="modal fade" id="logoutConfirmModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
@@ -342,15 +342,15 @@
   </div>
 
   <!-- ── Delete Confirm Modal ── -->
-  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-message" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title fw-bold" style="font-size:14px;">Xác nhận xóa</h5>
+          <h5 id="delete-confirm-title" class="modal-title fw-bold" style="font-size:14px;">Xác nhận xóa</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <p id="delete-confirm-message" style="font-size:12px; color:var(--sh-slate-600);">
+          <p id="delete-confirm-message" style="font-size:12px; color:var(--sh-slate-600); white-space:pre-line;">
             Bạn có chắc muốn xóa mục này?
           </p>
         </div>
@@ -372,7 +372,7 @@
           crossorigin="anonymous"></script>
 
   <!-- Study Hub JS -->
-  <script src="~/js/site.js"></script>
+  <script src="~/js/site.js" asp-append-version="true"></script>
 
   <!-- Notification JS -->
   <script>

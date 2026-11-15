@@ -1,0 +1,18 @@
+<div id="toast-container" class="sh-toast-container" aria-live="polite" aria-atomic="false"></div>
+@foreach (var notification in new[]
+{
+    (Key: "GroupSuccess", Type: "success"),
+    (Key: "GroupError", Type: "error"),
+    (Key: "SuccessMessage", Type: "success"),
+    (Key: "ErrorMessage", Type: "error"),
+    (Key: "FlashcardSuccess", Type: "success"),
+    (Key: "FlashcardError", Type: "error"),
+    (Key: "Success", Type: "success"),
+    (Key: "Error", Type: "error")
+})
+{
+    if (TempData[notification.Key] is string message && !string.IsNullOrWhiteSpace(message))
+    {
+        <div hidden class="js-tempdata-alert" data-type="@notification.Type" data-message="@message"></div>
+    }
+}

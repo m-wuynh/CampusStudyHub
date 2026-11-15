@@ -299,7 +299,7 @@
                     </button>
                     <form asp-action="DeleteColumn" method="post" class="d-inline"
                           data-confirm="Bạn chắc chắn muốn XÓA cột &quot;@col.Name&quot;? Toàn bộ điểm của cột này sẽ bị xóa."
-                          onsubmit="return confirm(this.dataset.confirm)">
+                          >
                       <input type="hidden" name="id" value="@col.GradeColumnId" />
                       <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
                       <button type="submit" class="btn-icon-sh danger" style="padding:2px; font-size:10px;" title="Xóa cột">
@@ -328,7 +328,7 @@
                   </div>
                   <form asp-action="DeleteUserSubject" method="post" class="d-inline"
                         data-confirm="Xóa vĩnh viễn môn &quot;@s.SubjectName&quot;? Điểm, mục tiêu, hoạt động, deadline và phiên học của môn sẽ bị xóa; ghi chú, tài liệu, flashcard được giữ nhưng không còn gắn môn. Thao tác không thể hoàn tác."
-                        onsubmit="return confirm(this.dataset.confirm)">
+                        >
                       <input type="hidden" name="id" value="@s.UserSubjectId" />
                       <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
                       <button type="submit" class="btn-icon-sh danger" style="padding: 2px; font-size:11px;" title="Xóa môn"><i class="bi bi-trash3"></i></button>

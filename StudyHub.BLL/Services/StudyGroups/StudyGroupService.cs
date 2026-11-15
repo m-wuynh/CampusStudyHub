@@ -58,9 +58,14 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
         ToMembership(await ExecuteAsync(() => LeaveOrWithdrawAsyncCore(
             ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken)));
 
-    public async Task<GroupMembershipResponse> RequestUnbanAsync(string groupId, CancellationToken cancellationToken = default) =>
-        ToMembership(await ExecuteAsync(() => RequestUnbanAsyncCore(
-            ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken)));
+    public async Task<GroupMembershipResponse> RequestUnbanAsync(string groupId, string? reason, CancellationToken cancellationToken = default)
+    {
+        var requestReason = NullIfWhiteSpace(reason)
+            ?? throw new StudyGroupException("validation", "Vui lòng nhập lý do xin gỡ cấm.");
+        ValidateLength(requestReason, 1000, "Lý do xin gỡ cấm không được dài quá 1000 ký tự.");
+        return ToMembership(await ExecuteAsync(() => RequestUnbanAsyncCore(
+            ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, requestReason, cancellationToken)));
+    }
 
     public Task<GroupPostResponse> AddMessageAsync(
         string groupId,
@@ -273,7 +278,8 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
                 member.JoinedAt,
                 member.UserId == currentUser.UserId.ToString(),
                 member.HasPendingUnbanRequest,
-                member.BannedByUserId)).ToList(),
+                member.BannedByUserId,
+                canManage && member.HasPendingUnbanRequest ? member.UnbanRequestReason : null)).ToList(),
             group.Posts.Where(post => post.PostType == "Announcement").OrderByDescending(post => post.IsPinned).ThenByDescending(post => post.SentAt).Select(ToPost).ToList(),
             group.Posts.Where(post => post.PostType == "Message").OrderBy(post => post.SentAt).Select(ToPost).ToList(),
             group.Resources.Select(item => new GroupResourceResponse(item.Id, item.Title, item.ResourceType, item.Url)).ToList(),
@@ -337,8 +343,6 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
 
         if (values.Count == 0)
             throw new StudyGroupException("required", "Hãy chọn hoặc thêm ít nhất một môn học.");
-        if (values.Count > 10)
-            throw new StudyGroupException("too_many_subjects", "Mỗi nhóm được chọn tối đa 10 môn học.");
         if (values.Any(value => value.Length > 150))
             throw new StudyGroupException("too_long", "Tên môn học không được dài quá 150 ký tự.");
 
@@ -391,16 +395,18 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
 
     private async Task DeleteAsyncCore(long groupId, long ownerUserId, CancellationToken cancellationToken = default)
     {
+        await using var transaction = await data.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var group = await data.Query<StudyGroup>(false).SingleOrDefaultAsync(
             item => item.StudyGroupId == groupId && !item.IsArchived, cancellationToken)
             ?? throw new StudyGroupWorkflowException("not_found", "Nhóm học tập không tồn tại.");
         if (group.OwnerUserId != ownerUserId)
             throw new StudyGroupWorkflowException("forbidden", "Chỉ chủ sở hữu mới có thể xóa nhóm học tập.");
 
-        // Preserve related data while disabling group access, membership actions and invites.
+        await RestorePrivateResourcesAsync(groupId, null, cancellationToken);
         group.IsArchived = true;
         group.UpdatedAtUtc = DateTime.UtcNow;
         await data.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     private async Task<StudyGroupData> CreateAsyncCore(
@@ -571,6 +577,7 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
                 Status = member.Status,
                 HasPendingUnbanRequest = member.UnbanRequestedAtUtc is not null,
                 BannedByUserId = member.BannedByUserId?.ToString(),
+                UnbanRequestReason = member.UnbanRequestReason,
                 RequestedAt = AsUtc(member.RequestedAtUtc),
                 JoinedAt = member.JoinedAtUtc.HasValue ? AsUtc(member.JoinedAtUtc.Value) : null
             }));
@@ -819,7 +826,7 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
             wasPending ? "Đã rút yêu cầu tham gia." : "Bạn đã rời nhóm.");
     }
 
-    private async Task<GroupMembershipData> RequestUnbanAsyncCore(long groupId, long userId, CancellationToken cancellationToken = default)
+    private async Task<GroupMembershipData> RequestUnbanAsyncCore(long groupId, long userId, string reason, CancellationToken cancellationToken = default)
     {
         await using var transaction = await data.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var membership = await data.Query<GroupMember>(false)
@@ -833,6 +840,7 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
             return new GroupMembershipData(groupId.ToString(), "Banned", "Yêu cầu gỡ cấm đang chờ xử lý.");
 
         membership.UnbanRequestedAtUtc = DateTime.UtcNow;
+        membership.UnbanRequestReason = reason;
         await data.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new GroupMembershipData(groupId.ToString(), "Banned", "Đã gửi yêu cầu gỡ cấm tới người đã cấm bạn.");
@@ -886,13 +894,17 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
                 target.JoinedAtUtc = null;
                 target.BannedByUserId = actorUserId;
                 target.UnbanRequestedAtUtc = null;
+                target.UnbanRequestReason = null;
                 break;
             case "unban" when target.Status == "Banned" && target.UnbanRequestedAtUtc is not null &&
                 (target.BannedByUserId == actorUserId || target.BannedByUserId is null && actorIsOwner):
-                target.Status = "Left";
+                EnsureCapacity(group);
+                target.Status = "Active";
+                target.JoinedAtUtc = now;
                 target.MemberRole = "Member";
                 target.BannedByUserId = null;
                 target.UnbanRequestedAtUtc = null;
+                target.UnbanRequestReason = null;
                 break;
             case "promote" when actorIsOwner && target.Status == "Active":
                 target.MemberRole = "Moderator";
@@ -1101,14 +1113,14 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
 
     private async Task RestorePrivateResourcesAsync(
     long groupId,
-    long userId,
+    long? userId,
     CancellationToken ct)
 {
-    // Giữ nguyên cơ chế flashcard hiện có.
+    // A null owner applies the same cleanup to every resource when deleting the group.
     await data.Query<FlashcardDeck>(false)
         .Where(x =>
             x.StudyGroupId == groupId &&
-            x.OwnerUserId == userId)
+            (!userId.HasValue || x.OwnerUserId == userId.Value))
         .ExecuteUpdateAsync(
             setters => setters
                 .SetProperty(x => x.StudyGroupId, (long?)null)
@@ -1116,29 +1128,20 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
                 .SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow),
             ct);
 
-    // Khi chủ sở hữu rời, bị kick hoặc bị ban, PDF chỉ bị thu hồi khỏi nhóm;
-    // file PDF cá nhân gốc vẫn thuộc về chủ sở hữu.
+    // Revoke group access while preserving each owner's original personal PDF.
     var unsharedAtUtc = DateTime.UtcNow;
-    var sharedDocumentIds = await data.Query<PdfDocumentShare>(false)
+    var activeShares = data.Query<PdfDocumentShare>(false)
         .Where(share =>
             share.StudyGroupId == groupId &&
-            share.IsActive)
-        .Join(
-            data.Query<PdfDocument>(false).Where(document => document.OwnerUserId == userId),
-            share => share.DocumentId,
-            document => document.DocumentId,
-            (share, document) => document.DocumentId)
+            share.IsActive);
+    if (userId.HasValue)
+        activeShares = activeShares.Where(share => data.Query<PdfDocument>(false).Any(document =>
+            document.DocumentId == share.DocumentId && document.OwnerUserId == userId.Value));
+    var sharedDocumentIds = await activeShares.Select(share => share.DocumentId)
         .Distinct()
         .ToListAsync(ct);
 
-    await data.Query<PdfDocumentShare>(false)
-        .Where(share =>
-            share.StudyGroupId == groupId &&
-            share.IsActive &&
-            data.Query<PdfDocument>(false).Any(document =>
-                document.DocumentId == share.DocumentId &&
-                document.OwnerUserId == userId))
-        .ExecuteUpdateAsync(
+    await activeShares.ExecuteUpdateAsync(
             setters => setters
                 .SetProperty(share => share.IsActive, false)
                 .SetProperty(share => share.UnsharedAtUtc, unsharedAtUtc),
@@ -1158,9 +1161,22 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
     // Giữ nguyên xử lý đăng ký buổi học tương lai.
     var now = DateTimeOffset.UtcNow;
 
+    var calendarEvents = data.Query<ScheduleEvent>(false)
+        .Where(item => (!userId.HasValue || item.UserId == userId.Value) && !item.IsDeleted &&
+            item.GroupStudySessionId.HasValue && data.Query<GroupStudySession>(false).Any(session =>
+                session.Id == item.GroupStudySessionId && session.StudyGroupId == groupId &&
+                session.Status == "Scheduled" && session.StartsAtUtc > now));
+    await data.Query<Reminder>(false)
+        .Where(reminder => (reminder.Status == "Pending" || reminder.Status == "Processing") &&
+            calendarEvents.Any(item => item.ScheduleEventId == reminder.ScheduleEventId))
+        .ExecuteUpdateAsync(setters => setters.SetProperty(reminder => reminder.Status, "Cancelled"), ct);
+    await calendarEvents.ExecuteUpdateAsync(setters => setters
+        .SetProperty(item => item.IsDeleted, true)
+        .SetProperty(item => item.UpdatedAtUtc, DateTime.UtcNow), ct);
+
     await data.Query<GroupSessionAttendance>(false)
         .Where(x =>
-            x.UserId == userId &&
+            (!userId.HasValue || x.UserId == userId.Value) &&
             x.Session.StudyGroupId == groupId &&
             x.Session.Status == "Scheduled" &&
             x.Session.StartsAtUtc > now)

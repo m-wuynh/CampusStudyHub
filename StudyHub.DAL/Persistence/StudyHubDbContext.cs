@@ -521,6 +521,7 @@ public partial class StudyHubDbContext : DbContext
 
             entity.Property(e => e.JoinedAtUtc).HasPrecision(3);
             entity.Property(e => e.UnbanRequestedAtUtc).HasPrecision(3);
+            entity.Property(e => e.UnbanRequestReason).HasMaxLength(1000);
             entity.Property(e => e.MemberRole)
                 .HasMaxLength(15)
                 .IsUnicode(false)

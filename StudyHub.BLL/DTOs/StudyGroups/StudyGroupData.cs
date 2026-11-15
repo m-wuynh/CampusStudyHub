@@ -36,6 +36,7 @@ public sealed class GroupMemberData
     public DateTimeOffset? JoinedAt { get; set; }
     public bool HasPendingUnbanRequest { get; set; }
     public string? BannedByUserId { get; set; }
+    public string? UnbanRequestReason { get; set; }
 }
 
 public sealed class GroupPostData

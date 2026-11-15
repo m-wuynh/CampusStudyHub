@@ -176,13 +176,6 @@
       case 'resource-unshare':
         return openForm('Gỡ chia sẻ tài nguyên', '<p>Tài nguyên trở về riêng tư của chủ sở hữu và không còn được nhóm truy cập.</p>',
           () => submitForm('Unshare', { id, kind: b.dataset.kind }), 'Gỡ chia sẻ');
-      case 'goal': {
-        const p = state.progress;
-        return openForm('Mục tiêu tuần', input('title', 'Mục tiêu *', p.goal?.title, 'text', 200, true) +
-          input('sessions', 'Số buổi học cần hoàn thành (0–100)', p.goal?.targetSessions || 0, 'number', 3, true) +
-          input('assignments', 'Số bài tập cả nhóm cần hoàn thành (0–100)', p.goal?.targetAssignments || 0, 'number', 3, true),
-          data => submitForm('Goal', { weekStart: p.weekStart, title: data.get('title'), targetSessions: Number(data.get('sessions')), targetAssignments: Number(data.get('assignments')), revision: p.goal?.revision || 0 }));
-      }
       case 'question-new':
         return openForm('Đặt câu hỏi', input('title', 'Tiêu đề *', '', 'text', 200, true) + input('subject', 'Môn học / chủ đề *', '', 'text', 150, true) + area('body', 'Nội dung câu hỏi *', '', 8000, true),
           data => submitForm('Ask', { title: data.get('title'), subject: data.get('subject'), body: data.get('body') }), 'Đăng câu hỏi');

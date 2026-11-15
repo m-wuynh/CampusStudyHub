@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using StudyHub.BLL.DTOs.StudyGroups;
 using StudyHub.BLL.Services.StudyGroups;
 using StudyHub.Web.Hubs;
 using StudyHub.Web.ViewModels.StudyGroups;
@@ -27,6 +28,7 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IGroup
     public async Task<IActionResult> Create(StudyGroupFormViewModel model, CancellationToken cancellationToken)
     {
         model.GroupId = null;
+        NormalizeGroupFormErrors();
         if (ModelState.IsValid)
         {
             try
@@ -35,7 +37,7 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IGroup
                 TempData["GroupSuccess"] = "Đã tạo nhóm học tập.";
                 return RedirectToAction(nameof(Details), new { groupId = group.Id });
             }
-            catch (StudyGroupException exception) { ModelState.AddModelError("", exception.Message); }
+            catch (StudyGroupException exception) { AddGroupFormError(exception); }
         }
         model.SubjectOptions = await studyGroups.GetSubjectOptionsAsync(cancellationToken);
         return View("Form", model);
@@ -63,6 +65,7 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IGroup
         if (group is null) return NotFound();
         if (!group.IsOwner) return Forbid();
         model.GroupId = groupId;
+        NormalizeGroupFormErrors();
         if (ModelState.IsValid)
         {
             try
@@ -71,10 +74,27 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IGroup
                 TempData["GroupSuccess"] = "Đã cập nhật nhóm học tập.";
                 return RedirectToAction(nameof(Details), new { groupId });
             }
-            catch (StudyGroupException exception) { ModelState.AddModelError("", exception.Message); }
+            catch (StudyGroupException exception) { AddGroupFormError(exception); }
         }
         model.SubjectOptions = await studyGroups.GetSubjectOptionsAsync(cancellationToken);
         return View("Form", model);
+    }
+
+    private void NormalizeGroupFormErrors()
+    {
+        if (ModelState.TryGetValue(nameof(StudyGroupFormViewModel.MaxMembers), out var entry) && entry.Errors.Count > 0)
+        {
+            entry.Errors.Clear();
+            ModelState.AddModelError(nameof(StudyGroupFormViewModel.MaxMembers), "Giới hạn người phải là số nguyên từ 2 đến 500.");
+        }
+    }
+
+    private void AddGroupFormError(StudyGroupException exception)
+    {
+        if (exception.Code is "invalid_member_limit" or "member_limit_too_low")
+            ModelState.AddModelError(nameof(StudyGroupFormViewModel.MaxMembers), exception.Message);
+        else
+            TempData["GroupError"] = exception.Message;
     }
 
     [HttpPost("{groupId:long}/Delete")]
@@ -104,8 +124,8 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IGroup
         Perform(groupId, async () => (await studyGroups.LeaveOrWithdrawAsync(groupId, cancellationToken)).Message, toIndex: true);
 
     [HttpPost("{groupId:long}/RequestUnban")]
-    public Task<IActionResult> RequestUnban(string groupId, CancellationToken cancellationToken) =>
-        Perform(groupId, async () => (await studyGroups.RequestUnbanAsync(groupId, cancellationToken)).Message);
+    public Task<IActionResult> RequestUnban(string groupId, [FromForm] RequestGroupUnbanRequest request, CancellationToken cancellationToken) =>
+        Perform(groupId, async () => (await studyGroups.RequestUnbanAsync(groupId, request.Reason, cancellationToken)).Message);
 
     [HttpPost("{groupId:long}/Messages")]
     public Task<IActionResult> AddMessage(string groupId, string? content, CancellationToken cancellationToken) =>
@@ -129,7 +149,9 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IGroup
         Perform(groupId, async () =>
         {
             await studyGroups.ManageMemberAsync(groupId, userId, memberAction, cancellationToken);
-            return "Đã cập nhật thành viên.";
+            return memberAction == "unban"
+                ? "Đã gỡ cấm và đưa thành viên trở lại nhóm."
+                : "Đã cập nhật thành viên.";
         }, "members");
 
     [HttpPost("{groupId:long}/Invites")]

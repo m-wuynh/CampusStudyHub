@@ -9,7 +9,7 @@
     .replace(/[\u0300-\u036f]/g, '')
     .replaceAll('đ', 'd');
 
-  window.createSubjectMultiSelect = ({ root, maxSelections = 10 }) => {
+  window.createSubjectMultiSelect = ({ root }) => {
     if (!root) throw new Error('Không tìm thấy bộ chọn môn học.');
 
     const toggle = root.querySelector('[data-subject-toggle]');
@@ -18,6 +18,7 @@
     const container = root.querySelector('[data-subject-options]');
     const summary = root.querySelector('[data-subject-summary]');
     const hint = root.querySelector('[data-subject-hint]');
+    const values = root.querySelector('[data-subject-values]');
     const options = new Map();
     const selected = new Set();
     const idPrefix = root.id || `subject-select-${crypto.randomUUID()}`;
@@ -59,17 +60,31 @@
 
     function updateSummary() {
       const names = selectedNames();
+      if (values) {
+        values.replaceChildren(...names.map(name => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = root.dataset.subjectField;
+          input.value = name;
+          return input;
+        }));
+      }
       summary.classList.toggle('is-placeholder', names.length === 0);
       if (!names.length) summary.textContent = 'Chọn môn học';
       else if (names.length <= 2) summary.textContent = names.join(', ');
       else summary.textContent = `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
     }
 
+    function matchingOptions(query) {
+      const normalizedQuery = searchKey(query);
+      const terms = normalizedQuery.split(/\s+/).filter(Boolean);
+      return sortedOptions().filter(([, option]) =>
+        terms.every(term => searchKey(option.name).includes(term)));
+    }
+
     function render() {
       const query = search.value.trim();
-      const normalizedQuery = searchKey(query);
-      const matches = sortedOptions().filter(([, option]) =>
-        !normalizedQuery || searchKey(option.name).includes(normalizedQuery));
+      const matches = matchingOptions(query);
 
       if (!matches.length) {
         container.innerHTML = `<div class="subject-multiselect-empty">
@@ -87,13 +102,19 @@
           </label>`).join('');
       }
 
+      updateHint(query, matches);
+    }
+
+    function updateHint(query = search.value.trim(), matches = matchingOptions(query)) {
       if (query) {
         const exact = options.get(identityKey(query));
         hint.innerHTML = exact
           ? `Nhấn <kbd>Enter</kbd> để tích môn “${escapeHtml(exact.name)}”.`
-          : `Nhấn <kbd>Enter</kbd> để thêm “${escapeHtml(query)}” làm môn mới.`;
+          : matches.length
+            ? 'Bấm vào thẻ môn học để chọn hoặc bỏ chọn. Có thể chọn nhiều môn.'
+            : `Nhấn <kbd>Enter</kbd> để thêm “${escapeHtml(query)}” làm môn mới.`;
       } else {
-        hint.textContent = `Đã chọn ${selected.size}/${maxSelections} môn. Nhập tên để tìm kiếm.`;
+        hint.textContent = `Đã chọn ${selected.size} môn. Nhập tên để tìm kiếm.`;
       }
       updateSummary();
     }
@@ -107,10 +128,7 @@
       }
 
       const key = identityKey(name);
-      if (!selected.has(key) && selected.size >= maxSelections) {
-        notify(`Mỗi nhóm được chọn tối đa ${maxSelections} môn học.`);
-        return;
-      }
+      if (!options.has(key) && matchingOptions(name).length) return;
       if (!options.has(key)) addOption({ name, isCustom: true });
       selected.add(key);
       search.value = '';
@@ -129,9 +147,16 @@
     search.addEventListener('input', render);
     search.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
+        if (event.isComposing) return;
         event.preventDefault();
         selectFromSearch();
-      } else if (event.key === 'Escape') {
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        container.querySelector('input[type="checkbox"]')?.focus();
+      }
+    });
+    root.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !panel.hidden) {
         event.preventDefault();
         setOpen(false);
         toggle.focus();
@@ -143,20 +168,21 @@
       if (!checkbox) return;
       const key = checkbox.dataset.subjectKey;
       if (checkbox.checked) {
-        if (!selected.has(key) && selected.size >= maxSelections) {
-          checkbox.checked = false;
-          notify(`Mỗi nhóm được chọn tối đa ${maxSelections} môn học.`);
-          return;
-        }
         selected.add(key);
       } else {
         selected.delete(key);
       }
-      render();
+      // Keep the option nodes in place so label clicks retain their target and focus.
+      updateHint();
     });
 
     document.addEventListener('click', event => {
-      if (!panel.hidden && !root.contains(event.target)) setOpen(false);
+      if (!panel.hidden && !event.composedPath().includes(root)) setOpen(false);
+    });
+    root.addEventListener('focusout', () => {
+      window.setTimeout(() => {
+        if (!root.contains(document.activeElement)) setOpen(false);
+      }, 0);
     });
 
     render();

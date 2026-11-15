@@ -27,14 +27,6 @@
         </button>
     </header>
 
-    @if (TempData["Success"] is string success)
-    {
-        <div class="alert alert-success pdf-library-alert" role="status">@success</div>
-    }
-    @if (TempData["Error"] is string error)
-    {
-        <div class="alert alert-danger pdf-library-alert" role="alert">@error</div>
-    }
 
     <form class="pdf-library-search" method="get" role="search">
         <div class="pdf-library-search-box">

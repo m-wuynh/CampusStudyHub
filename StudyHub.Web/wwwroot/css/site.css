@@ -151,6 +151,20 @@ body {
   background-color: var(--sh-slate-200);
   color: var(--sh-slate-900);
 }
+.btn-primary-sh.group-join-button {
+  background: var(--sh-emerald-700);
+  border-color: var(--sh-emerald-700);
+  color: #fff;
+}
+.btn-primary-sh.group-join-button:hover { background: #065f46; border-color: #065f46; }
+.btn-primary-sh.group-leave-button {
+  background: var(--sh-rose-600);
+  border-color: var(--sh-rose-600);
+  color: #fff;
+}
+.btn-primary-sh.group-leave-button:hover { background: var(--sh-rose-700); border-color: var(--sh-rose-700); }
+.btn-primary-sh.group-join-button:focus-visible { outline: 2px solid var(--sh-emerald-700); outline-offset: 3px; }
+.btn-primary-sh.group-leave-button:focus-visible { outline: 2px solid var(--sh-rose-700); outline-offset: 3px; }
 .btn-icon-sh {
   display: inline-flex;
   align-items: center;
@@ -562,7 +576,11 @@ body {
   align-items: flex-end;
   gap: 10px;
   pointer-events: none;
+  max-width: calc(100vw - 48px);
 }
+.sh-toast-message { overflow-wrap: anywhere; white-space: pre-wrap; }
+.sh-toast-close { flex-shrink: 0; border: 0; background: transparent; color: var(--sh-slate-500); padding: 0 2px; margin-left: 8px; font-size: 20px; line-height: 1; cursor: pointer; }
+.sh-toast-close:hover { color: var(--sh-slate-900); }
 .sh-toast {
   pointer-events: auto;
   background: #ffffff;
@@ -574,7 +592,7 @@ body {
   align-items: center;
   gap: 10px;
   width: auto;
-  max-width: 400px;
+  max-width: min(400px, calc(100vw - 48px));
   transform: translateX(120%);
   opacity: 0;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
@@ -1082,6 +1100,22 @@ body {
   position: relative;
 }
 
+.group-field-error {
+  display: block;
+  margin-top: 4px;
+  color: var(--sh-rose-600);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.group-field-error:empty {
+  display: none;
+}
+
+#group-form .input-validation-error {
+  border-color: var(--sh-rose-600);
+}
+
 .subject-multiselect-toggle {
   display: flex;
   align-items: center;
@@ -1181,6 +1215,7 @@ body {
 
 .group-subject-option {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 9px;
   min-height: 38px;
@@ -1206,6 +1241,8 @@ body {
 
 .group-subject-option span {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .group-subject-option:has(input:checked) {

@@ -56,8 +56,6 @@
         }
     </header>
 
-    @if (TempData["Success"] is string success) { <div class="alert alert-success pdf-reader-alert" role="status">@success</div> }
-    @if (TempData["Error"] is string error) { <div class="alert alert-danger pdf-reader-alert" role="alert">@error</div> }
 
     @if (isShared)
     {

@@ -57,7 +57,8 @@ public sealed record GroupMemberResponse(
     DateTimeOffset? JoinedAt,
     bool IsCurrentUser,
     bool HasPendingUnbanRequest,
-    string? BannedByUserId);
+    string? BannedByUserId,
+    string? UnbanRequestReason);
 
 public sealed record GroupPostResponse(
     string Id,
@@ -90,6 +91,7 @@ public sealed record GroupInviteResponse(
 public sealed record SendGroupMessageRequest(string? Content);
 public sealed record CreateAnnouncementRequest(string? Content, bool IsPinned = false);
 public sealed record ManageGroupMemberRequest(string? Action);
+public sealed record RequestGroupUnbanRequest(string? Reason);
 public sealed record CreateGroupInviteRequest(int ExpiresInDays = 7, int MaxUses = 20);
 
 public sealed record CreateGroupRequest(
