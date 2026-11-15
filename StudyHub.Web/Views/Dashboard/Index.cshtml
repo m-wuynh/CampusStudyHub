@@ -322,50 +322,47 @@
     }
   </div>
 
-  <!-- ── 6. Ghi chú gần đây (NotesV3) – dạng bảng ── -->
+  <!-- ── 6. PDF gần đây ── -->
   <div>
     <div class="sv-section-head">
       <div>
-        <h3 class="sv-section-title">Ghi chú gần đây</h3>
-        <p class="sv-section-sub">Các trang ghi chú mới nhất trong sổ tay của bạn</p>
+        <h3 class="sv-section-title">PDF gần đây</h3>
+        <p class="sv-section-sub">Các tài liệu PDF bạn vừa sử dụng</p>
       </div>
-      <a asp-controller="NotesV3" asp-action="Index" class="sv-link">Xem tất cả</a>
+      <a asp-controller="Pdf" asp-action="Index" class="sv-link">Xem tất cả</a>
     </div>
 
-    <div id="dashboard-recent-notes" class="sh-card overflow-hidden">
-      @if (Model.RecentNotes is { Count: > 0 } recentNotes)
+    <div id="dashboard-recent-pdfs" class="sh-card overflow-hidden">
+      @if (Model.RecentPdfs is { Count: > 0 } recentPdfs)
       {
         <div class="table-responsive">
           <table class="sv-table">
             <thead>
               <tr>
-                <th>Tiêu đề</th>
-                <th class="d-none d-md-table-cell">Tóm tắt</th>
-                <th>Sổ tay</th>
+                <th>Tài liệu</th>
+                <th class="d-none d-md-table-cell">Tên file</th>
+                <th>Cập nhật</th>
                 <th class="text-end">Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              @foreach (var note in recentNotes)
+              @foreach (var pdf in recentPdfs)
               {
                 <tr>
                   <td style="max-width:260px;">
                     <div class="d-flex align-items-center gap-2 overflow-hidden">
-                      <span class="sv-stat-icon" style="width:32px; height:32px; min-width:32px; font-size:14px;"><i class="bi bi-journal-text"></i></span>
-                      <span class="fw-semibold truncate" title="@note.Title">@note.Title</span>
+                      <span class="sv-stat-icon" style="width:32px; height:32px; min-width:32px; font-size:14px;"><i class="bi bi-file-earmark-pdf"></i></span>
+                      <span class="fw-semibold truncate" title="@pdf.Title">@pdf.Title</span>
                     </div>
                   </td>
                   <td class="d-none d-md-table-cell" style="max-width:360px;">
-                    <span class="truncate d-block" style="font-size:12px; color:var(--sh-slate-500);" title="@note.Summary">
-                      @(string.IsNullOrEmpty(note.Summary) ? "Trang chưa có nội dung." : note.Summary)
-                    </span>
+                    <span class="truncate d-block" style="font-size:12px; color:var(--sh-slate-500);" title="@pdf.FileName">@pdf.FileName</span>
                   </td>
-                  <td style="max-width:180px;">
-                    <span class="sv-pill is-neutral d-inline-block truncate" style="max-width:100%; text-transform:none; letter-spacing:0;" title="@note.NotebookTitle">@note.NotebookTitle</span>
+                  <td>
+                    <span style="font-size:12px; color:var(--sh-slate-500);">@pdf.UpdatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
                   </td>
                   <td class="text-end">
-                    <a asp-controller="Notebooks" asp-action="Notebook"
-                       asp-route-id="@note.NotebookId" asp-route-sectionId="@note.SectionId" asp-route-pageId="@note.PageId"
+                    <a asp-controller="PdfDocuments" asp-action="Reader" asp-route-id="@pdf.DocumentId"
                        class="sv-action-pill">Mở</a>
                   </td>
                 </tr>
@@ -374,22 +371,14 @@
           </table>
         </div>
       }
-      else if (!Model.NotesAvailable)
-      {
-        <div class="text-center py-5 px-3">
-          <div style="font-size:42px; margin-bottom:12px;">📒</div>
-          <h4 class="fw-bold" style="font-size:14px; color:var(--sh-slate-700);">Chưa tải được ghi chú.</h4>
-          <p class="text-muted mb-0" style="font-size:12px;">Mô-đun ghi chú hiện chưa sẵn sàng. Vui lòng thử lại sau.</p>
-        </div>
-      }
       else
       {
         <div class="text-center py-5 px-3">
-          <div style="font-size:42px; margin-bottom:12px;">📝</div>
-          <h4 class="fw-bold" style="font-size:14px; color:var(--sh-slate-700);">Hiện tại chưa có ghi chú nào.</h4>
-          <p class="text-muted mb-3" style="font-size:12px;">Tạo sổ tay và trang ghi chú đầu tiên của bạn.</p>
-          <a asp-controller="NotesV3" asp-action="Index" class="btn-primary-sh d-inline-flex justify-content-center">
-            Mở Ghi chú
+          <div style="font-size:42px; margin-bottom:12px;">📄</div>
+          <h4 class="fw-bold" style="font-size:14px; color:var(--sh-slate-700);">Hiện tại chưa có PDF nào.</h4>
+          <p class="text-muted mb-3" style="font-size:12px;">Tải tài liệu PDF đầu tiên để bắt đầu học.</p>
+          <a asp-controller="Pdf" asp-action="Index" class="btn-primary-sh d-inline-flex justify-content-center">
+            Mở thư viện PDF
           </a>
         </div>
       }

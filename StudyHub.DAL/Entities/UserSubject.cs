@@ -36,15 +36,11 @@ public partial class UserSubject
 
     public virtual ICollection<Deadline> Deadlines { get; set; } = new List<Deadline>();
 
-    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
-
     public virtual ICollection<FlashcardDeck> FlashcardDecks { get; set; } = new List<FlashcardDeck>();
 
     public virtual ICollection<Goal> Goals { get; set; } = new List<Goal>();
 
     public virtual ICollection<GradeEntry> GradeEntries { get; set; } = new List<GradeEntry>();
-
-    public virtual ICollection<Note> Notes { get; set; } = new List<Note>();
 
     public virtual ICollection<ScheduleEvent> ScheduleEvents { get; set; } = new List<ScheduleEvent>();
 

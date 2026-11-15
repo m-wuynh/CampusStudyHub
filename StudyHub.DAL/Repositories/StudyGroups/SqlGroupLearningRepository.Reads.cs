@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StudyHub.DAL.Entities;
+using StudyHub.DAL.Repositories.Pdf;
 using StudyHub.DAL.Repositories.StudyGroups.Models;
 
 namespace StudyHub.DAL.Repositories.StudyGroups;
@@ -83,8 +84,56 @@ public sealed partial class SqlGroupLearningRepository
             "Flashcard",
             x.Title,
             x.OwnerUserId,
-            x.OwnerUser.DisplayName))
+            x.OwnerUser.DisplayName,
+            null))
         .ToListAsync(ct);
+
+    if (available)
+    {
+        var pdfs = await db.PdfDocuments
+            .AsNoTracking()
+            .Where(document =>
+                document.OwnerUserId == userId &&
+                !document.IsDeleted &&
+                !db.PdfDocumentShares.Any(share =>
+                    share.DocumentId == document.DocumentId &&
+                    share.StudyGroupId == groupId &&
+                    share.IsActive))
+            .Join(
+                db.Users.AsNoTracking(),
+                document => document.OwnerUserId,
+                owner => owner.UserId,
+                (document, owner) => new SharedResourceData(
+                    document.DocumentId,
+                    "Pdf",
+                    document.Title,
+                    document.OwnerUserId,
+                    owner.DisplayName,
+                    null))
+            .ToListAsync(ct);
+        result.AddRange(pdfs);
+    }
+    else
+    {
+        var pdfs = await (
+            from share in db.PdfDocumentShares.AsNoTracking()
+            join document in db.PdfDocuments.AsNoTracking()
+                on share.DocumentId equals document.DocumentId
+            join owner in db.Users.AsNoTracking()
+                on document.OwnerUserId equals owner.UserId
+            where share.StudyGroupId == groupId &&
+                  share.IsActive &&
+                  !document.IsDeleted
+            select new SharedResourceData(
+                document.DocumentId,
+                "Pdf",
+                document.Title,
+                document.OwnerUserId,
+                owner.DisplayName,
+                share.PdfDocumentShareId))
+            .ToListAsync(ct);
+        result.AddRange(pdfs);
+    }
 
     return result
         .OrderBy(x => x.Title)
@@ -104,8 +153,42 @@ public sealed partial class SqlGroupLearningRepository
         false,
         async manage =>
         {
-            // Notes/PDF dùng API NotesV3.
-            if (kind != "Flashcard")
+            if (string.Equals(kind, "Pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                // Business logic (ownership check, duplicate check, auth)
+                // được xử lý bởi PdfSharingService ở BLL — không còn ở DAL.
+                try
+                {
+                    if (shared)
+                    {
+                        await pdfSharingService.ShareAsync(
+                            resourceId, groupId, userId, ct);
+                    }
+                    else
+                    {
+                        await pdfSharingService.UnshareAsync(
+                            resourceId, groupId, userId, manage, ct);
+                    }
+                }
+                catch (Exception ex) when (ex is not StudyGroupRepositoryException)
+                {
+                    // Map PdfException → StudyGroupRepositoryException
+                    // để caller (BLL GroupLearningService) nhận được lỗi đúng format.
+                    var statusCode = (int?)ex.GetType().GetProperty("StatusCode")?.GetValue(ex);
+                    var code = statusCode switch
+                    {
+                        403 => "forbidden",
+                        404 => "not_found",
+                        409 => "update_conflict",
+                        _ => "invalid_action"
+                    };
+                    throw new StudyGroupRepositoryException(code, ex.Message);
+                }
+
+                return;
+            }
+
+            if (!string.Equals(kind, "Flashcard", StringComparison.OrdinalIgnoreCase))
             {
                 throw Missing();
             }
