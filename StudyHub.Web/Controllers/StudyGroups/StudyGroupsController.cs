@@ -10,7 +10,7 @@ namespace StudyHub.Web.Controllers.StudyGroups;
 [Authorize]
 [AutoValidateAntiforgeryToken]
 [Route("Groups")]
-public sealed class StudyGroupsController(IStudyGroupService studyGroups, GroupLearningService learning, IHubContext<StudyGroupHub> hub) : Controller
+public sealed class StudyGroupsController(IStudyGroupService studyGroups, IGroupLearningService learning, IHubContext<StudyGroupHub> hub) : Controller
 {
     [AllowAnonymous]
     [HttpGet("")]

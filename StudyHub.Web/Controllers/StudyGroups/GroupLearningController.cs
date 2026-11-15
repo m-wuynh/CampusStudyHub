@@ -8,7 +8,7 @@ namespace StudyHub.Web.Controllers.StudyGroups;
 
 [Authorize, AutoValidateAntiforgeryToken]
 [Route("Groups/{groupId:long}/Learning/[action]")]
-public sealed class GroupLearningController(GroupLearningService service) : Controller
+public sealed class GroupLearningController(IGroupLearningService service) : Controller
 {
     [HttpPost]
     public Task<IActionResult> CreateSession(long groupId, [FromForm] SaveGroupSessionRequest request, CancellationToken ct) =>

@@ -121,20 +121,12 @@ builder.Services.AddDbContext<StudyHubDbContext>(options =>
 
 // DAL repositories
 builder.Services.AddScoped<
-    IStudyGroupWorkflow,
-    StudyGroupWorkflow>();
-
-builder.Services.AddScoped<
     IGoogleAuthRepository,
     GoogleAuthRepository>();
 
 builder.Services.AddScoped<
     IRepository,
     EfRepository>();
-
-builder.Services.AddScoped<
-    IGroupLearningWorkflow,
-    GroupLearningWorkflow>();
 
 // Authentication services
 builder.Services.AddScoped<
@@ -150,7 +142,7 @@ builder.Services.AddScoped<
     IStudyGroupService,
     StudyGroupService>();
 
-builder.Services.AddScoped<GroupLearningService>();
+builder.Services.AddScoped<IGroupLearningService, GroupLearningService>();
 
 // Flashcard services
 builder.Services.AddScoped<
