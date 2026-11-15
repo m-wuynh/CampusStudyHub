@@ -18,6 +18,8 @@ obj/
 # Local server data
 StudyHub.Web/App_Data/*.json
 StudyHub.Web/App_Data/*.tmp
+StudyHub.Web/App_Data/NotesV3/Pdfs/
+StudyHub.Web/App_Data/Pdf/
 
 # Environment
 .env*
@@ -30,3 +32,4 @@ StudyHub.Tests/
 StudyHub.BLL.Tests/
 docs/
 .diagram-work/
+/outputs

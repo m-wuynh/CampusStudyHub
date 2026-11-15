@@ -25,8 +25,6 @@ public partial class FlashcardDeck
 
     public DateTime UpdatedAtUtc { get; set; }
 
-    public virtual ICollection<ContentReport> ContentReports { get; set; } = new List<ContentReport>();
-
     public virtual ICollection<Flashcard> Flashcards { get; set; } = new List<Flashcard>();
 
     public virtual User OwnerUser { get; set; } = null!;

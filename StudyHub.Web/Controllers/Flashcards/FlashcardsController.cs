@@ -21,37 +21,14 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
 {
 
     //deck management
-
-    [AllowAnonymous]
     [HttpGet("")]
     public async Task<IActionResult> Index(
         string? searchText,
         CancellationToken cancellationToken)
     {
-        //var decks = await flashcardDeckService.GetMyDecksAsync(
-        //    currentUser.UserId,
-        //    cancellationToken);
-
-        //if (!string.IsNullOrWhiteSpace(searchText))
-        //{
-        //    var keyword = searchText.Trim();
-
-        //    decks = decks
-        //        .Where(d => d.Title.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-        //        .ToList();
-
-        //}
-
-        //var model = new FlashcardsIndexViewModel
-        //{
-        //    Decks = decks,
-        //    SearchText = searchText
-        //};
-
-        //return View(model);
         var allDecks = await flashcardDeckService.GetMyDecksAsync(
-    currentUser.UserId,
-    cancellationToken);
+            currentUser.UserId,
+            cancellationToken);
 
         var since = DateTime.UtcNow.AddDays(-7);
 
@@ -98,8 +75,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
                 currentUser.UserId,
                 new CreateFlashcardDeckRequestDto(
                     model.Title,
-                    model.Description,
-                    model.UserSubjectId),
+                    model.Description),
                 cancellationToken
                 );
 
@@ -135,8 +111,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
                 currentUser.UserId,
                 new UpdateFlashcardDeckRequestDto(
                     model.Title,
-                    model.Description,
-                    model.UserSubjectId),
+                    model.Description),
                 cancellationToken);
 
             if (!updated)
@@ -260,6 +235,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         try
         {
             var updated = await flashcardService.UpdateCardAsync(
+                deckId,
                 cardId,
                 currentUser.UserId,
                 new UpdateFlashcardRequestDto(
@@ -291,6 +267,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         CancellationToken cancellationToken)
     {
         var deleted = await flashcardService.DeleteCardAsync(
+            deckId,
             cardId,
             currentUser.UserId,
             cancellationToken);
@@ -358,23 +335,6 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
             return NotFound();
         }
 
-        //var sessionId = await dbLearnSessionService.StartOrResumeAsync(
-        //    deckId,
-        //    currentUser.UserId,
-        //    cancellationToken);
-
-        //if (sessionId is null)
-        //{
-        //    return View("Learn", new FlashcardLearnViewModel
-        //    {
-        //        DeckId = deck.DeckId,
-        //        DeckTitle = deck.Title
-        //    });
-        //}
-
-        //return RedirectToAction(
-        //    nameof(LearnSession),
-        //    new { deckId, sessionId = sessionId.Value });
         return View("LearnSetup", new FlashcardLearnViewModel
         {
             DeckId = deck.DeckId,
@@ -467,7 +427,14 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(ex.Message);
+            TempData["FlashcardError"] = ex.Message;
+            return RedirectToAction(nameof(Learn), new { deckId });
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            TempData["FlashcardError"] =
+                "Phiên học đã thay đổi. Hãy bắt đầu hoặc tiếp tục lại.";
+            return RedirectToAction(nameof(Learn), new { deckId });
         }
     }
 

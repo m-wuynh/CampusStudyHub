@@ -14,7 +14,6 @@ namespace StudyHub.Web.Controllers.Auth;
 public sealed class AccountController(
     IAuthService authService,
     IAuthenticationSchemeProvider schemeProvider,
-    IWebHostEnvironment environment,
     ILogger<AccountController> logger) : Controller
 {
     private const string LoginView = "~/Views/Auth/Login.cshtml";
@@ -57,34 +56,6 @@ public sealed class AccountController(
         return Challenge(
             new AuthenticationProperties { RedirectUri = callbackUrl },
             GoogleDefaults.AuthenticationScheme);
-    }
-
-    [AllowAnonymous]
-    [ValidateAntiForgeryToken]
-    [HttpPost("Development")]
-    public async Task<IActionResult> Development(
-        string? returnUrl = null,
-        CancellationToken cancellationToken = default)
-    {
-        if (!environment.IsDevelopment()) return NotFound();
-
-        try
-        {
-            var result = await authService.LoginForDevelopmentAsync(cancellationToken);
-            if (!result.Succeeded || result.User is null)
-            {
-                var model = await CreateLoginViewModelAsync(returnUrl, result.ErrorMessage);
-                return View(LoginView, model);
-            }
-
-            await SignInUserAsync(result.User, true, new Claim("login_provider", "Development"));
-            return LocalRedirectOrDashboard(returnUrl);
-        }
-        catch (Exception exception)
-        {
-            logger.LogError(exception, "Không thể hoàn tất đăng nhập phát triển.");
-            return RedirectToAction(nameof(Login), new { returnUrl, error = "development_storage" });
-        }
     }
 
     [Authorize]
@@ -154,7 +125,6 @@ public sealed class AccountController(
         ReturnUrl = SafeReturnUrl(returnUrl),
         RememberMe = true,
         GoogleEnabled = await IsGoogleEnabledAsync(),
-        DevelopmentLoginEnabled = environment.IsDevelopment(),
         ErrorMessage = errorMessage
     };
 
@@ -206,7 +176,6 @@ public sealed class AccountController(
         "google_failed" => "Google đã hủy hoặc không thể hoàn tất đăng nhập. Vui lòng thử lại.",
         "google_claims" => "Không đọc được thông tin tài khoản từ Google.",
         "google_storage" => "Đã đăng nhập Google nhưng không thể lưu tài khoản vào cơ sở dữ liệu.",
-        "development_storage" => "Không thể tạo tài khoản phát triển trong cơ sở dữ liệu.",
         "use_google" => "Tài khoản được tạo tự động ở lần đầu bạn đăng nhập với Google.",
         _ => null
     };

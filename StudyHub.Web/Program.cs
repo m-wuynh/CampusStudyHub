@@ -8,31 +8,20 @@ using StudyHub.BLL.Services.Auth;
 using StudyHub.BLL.Services.Flashcards;
 using StudyHub.BLL.Services.Flashcards.Implementations;
 using StudyHub.BLL.Services.Flashcards.Interfaces;
-using StudyHub.BLL.Services.NotesV3;
-using StudyHub.BLL.Services.NotesV3.Annotations;
-using StudyHub.BLL.Services.NotesV3.Notebooks;
-using StudyHub.BLL.Services.NotesV3.Pages;
-using StudyHub.BLL.Services.NotesV3.PagesNotes;
-using StudyHub.BLL.Services.NotesV3.Pdfs;
-using StudyHub.BLL.Services.NotesV3.Sharing;
 using StudyHub.BLL.Services.StudyGroups;
 using StudyHub.DAL.Persistence;
 using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.Common;
-using StudyHub.DAL.Repositories.StudyGroups;
 using StudyHub.Web.Authentication;
+using StudyHub.Web.Configuration;
+using StudyHub.Web.Filters.Pdf;
 using StudyHub.Web.Hubs;
-using StudyHub.Web.Services.NotesV3;
-using StudyHub.BLL.Services.Flashcards;
-using StudyHub.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews(options =>
 {
-    options.Filters.AddService<StudyHub.Web.Filters.NotesV3ExceptionFilter>();
-    options.Conventions.Add(
-        new StudyHub.Web.Configuration.DisableLegacyNotesControllers());
+    options.Filters.AddService<PdfExceptionFilter>();
 
     // Grades & Goals: đọc số trong form theo InvariantCulture (không phụ thuộc culture server).
     options.ModelBinderProviders.Insert(
@@ -71,6 +60,15 @@ authentication.AddCookie(options =>
     options.Cookie.Name = "StudyHub.Auth";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Events.OnValidatePrincipal = async context =>
+    {
+        if (context.Principal?.HasClaim("login_provider", "Development") == true)
+        {
+            context.RejectPrincipal();
+            await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
+                context.HttpContext, CookieAuthenticationDefaults.AuthenticationScheme);
+        }
+    };
 });
 
 var googleClientId =
@@ -123,20 +121,12 @@ builder.Services.AddDbContext<StudyHubDbContext>(options =>
 
 // DAL repositories
 builder.Services.AddScoped<
-    IStudyGroupRepository,
-    SqlStudyGroupRepository>();
-
-builder.Services.AddScoped<
     IGoogleAuthRepository,
     GoogleAuthRepository>();
 
 builder.Services.AddScoped<
     IRepository,
     EfRepository>();
-
-builder.Services.AddScoped<
-    IGroupLearningRepository,
-    SqlGroupLearningRepository>();
 
 // Authentication services
 builder.Services.AddScoped<
@@ -152,7 +142,7 @@ builder.Services.AddScoped<
     IStudyGroupService,
     StudyGroupService>();
 
-builder.Services.AddScoped<GroupLearningService>();
+builder.Services.AddScoped<IGroupLearningService, GroupLearningService>();
 
 // Flashcard services
 builder.Services.AddScoped<
@@ -178,20 +168,7 @@ builder.Services.AddScoped<
     IDbLearnSessionService,
     DbLearnSessionService>();
 
-// NotesV3: các màn hình MVC và nghiệp vụ tương ứng.
-builder.Services.AddScoped<INotesV3AccessService, NotesV3AccessService>();
-builder.Services.AddScoped<INotesIndexService, NotesIndexService>();
-builder.Services.AddScoped<INotebookService, NotebookService>();
-builder.Services.AddScoped<IPageService, PageService>();
-builder.Services.AddScoped<IPdfService, PdfService>();
-builder.Services.AddScoped<IPageNotesService, PageNotesService>();
-builder.Services.AddScoped<IPdfMarksService, PdfMarksService>();
-builder.Services.AddScoped<IGroupShareService, GroupShareService>();
-builder.Services.AddScoped<IPdfFileStorage, LocalPdfFileStorage>();
-
-// NotesV3 MVC exception filter
-builder.Services.AddScoped<
-    StudyHub.Web.Filters.NotesV3ExceptionFilter>();
+builder.Services.AddPdfModule();
 
 // Other application services
 builder.Services.AddScoped<
@@ -213,8 +190,8 @@ builder.Services.AddScoped<
     StudyHub.BLL.Services.Calendar.ICalendarService,
     StudyHub.BLL.Services.Calendar.CalendarService>();
 builder.Services.AddScoped<
-    StudyHub.BLL.Services.Dashboard.IDashboardNotesService,
-    StudyHub.BLL.Services.Dashboard.DashboardNotesService>();
+    StudyHub.BLL.Services.Dashboard.IDashboardPdfService,
+    StudyHub.BLL.Services.Dashboard.DashboardPdfService>();
 
 builder.Services.AddTransient<
     StudyHub.BLL.Services.Email.IEmailService,
@@ -278,6 +255,7 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseRouting();
 
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapStaticAssets().AllowAnonymous();

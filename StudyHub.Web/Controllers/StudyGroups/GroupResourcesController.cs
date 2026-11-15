@@ -11,7 +11,7 @@ namespace StudyHub.Web.Controllers.StudyGroups;
     NoStore = true,
     Location = ResponseCacheLocation.None)]
 public sealed class GroupResourcesController(
-    GroupLearningService service) : Controller
+    IGroupLearningService service) : Controller
 {
     [HttpGet("{kind}/{id:long}")]
     public async Task<IActionResult> Read(
@@ -20,7 +20,7 @@ public sealed class GroupResourcesController(
         long id,
         CancellationToken ct)
     {
-        // Notes/PDF mới đi qua NotesV3Controller.
+        // Tài liệu PDF đi qua module PDF.
         if (kind != "Flashcard")
         {
             return NotFound();

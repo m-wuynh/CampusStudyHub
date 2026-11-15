@@ -9,12 +9,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const title = button.getAttribute('data-title') ?? '';
         const description =
             button.getAttribute('data-description') ?? '';
-        const subjectId = button.getAttribute('data-subject-id') ?? '';
 
         const form =
             document.getElementById('editDeckForm');
-
-        document.getElementById('editDeckSubjectId').value = subjectId;
         document.getElementById('editDeckTitle').value =
             title;
 

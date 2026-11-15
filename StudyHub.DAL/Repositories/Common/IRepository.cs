@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
+using System.Data;
 using Microsoft.EntityFrameworkCore.Storage;
 using StudyHub.DAL.Repositories.Auth;
-using StudyHub.DAL.Repositories.StudyGroups;
 namespace StudyHub.DAL.Repositories.Common;
 
 /// <summary>
@@ -9,8 +9,9 @@ namespace StudyHub.DAL.Repositories.Common;
 /// </summary>
 public interface IRepository
 {
+    Task<T> ExecuteAsync<T>(Func<Task<T>> operation);
     IGoogleAuthRepository GoogleAuth { get; }
-    IStudyGroupRepository StudyGroups { get; }
+    bool HasActiveTransaction { get; }
     
     IQueryable<TEntity> Query<TEntity>(bool asNoTracking = true) where TEntity : class;
     ValueTask<TEntity?> FindAsync<TEntity>(
@@ -37,5 +38,8 @@ public interface IRepository
     int SaveChanges();
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+    Task<IDbContextTransaction> BeginTransactionAsync(
+        IsolationLevel isolationLevel,
+        CancellationToken cancellationToken = default);
 }
 

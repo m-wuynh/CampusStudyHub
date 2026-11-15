@@ -9,14 +9,12 @@ public sealed record FlashcardDeckSummaryDto(
     string Title,
     string? Description,
     string Visibility,
-    long? UserSubjectId,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc);
 
 public sealed record FlashcardDeckDetailDto(
     long DeckId,
     long OwneruserId,
-    long? UserSubjectId,
     long? StudyGroupId,
     string Title,
     string? Description,
@@ -26,14 +24,12 @@ public sealed record FlashcardDeckDetailDto(
 
 public sealed record CreateFlashcardDeckRequestDto(
     string? Title,
-    string? Description,
-    long? UserSubjectId
+    string? Description
     );
 
 public sealed record UpdateFlashcardDeckRequestDto(
     string? Title,
-    string? Description,
-    long? UserSubjectId
+    string? Description
     );
 
 //không sử dụng OwnerUserId cho Dto vì browser có thể gửi id rồi tạo deck cho người khác

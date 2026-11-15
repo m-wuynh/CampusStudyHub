@@ -23,8 +23,7 @@ public sealed record DashboardIndexViewModel(
     int WeeklyCompletedEvents = 0,
     int WeeklyMissedEvents = 0,
     int StudyStreakDays = 0,
-    IReadOnlyList<DashboardNoteDto>? RecentNotes = null,
-    bool NotesAvailable = true
+    IReadOnlyList<DashboardPdfDto>? RecentPdfs = null
 );
 
 public sealed record UpcomingEventSummaryDto(

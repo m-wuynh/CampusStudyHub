@@ -1,18 +1,38 @@
+using System.Data;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using StudyHub.DAL.Persistence;
 using StudyHub.DAL.Repositories.Auth;
-using StudyHub.DAL.Repositories.StudyGroups;
 
 namespace StudyHub.DAL.Repositories.Common;
 
 public sealed class EfRepository(
     StudyHubDbContext context,
-    IGoogleAuthRepository googleAuth,
-    IStudyGroupRepository studyGroups) : IRepository
+    IGoogleAuthRepository googleAuth) : IRepository
 {
+    public async Task<T> ExecuteAsync<T>(Func<Task<T>> operation)
+    {
+        try { return await operation(); }
+        catch (Exception exception) when (IsConflict(exception))
+        {
+            throw new DataConflictException(exception);
+        }
+    }
+
+    private static bool IsConflict(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is DbUpdateConcurrencyException ||
+                current is Microsoft.Data.SqlClient.SqlException { Number: 1205 or 2601 or 2627 })
+                return true;
+        }
+        return false;
+    }
+
     public IGoogleAuthRepository GoogleAuth { get; } = googleAuth;
-    public IStudyGroupRepository StudyGroups { get; } = studyGroups;
+    public bool HasActiveTransaction => context.Database.CurrentTransaction is not null;
+
     public IQueryable<TEntity> Query<TEntity>(bool asNoTracking = true) where TEntity : class
     {
         var query = context.Set<TEntity>().AsQueryable();
@@ -73,4 +93,9 @@ public sealed class EfRepository(
 
     public Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default) =>
         context.Database.BeginTransactionAsync(cancellationToken);
+
+    public Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(
+        IsolationLevel isolationLevel,
+        CancellationToken cancellationToken = default) =>
+        context.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
 }

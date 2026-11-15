@@ -10,7 +10,7 @@ namespace StudyHub.Web.Controllers.StudyGroups;
 [Authorize]
 [AutoValidateAntiforgeryToken]
 [Route("Groups")]
-public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubContext<StudyGroupHub> hub) : Controller
+public sealed class StudyGroupsController(IStudyGroupService studyGroups, IGroupLearningService learning, IHubContext<StudyGroupHub> hub) : Controller
 {
     [AllowAnonymous]
     [HttpGet("")]
@@ -77,6 +77,24 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubCo
         return View("Form", model);
     }
 
+    [HttpPost("{groupId:long}/Delete")]
+    public async Task<IActionResult> Delete(string groupId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await studyGroups.DeleteGroupAsync(groupId, cancellationToken);
+            TempData["GroupSuccess"] = "Đã xóa nhóm học tập.";
+            return RedirectToAction(nameof(Index));
+        }
+        catch (StudyGroupException exception)
+        {
+            if (exception.StatusCode == 403) return Forbid();
+            if (exception.StatusCode == 404) return NotFound();
+            TempData["GroupError"] = exception.Message;
+            return RedirectToAction(nameof(Details), new { groupId });
+        }
+    }
+
     [HttpPost("{groupId:long}/Join")]
     public Task<IActionResult> Join(string groupId, CancellationToken cancellationToken) =>
         Perform(groupId, async () => (await studyGroups.JoinAsync(groupId, cancellationToken)).Message);
@@ -141,10 +159,22 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubCo
     }
 
     [HttpGet("{groupId:long}")]
-    public async Task<IActionResult> Details(string groupId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Details(string groupId, CancellationToken cancellationToken, DateOnly? week = null)
     {
         var group = await studyGroups.GetGroupAsync(groupId, cancellationToken);
-        return group is null ? NotFound() : View(new StudyGroupDetailsViewModel(group));
+        if (group is null) return NotFound();
+        var model = new StudyGroupDetailsViewModel(group);
+        if (group.IsMember)
+        {
+            try { model = model with { Learning = await learning.GetAsync(long.Parse(groupId), week, cancellationToken) }; }
+            catch (StudyGroupException exception)
+            {
+                if (exception.StatusCode == 403) return Forbid();
+                if (exception.StatusCode == 404) return NotFound();
+                TempData["GroupError"] = exception.Message;
+            }
+        }
+        return View(model);
     }
 
     [HttpGet("Invite/{inviteCode}")]

@@ -9,6 +9,4 @@ public interface IGoogleAuthRepository
         string? avatarUrl,
         CancellationToken cancellationToken = default);
 
-    Task<GoogleAccountData> FindOrCreateDevelopmentAsync(
-        CancellationToken cancellationToken = default);
 }

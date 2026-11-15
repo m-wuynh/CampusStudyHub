@@ -322,15 +322,7 @@ public sealed class GradeBookService(
             .Where(s => s.UserId == userId && s.UserSubjectId != null && subjectIds.Contains(s.UserSubjectId.Value))
             .ToListAsync(ct));
 
-        // Q25: giữ nội dung Note / Document / FlashcardDeck (và mọi bảng con, file vật lý), chỉ gỡ liên kết môn.
-        // Cập nhật trực tiếp một cột UserSubjectId (không tải cả entity) nên không phụ thuộc các cột khác của
-        // bảng thuộc module khác. Lệnh chạy ngay trong transaction hiện tại; lỗi sau đó vẫn rollback được.
-        await repository.Query<Note>(false)
-            .Where(n => n.UserSubjectId != null && subjectIds.Contains(n.UserSubjectId.Value))
-            .ExecuteUpdateAsync(s => s.SetProperty(n => n.UserSubjectId, (long?)null), ct);
-        await repository.Query<Document>(false)
-            .Where(d => d.UserSubjectId != null && subjectIds.Contains(d.UserSubjectId.Value))
-            .ExecuteUpdateAsync(s => s.SetProperty(d => d.UserSubjectId, (long?)null), ct);
+        // Giữ FlashcardDeck (và các bảng con), chỉ gỡ liên kết môn.
         await repository.Query<FlashcardDeck>(false)
             .Where(d => d.UserSubjectId != null && subjectIds.Contains(d.UserSubjectId.Value))
             .ExecuteUpdateAsync(s => s.SetProperty(d => d.UserSubjectId, (long?)null), ct);
@@ -364,8 +356,6 @@ public sealed class GradeBookService(
                 (x.ScheduleEventId != null && e.Contains(x.ScheduleEventId.Value)) || (x.DeadlineId != null && d.Contains(x.DeadlineId.Value)), ct) +
             await repository.Query<Deadline>().CountAsync(x => x.UserSubjectId != null && s.Contains(x.UserSubjectId.Value), ct) +
             await repository.Query<StudySession>().CountAsync(x => x.UserSubjectId != null && s.Contains(x.UserSubjectId.Value), ct) +
-            await repository.Query<Note>().CountAsync(x => x.UserSubjectId != null && s.Contains(x.UserSubjectId.Value), ct) +
-            await repository.Query<Document>().CountAsync(x => x.UserSubjectId != null && s.Contains(x.UserSubjectId.Value), ct) +
             await repository.Query<FlashcardDeck>().CountAsync(x => x.UserSubjectId != null && s.Contains(x.UserSubjectId.Value), ct);
 
         if (gradeBookId.HasValue)
