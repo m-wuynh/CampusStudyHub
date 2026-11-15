@@ -6,10 +6,11 @@ public sealed record SessionData(long Id, string Title, string Objective, string
     string? MeetingUrl, DateTimeOffset StartsAtUtc, DateTimeOffset EndsAtUtc, string Status, string Summary,
     int Revision, IReadOnlyList<AttendanceData> Attendees, long CreatedByUserId);
 public sealed record SubmissionData(long Id, long UserId, string Name, int Version, string Content,
-    string? ResourceUrl, DateTimeOffset SubmittedAtUtc, bool IsLate, string Status, string Feedback);
+    string? ResourceUrl, DateTimeOffset SubmittedAtUtc, bool IsLate, string Status, string Feedback,
+    string? ReviewerName = null, DateTimeOffset? ReviewedAtUtc = null);
 public sealed record AssignmentData(long Id, string Title, string Description, long? SessionId,
     DateTimeOffset DueAtUtc, bool AllowLateSubmission, string Status, int Revision,
-    IReadOnlyList<LearningMember> Assignees, IReadOnlyList<SubmissionData> Submissions);
+    IReadOnlyList<LearningMember> Assignees, IReadOnlyList<SubmissionData> Submissions, long CreatedByUserId = 0);
 public sealed record AnswerData(long Id, long AuthorUserId, string AuthorName, string Body, DateTimeOffset CreatedAtUtc);
 public sealed record QuestionData(long Id, long AuthorUserId, string AuthorName, string Title, string Subject,
     string Body, DateTimeOffset CreatedAtUtc, long? AcceptedAnswerId, int Revision, IReadOnlyList<AnswerData> Answers);
