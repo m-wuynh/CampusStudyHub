@@ -234,7 +234,9 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             if (input.Id == 0)
             {
                 var members = await data.Query<GroupMember>(false).Where(x => x.StudyGroupId == groupId && x.Status == "Active").Select(x => x.UserId).ToListAsync(ct);
-                var targets = assignees.Count == 0 ? members : assignees.Distinct().ToList();
+                Require(!assignees.Contains(userId), "Người tạo không thể tự giao bài tập cho bản thân.");
+                var targets = assignees.Count == 0 ? members.Where(id => id != userId).ToList() : assignees.Distinct().ToList();
+                Require(targets.Count > 0, "Chưa có thành viên khác để nhận bài tập.");
                 Require(targets.All(members.Contains), "Chỉ được giao bài cho thành viên đang hoạt động.");
                 foreach (var id in targets) entity.Assignees.Add(new GroupAssignmentAssignee { UserId = id });
                 await data.AddAsync(entity);
@@ -254,6 +256,7 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
         WriteAsync(groupId, userId, false, async _ =>
         {
             var assignment = await data.Query<GroupAssignment>(false).SingleOrDefaultAsync(x => x.Id == assignmentId && x.StudyGroupId == groupId, ct) ?? throw Missing();
+            Require(assignment.CreatedByUserId != userId, "Người tạo bài tập không nộp bài với vai trò người học.");
             Require(assignment.Status == "Open", "Bài tập đã đóng.");
             Require(assignment.AllowLateSubmission || DateTimeOffset.UtcNow <= assignment.DueAtUtc, "Đã hết hạn nộp bài.");
             Require(await data.Query<GroupAssignmentAssignee>(false).AnyAsync(x => x.AssignmentId == assignmentId && x.UserId == userId, ct), "Bạn không được giao bài tập này.");
@@ -327,6 +330,14 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
         var assignments = await data.Query<GroupAssignment>(false).AsNoTracking().Where(x => x.StudyGroupId == groupId)
             .Include(x => x.Assignees).ThenInclude(x => x.User)
             .Include(x => x.Assignees).ThenInclude(x => x.Submissions).AsSplitQuery().OrderByDescending(x => x.DueAtUtc).ToListAsync(ct);
+        foreach (var assignment in assignments)
+            assignment.Assignees = assignment.Assignees.Where(assignee => assignee.UserId != assignment.CreatedByUserId).ToList();
+        var reviewerIds = assignments.SelectMany(assignment => assignment.Assignees)
+            .SelectMany(assignee => assignee.Submissions)
+            .Where(submission => submission.ReviewedByUserId.HasValue)
+            .Select(submission => submission.ReviewedByUserId!.Value).Distinct().ToList();
+        var reviewerNames = await data.Query<User>().Where(user => reviewerIds.Contains(user.UserId))
+            .ToDictionaryAsync(user => user.UserId, user => user.DisplayName, ct);
         var questions = await data.Query<GroupQuestion>(false).AsNoTracking().Where(x => x.StudyGroupId == groupId)
             .Include(x => x.Author).Include(x => x.Answers).ThenInclude(x => x.Author)
             .AsSplitQuery().OrderByDescending(x => x.CreatedAtUtc).ToListAsync(ct);
@@ -362,9 +373,11 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             assignments.Select(x => new AssignmentData(x.Id, x.Title, x.Description, x.SessionId, x.DueAtUtc,
                 x.AllowLateSubmission, x.Status, x.Revision,
                 x.Assignees.Select(a => new LearningMember(a.UserId, a.User.DisplayName)).ToList(),
-                x.Assignees.Where(a => manage || a.UserId == userId).SelectMany(a => a.Submissions.Select(s =>
+                x.Assignees.SelectMany(a => a.Submissions.Select(s =>
                     new SubmissionData(s.Id, s.UserId, a.User.DisplayName, s.Version, s.Content, s.ResourceUrl,
-                        s.SubmittedAtUtc, s.SubmittedAtUtc > x.DueAtUtc, s.Status, s.Feedback))).OrderByDescending(s => s.Version).ToList())).ToList(),
+                        s.SubmittedAtUtc, s.SubmittedAtUtc > x.DueAtUtc, s.Status, s.Feedback,
+                        s.ReviewedByUserId is long reviewerId ? reviewerNames.GetValueOrDefault(reviewerId) : null,
+                        s.ReviewedAtUtc))).OrderBy(s => s.SubmittedAtUtc).ToList(), x.CreatedByUserId)).ToList(),
             questions.Select(x => new QuestionData(x.Id, x.AuthorUserId, x.Author.DisplayName, x.Title, x.Subject,
                 x.Body, x.CreatedAtUtc, x.AcceptedAnswerId, x.Revision,
                 x.Answers.OrderBy(a => a.CreatedAtUtc).Select(a => new AnswerData(a.Id, a.AuthorUserId, a.Author.DisplayName, a.Body, a.CreatedAtUtc)).ToList())).ToList(),

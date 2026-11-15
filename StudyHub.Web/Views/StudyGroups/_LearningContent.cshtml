@@ -62,7 +62,7 @@ else if (panel == "assignments")
     @foreach (var assignment in data.Assignments)
     {
         var mine = assignment.Submissions.Where(s => s.UserId == data.CurrentUserId).OrderByDescending(s => s.Version).FirstOrDefault();
-        var canSubmit = assignment.Status == "Open" && assignment.Assignees.Any(a => a.UserId == data.CurrentUserId) && mine?.Status != "Completed" && (assignment.AllowLateSubmission || assignment.DueAtUtc >= now);
+        var canSubmit = assignment.CreatedByUserId != data.CurrentUserId && assignment.Status == "Open" && assignment.Assignees.Any(a => a.UserId == data.CurrentUserId) && mine?.Status != "Completed" && (assignment.AllowLateSubmission || assignment.DueAtUtc >= now);
         var latestIds = assignment.Assignees.Select(a => assignment.Submissions.Where(s => s.UserId == a.UserId).OrderByDescending(s => s.Version).FirstOrDefault()?.Id).ToHashSet();
         var session = data.Sessions.FirstOrDefault(s => s.Id == assignment.SessionId);
         <article class="gl-card">
@@ -76,19 +76,66 @@ else if (panel == "assignments")
                 @if (canSubmit) { @Button("submit", mine == null ? "Nộp bài" : "Nộp phiên bản mới", assignment.Id) }
                 @if (data.CanManage && assignment.Status == "Open") { @Button("assignment-edit", "Sửa bài tập", assignment.Id) @Button("assignment-close", "Đóng nhận bài", assignment.Id) }
             </div>
-            <details class="mt-3"><summary>@(data.CanManage ? "Bài nộp và lịch sử phản hồi" : "Lịch sử bài nộp của bạn") (@assignment.Submissions.Count)</summary>
-            @foreach (var submission in assignment.Submissions)
+            <section class="gl-submission-thread" aria-label="Bài làm và nhận xét">
+            <h4>Bài làm và nhận xét (@assignment.Submissions.Count)</h4>
+            @foreach (var conversation in assignment.Submissions.GroupBy(s => s.UserId).OrderBy(g => g.Min(s => s.SubmittedAtUtc)).ThenBy(g => g.Key))
             {
-                <div class="gl-answer">
-                    <strong>@submission.Name · Lần @submission.Version</strong> <span class="gl-badge">@Status(submission.Status)</span>
-                    <div class="gl-meta">@Date(submission.SubmittedAtUtc)@(submission.IsLate ? " · Nộp muộn" : "")</div><p>@submission.Content</p>
-                    @if (WebUrl(submission.ResourceUrl)) { <a href="@submission.ResourceUrl" target="_blank" rel="noopener noreferrer">Xem bài làm ↗</a> }
-                    @if (!string.IsNullOrEmpty(submission.Feedback)) { <p><strong>Phản hồi:</strong> @submission.Feedback</p> }
-                    @if (data.CanManage && latestIds.Contains(submission.Id)) { <div class="gl-actions">@Button("review", "Nhận xét / đánh giá", assignment.Id, "data-submission", submission.Id.ToString())</div> }
-                </div>
+                var first = conversation.OrderBy(s => s.SubmittedAtUtc).ThenBy(s => s.Version).ThenBy(s => s.Id).First();
+                var latestSubmission = conversation.OrderByDescending(s => s.Version).First();
+                var timeline = conversation.SelectMany(submission => new[]
+                {
+                    new { At = submission.SubmittedAtUtc, IsReview = false, Submission = submission },
+                    new { At = submission.ReviewedAtUtc ?? submission.SubmittedAtUtc, IsReview = true, Submission = submission }
+                }).Where(entry => !entry.IsReview || entry.Submission.ReviewedAtUtc.HasValue || !string.IsNullOrWhiteSpace(entry.Submission.Feedback))
+                  .OrderBy(entry => entry.At).ThenBy(entry => entry.IsReview).ThenBy(entry => entry.Submission.Version).ThenBy(entry => entry.Submission.Id);
+                <article class="gl-submission-comment gl-submission-conversation" data-submission-author="@conversation.Key">
+                    @foreach (var entry in timeline)
+                    {
+                        var submission = entry.Submission;
+                        var root = !entry.IsReview && submission.Id == first.Id;
+                        var author = entry.IsReview ? submission.ReviewerName ?? "Người quản lý" : submission.Name;
+                        <div class="@(root ? "gl-comment-root" : "gl-comment-reply")" data-event-kind="@(entry.IsReview ? "review" : "submission")" data-event-submission="@submission.Id">
+                            <span class="gl-comment-avatar @(entry.IsReview ? "gl-review-avatar" : "")" aria-hidden="true">@(string.IsNullOrWhiteSpace(author) ? "?" : author.Trim()[..1].ToUpperInvariant())</span>
+                            <div class="gl-comment-body">
+                                <div class="gl-comment-bubble @(entry.IsReview ? "gl-review-bubble" : "")">
+                                    <strong>@author</strong>
+                                    <p>@(entry.IsReview ? submission.Feedback : submission.Content)</p>
+                                    @if (!entry.IsReview && WebUrl(submission.ResourceUrl)) { <a href="@submission.ResourceUrl" target="_blank" rel="noopener noreferrer">Xem bài làm ↗</a> }
+                                    @if (entry.IsReview) { <span class="gl-badge">@Status(submission.Status)</span> }
+                                </div>
+                                <div class="gl-comment-meta">@Date(entry.At) · @(entry.IsReview ? "Nhận xét cho lần" : root ? "Lần nộp" : "Bài giải mới · Lần") @submission.Version@(!entry.IsReview && submission.IsLate ? " · Nộp muộn" : "")</div>
+                            </div>
+                        </div>
+                    }
+                    @if (data.CanManage && latestIds.Contains(latestSubmission.Id))
+                    {
+                        var submission = latestSubmission;
+                                <div class="gl-comment-body">
+                            <details class="gl-review-editor">
+                                <summary>@(submission.ReviewedAtUtc.HasValue ? "Chỉnh sửa nhận xét" : "Nhận xét / đánh giá")</summary>
+                                <form asp-controller="GroupLearning" asp-action="Review" asp-route-groupId="@Model.Group.Id" method="post" class="gl-review-form">
+                                    <input type="hidden" name="id" value="@assignment.Id" />
+                                    <input type="hidden" name="submissionId" value="@submission.Id" />
+                                    <input type="hidden" name="panel" value="assignments" />
+                                    <input type="hidden" name="week" value="@data.Progress.WeekStart.ToString("yyyy-MM-dd")" />
+                                    <label for="review-feedback-@submission.Id">Nhận xét bài làm của @submission.Name</label>
+                                    <textarea id="review-feedback-@submission.Id" name="Feedback" class="sh-input" rows="2" maxlength="4000" placeholder="Viết nhận xét...">@submission.Feedback</textarea>
+                                    <div class="gl-review-controls">
+                                        <label for="review-status-@submission.Id">Kết quả</label>
+                                        <select id="review-status-@submission.Id" name="Status" class="sh-input">
+                                            <option value="Completed" selected="@(submission.Status != "NeedsRevision")">Hoàn thành</option>
+                                            <option value="NeedsRevision" selected="@(submission.Status == "NeedsRevision")">Yêu cầu sửa</option>
+                                        </select>
+                                        <button type="submit" class="btn-primary-sh">Gửi nhận xét</button>
+                                    </div>
+                                </form>
+                            </details>
+                                </div>
+                    }
+                </article>
             }
             @if (assignment.Submissions.Count == 0) { <p class="gl-empty">Chưa có bài nộp.</p> }
-            </details>
+            </section>
         </article>
     }
     </div>

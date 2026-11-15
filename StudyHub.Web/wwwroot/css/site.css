@@ -229,12 +229,9 @@ body {
   border-radius: 9999px;
   font-size: 10px;
   font-weight: 700;
+  background: var(--sh-indigo-50);
+  color: var(--sh-indigo-700);
 }
-.subject-toan { background: var(--sh-indigo-50); color: var(--sh-indigo-700); }
-.subject-vatly { background: var(--sh-blue-50); color: var(--sh-blue-600); }
-.subject-hoahoc { background: var(--sh-emerald-50); color: var(--sh-emerald-700); }
-.subject-nguvan { background: var(--sh-rose-50); color: var(--sh-rose-600); }
-.subject-tienganh { background: var(--sh-amber-50); color: var(--sh-amber-600); }
 
 .cat-badge {
   padding: 4px 8px;

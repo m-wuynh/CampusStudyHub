@@ -84,12 +84,14 @@
       }));
   }
   function assignmentForm(assignment) {
+    const recipients = state.members.filter(member => member.userId !== state.currentUserId);
+    if (!assignment && !recipients.length) throw new Error('Chưa có thành viên khác để giao bài tập.');
     openForm(assignment ? 'Sửa bài tập' : 'Giao bài tập',
       input('title', 'Tiêu đề *', assignment?.title, 'text', 200, true) + area('description', 'Đề bài và yêu cầu *', assignment?.description, 8000, true) +
       input('due', 'Hạn nộp (giờ Việt Nam) *', assignment ? localInput(assignment.dueAtUtc) : tomorrow(), 'datetime-local', 100, true) +
       select('session', 'Gắn với buổi học', option('', 'Không gắn buổi học') + state.sessions.filter(s => s.status !== 'Cancelled').map(s => option(s.id, s.title, s.id === assignment?.sessionId)).join('')) +
       check('late', 'Cho phép nộp muộn', assignment?.allowLateSubmission) +
-      (assignment ? '<p class="gl-meta">Danh sách người nhận được giữ nguyên từ lúc giao bài.</p>' : `<fieldset><legend>Người nhận</legend><small>Không chọn ai để giao cho tất cả thành viên hiện tại. Người vào sau không tự động nhận bài.</small>${state.members.map(m => `<label><input type="checkbox" name="assignee" value="${m.userId}">${esc(m.name)}</label>`).join('')}</fieldset>`),
+      (assignment ? '<p class="gl-meta">Danh sách người nhận được giữ nguyên từ lúc giao bài.</p>' : `<fieldset><legend>Người nhận</legend><small>Không chọn ai để giao cho tất cả thành viên khác hiện tại. Người vào sau không tự động nhận bài.</small>${recipients.map(m => `<label><input type="checkbox" name="assignee" value="${m.userId}">${esc(m.name)}</label>`).join('')}</fieldset>`),
       data => submitForm(assignment ? 'UpdateAssignment' : 'CreateAssignment', { id: assignment?.id || 0,
         title: data.get('title'), description: data.get('description'), dueAtUtc: utc(data.get('due')), sessionId: Number(data.get('session')) || null,
         allowLateSubmission: data.has('late'), assigneeIds: data.getAll('assignee').map(Number), revision: assignment?.revision || 0
@@ -170,13 +172,6 @@
         const latest = assignment.submissions.filter(x => x.userId === state.currentUserId).sort((a, b) => b.version - a.version)[0];
         return openForm('Nộp bài làm', area('content', 'Lời giải', latest?.content, 12000) + input('url', 'Hoặc liên kết bài làm', latest?.resourceUrl, 'url', 2000) + '<p class="gl-meta">Mỗi lần nộp tạo một phiên bản mới và giữ lại lịch sử cũ.</p>',
           data => submitForm('Submit', { id, content: data.get('content'), resourceUrl: data.get('url'), expectedVersion: latest?.version || 0 }), 'Nộp bài');
-      }
-      case 'review': {
-        const submission = assignment.submissions.find(s => s.id === Number(b.dataset.submission));
-        return openForm(`Phản hồi cho ${submission.name} · lần ${submission.version}`,
-          select('status', 'Kết quả', option('Completed', 'Hoàn thành', submission.status === 'Completed') + option('NeedsRevision', 'Yêu cầu sửa', submission.status === 'NeedsRevision')) +
-          area('feedback', 'Nhận xét (bắt buộc khi yêu cầu sửa)', submission.feedback),
-          data => submitForm('Review', { id, submissionId: submission.id, status: data.get('status'), feedback: data.get('feedback') }));
       }
       case 'resource-unshare':
         return openForm('Gỡ chia sẻ tài nguyên', '<p>Tài nguyên trở về riêng tư của chủ sở hữu và không còn được nhóm truy cập.</p>',
