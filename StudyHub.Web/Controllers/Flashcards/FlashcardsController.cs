@@ -26,28 +26,6 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         string? searchText,
         CancellationToken cancellationToken)
     {
-        //var decks = await flashcardDeckService.GetMyDecksAsync(
-        //    currentUser.UserId,
-        //    cancellationToken);
-
-        //if (!string.IsNullOrWhiteSpace(searchText))
-        //{
-        //    var keyword = searchText.Trim();
-
-        //    decks = decks
-        //        .Where(d => d.Title.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-        //        .ToList();
-
-        //}
-
-        //var model = new FlashcardsIndexViewModel
-        //{
-        //    Decks = decks,
-        //    SearchText = searchText
-        //};
-
-        //return View(model);
-
         var allDecks = await flashcardDeckService.GetMyDecksAsync(
             currentUser.UserId,
             cancellationToken);
@@ -359,23 +337,6 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
             return NotFound();
         }
 
-        //var sessionId = await dbLearnSessionService.StartOrResumeAsync(
-        //    deckId,
-        //    currentUser.UserId,
-        //    cancellationToken);
-
-        //if (sessionId is null)
-        //{
-        //    return View("Learn", new FlashcardLearnViewModel
-        //    {
-        //        DeckId = deck.DeckId,
-        //        DeckTitle = deck.Title
-        //    });
-        //}
-
-        //return RedirectToAction(
-        //    nameof(LearnSession),
-        //    new { deckId, sessionId = sessionId.Value });
         return View("LearnSetup", new FlashcardLearnViewModel
         {
             DeckId = deck.DeckId,

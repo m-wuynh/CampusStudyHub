@@ -122,7 +122,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
         public async Task<bool> UpdateCardAsync(
             long deckId,
             long cardId,
-            long currentuserID,
+            long currentUserId,
             UpdateFlashcardRequestDto request,
             CancellationToken cancellationToken = default)
         {
@@ -139,7 +139,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
 
             var deck = await repository.FirstOrDefaultAsync<FlashcardDeck>(
                d => d.DeckId == deckId &&
-               d.OwnerUserId == currentuserID &&
+               d.OwnerUserId == currentUserId &&
                !d.IsDeleted,
                cancellationToken);
 
@@ -178,7 +178,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
         public async Task<bool> DeleteCardAsync(
             long deckId,
             long cardId,
-            long currentUserUd,
+            long currentUserId,
             CancellationToken cancellationToken = default)
         {
             var card = await repository.FirstOrDefaultAsync<Flashcard>(
@@ -194,7 +194,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
 
             var deck = await repository.FirstOrDefaultAsync<FlashcardDeck>(
                 d => d.DeckId == deckId &&
-                d.OwnerUserId == currentUserUd &&
+                d.OwnerUserId == currentUserId &&
                 !d.IsDeleted,
                 cancellationToken);
 
@@ -212,36 +212,13 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             return true;
         }
 
-        public async Task<IReadOnlyList<FlashcardDto>> GetStudyCardsAsync(
+        public Task<IReadOnlyList<FlashcardDto>> GetStudyCardsAsync(
             long deckId,
             long currentUserId,
             CancellationToken cancellationToken = default)
         {
-            var deck = await repository.FirstOrDefaultAsync<FlashcardDeck>(
-                d => d.DeckId == deckId &&
-                d.OwnerUserId == currentUserId &&
-                !d.IsDeleted,
-                cancellationToken);
-
-            if(deck is null)
-            {
-                return [];
-            }
-
-            var cards = await repository.ListAsync<Flashcard>(
-                c => c.DeckId == deckId &&
-                !c.IsDeleted,
-                cancellationToken);
-
-            return cards
-                .OrderBy(c => c.SortOrder)
-                .ThenBy(c => c.FlashcardId)
-                .Select(c => new FlashcardDto(
-                    c.FlashcardId,
-                    c.FrontText,
-                    c.BackText,
-                    c.SortOrder))
-                .ToList();
+            return GetCardsByDeckAsync(
+                deckId, currentUserId, cancellationToken);
         }
 
         public async Task<FlashcardLearnQuestionDto?> GetLearnQuestionAsync(
@@ -352,7 +329,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             
         }
 
-        public async Task<FlashcardLearnAnswerResultDto?> SubmitLearnAnswerAsync(
+        public async Task<FlashcardLearnAnswerResultDto?> GradeLearnAnswerAsync(
             long deckId,
             long currentUserId,
             SubmitFlashcardLearnAnswerRequestDto request,
