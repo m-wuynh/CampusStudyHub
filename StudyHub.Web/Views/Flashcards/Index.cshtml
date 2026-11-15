@@ -263,8 +263,7 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                                                 data-bs-target="#editSetModal"
                                                 data-deck-id="@deck.DeckId"
                                                 data-title="@deck.Title"
-                                                data-description="@deck.Description"
-                                                data-subject-id="@deck.UserSubjectId">
+                                                data-description="@deck.Description">
                                             <i class="bi bi-pencil text-indigo"></i>
                                             Chỉnh sửa
                                         </button>
@@ -440,8 +439,6 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
 
                 @Html.AntiForgeryToken()
                 
-
-                <input type="hidden" id="editDeckSubjectId" name="UserSubjectId"/>
 
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold"

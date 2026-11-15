@@ -28,7 +28,6 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
                     deck.Title,
                     deck.Description,
                     deck.Visibility,
-                    deck.UserSubjectId,
                     deck.CreatedAtUtc,
                     deck.UpdatedAtUtc))
                 .ToList();
@@ -54,7 +53,6 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             return new FlashcardDeckDetailDto(
                 deck.DeckId,
                 deck.OwnerUserId,
-                deck.UserSubjectId,
                 deck.StudyGroupId,
                 deck.Title,
                 deck.Description,
@@ -90,17 +88,11 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
                     "Mô tả deck không được vượt quá 2000 ký tự.", nameof(request.Description));
             }
 
-            await ValidateUserSubjectAsync(
-                currentUserId,
-                request.UserSubjectId,
-                cancellationToken);
-
             var now = DateTime.UtcNow;
 
             var deck = new FlashcardDeck
             {
                 OwnerUserId = currentUserId,
-                UserSubjectId = request.UserSubjectId,
 
                 //chưa làm study group
                 StudyGroupId = null,
@@ -163,15 +155,10 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
                     "Mô tả không được vượt quá 2000 ký tự", nameof(request.Description));
             }
 
-            await ValidateUserSubjectAsync(
-                currentUserId,
-                request.UserSubjectId,
-                cancellationToken);
+
 
             deck.Title = title;
             deck.Description = string.IsNullOrWhiteSpace(desciption) ? null : desciption;
-
-            deck.UserSubjectId = request.UserSubjectId;
             deck.UpdatedAtUtc = DateTime.UtcNow;
 
             repository.Update(deck);
@@ -204,32 +191,6 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             await repository.SaveChangesAsync(cancellationToken);
 
             return true;
-        }
-
-        private async Task ValidateUserSubjectAsync(
-            long currentUserId,
-            long? userSubjectId,
-            CancellationToken cancellationToken)
-        {
-            if (userSubjectId == null)
-            {
-                return;
-            }
-
-            var belongsToCurrentuser =
-                            await repository.AnyAsync<UserSubject>(
-                userSubject =>
-                    userSubject.UserSubjectId == userSubjectId.Value &&
-                    userSubject.UserId == currentUserId &&
-                    !userSubject.IsArchived,
-                cancellationToken);
-
-            if (!belongsToCurrentuser)
-            {
-                throw new ArgumentException(
-                    "Môn học được chọn không thuộc người dùng hiện tại",
-                    nameof(userSubjectId));
-            }
         }
     }
 }

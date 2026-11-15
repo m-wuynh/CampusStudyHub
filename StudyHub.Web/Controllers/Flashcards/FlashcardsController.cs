@@ -75,8 +75,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
                 currentUser.UserId,
                 new CreateFlashcardDeckRequestDto(
                     model.Title,
-                    model.Description,
-                    model.UserSubjectId),
+                    model.Description),
                 cancellationToken
                 );
 
@@ -112,8 +111,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
                 currentUser.UserId,
                 new UpdateFlashcardDeckRequestDto(
                     model.Title,
-                    model.Description,
-                    model.UserSubjectId),
+                    model.Description),
                 cancellationToken);
 
             if (!updated)
