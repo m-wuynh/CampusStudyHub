@@ -28,9 +28,27 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         string? searchText,
         CancellationToken cancellationToken)
     {
-        if (User.Identity?.IsAuthenticated != true)
-            return View(new FlashcardsIndexViewModel { SearchText = searchText });
+        //var decks = await flashcardDeckService.GetMyDecksAsync(
+        //    currentUser.UserId,
+        //    cancellationToken);
 
+        //if (!string.IsNullOrWhiteSpace(searchText))
+        //{
+        //    var keyword = searchText.Trim();
+
+        //    decks = decks
+        //        .Where(d => d.Title.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+        //        .ToList();
+
+        //}
+
+        //var model = new FlashcardsIndexViewModel
+        //{
+        //    Decks = decks,
+        //    SearchText = searchText
+        //};
+
+        //return View(model);
         var allDecks = await flashcardDeckService.GetMyDecksAsync(
             currentUser.UserId,
             cancellationToken);
