@@ -311,6 +311,9 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
                     StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("Deck đã thay đổi. Hãy bắt đầu phiên mới");
 
+            if (await HasCardsChangedAsync(session, cancellationToken))
+                throw new InvalidOperationException("Deck đã thay đổi. Hãy bắt đầu phiên mới");
+
             var now = DateTime.UtcNow;
 
             var rating = answer.IsCorrect
@@ -393,19 +396,23 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
                 throw new InvalidOperationException(
                     "Phiên học đã bị hủy do Deck thay đổi. Hãy bắt đầu lại.");
 
-            if (session.CompletedAtUtc.HasValue &&
-                session.CompletedTotalCards.HasValue)
+            if (session.CompletedAtUtc.HasValue)
             {
-                int totalCards = session.CompletedTotalCards.Value;
+                int totalCards = session.CompletedTotalCards ??
+                    (await repository.ListAsync<FlashcardReview>(
+                        r => r.SessionId == sessionId && r.UserId == userId,
+                        cancellationtoken))
+                    .Select(r => r.FlashcardId)
+                    .Distinct()
+                    .Count();
+
+                if (totalCards == 0)
+                    throw new InvalidOperationException(
+                        "Không đủ dữ liệu để khôi phục kết quả phiên học cũ.");
 
                 var info1 = new LearnSessionInfoDto(
-                    sessionId,
-                    deckId,
-                    totalCards,
-                    0,
-                    0,
-                    totalCards,
-                    true,
+                    sessionId, deckId, totalCards,
+                    0, 0, totalCards, true,
                     session.ShuffleEnabled);
 
                 return new DbLearnStateDto(info1, null);
