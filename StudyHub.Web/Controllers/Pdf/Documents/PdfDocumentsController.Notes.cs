@@ -4,7 +4,6 @@ using StudyHub.BLL.Services.Pdf;
 using StudyHub.Web.Configuration;
 
 namespace StudyHub.Web.Controllers.Pdf.Documents;
-
 public sealed partial class PdfDocumentsController
 {
     [HttpGet("{documentId:long}/PageState")]
@@ -65,5 +64,4 @@ public sealed partial class PdfDocumentsController
 
         return Json(new { versionToken = nextVersion });
     }
-
 }
