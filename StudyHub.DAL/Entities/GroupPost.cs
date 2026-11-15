@@ -23,7 +23,5 @@ public partial class GroupPost
 
     public DateTime UpdatedAtUtc { get; set; }
 
-    public virtual ICollection<ContentReport> ContentReports { get; set; } = new List<ContentReport>();
-
     public virtual GroupMember GroupMember { get; set; } = null!;
 }

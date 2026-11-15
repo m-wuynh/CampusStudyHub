@@ -1,0 +1,214 @@
+@model StudyHub.BLL.DTOs.GoalLadderDto
+@using StudyHub.BLL.DTOs
+@{
+    var ladder = Model;
+    var currentAvg = ladder.CurrentAverage10;
+    var hasBaseGoal = ladder.HasBaseGoal && ladder.BaseGoal != null;
+    var baseGoal = ladder.BaseGoal;
+    var additionalGoals = ladder.AdditionalGoals ?? new List<GoalDto>();
+
+    var allSubjectGoals = new List<GoalDto>();
+    if (hasBaseGoal && baseGoal != null)
+    {
+        allSubjectGoals.Add(baseGoal);
+    }
+    if (additionalGoals.Any())
+    {
+        // Bậc bổ sung luôn xếp theo điểm mục tiêu tăng dần (đã bỏ chức năng sắp xếp thủ công).
+        allSubjectGoals.AddRange(additionalGoals.OrderBy(g => g.TargetValue));
+    }
+
+    string GetSubjectIcon(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "bi-calculator";
+        var lower = name.ToLower();
+        if (lower.Contains("toán") || lower.Contains("math")) return "bi-calculator";
+        if (lower.Contains("văn") || lower.Contains("ngữ văn") || lower.Contains("literature")) return "bi-journal-text";
+        if (lower.Contains("anh") || lower.Contains("tiếng anh") || lower.Contains("english")) return "bi-translate";
+        if (lower.Contains("lý") || lower.Contains("vật lý") || lower.Contains("physics")) return "bi-lightning-charge";
+        if (lower.Contains("hóa") || lower.Contains("chemistry")) return "bi-eyedropper";
+        if (lower.Contains("sinh") || lower.Contains("biology")) return "bi-tree";
+        if (lower.Contains("sử") || lower.Contains("lịch sử") || lower.Contains("history")) return "bi-hourglass-split";
+        if (lower.Contains("địa") || lower.Contains("địa lý") || lower.Contains("geo")) return "bi-globe";
+        if (lower.Contains("tin") || lower.Contains("tin học") || lower.Contains("cs") || lower.Contains("it")) return "bi-laptop";
+        return "bi-book";
+    }
+}
+
+<div class="subject-goal-section mb-4">
+  <!-- Subject Header Card -->
+  <div class="subject-header-card">
+    <div class="d-flex align-items-center gap-3">
+      <div class="subject-icon-box">
+        <i class="bi @GetSubjectIcon(ladder.SubjectName)"></i>
+      </div>
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <h4 class="fw-bold mb-0" style="font-size: 16px; color: var(--sh-slate-900);">@ladder.SubjectName</h4>
+          @if (!string.IsNullOrWhiteSpace(ladder.AcademicYearName)) {
+            <span class="badge-academic-year">
+              <i class="bi bi-calendar3 me-1 text-primary"></i>@ladder.AcademicYearName
+            </span>
+          }
+        </div>
+        <div style="font-size: 12px; color: var(--sh-slate-500); margin-top: 2px;">
+          Điểm TB hiện tại:
+          <span class="subject-score-pill @(!currentAvg.HasValue ? "no-score" : "")">
+            @(currentAvg?.ToString("0.0") ?? "Chưa có điểm")
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <span style="font-size: 13px; color: var(--sh-slate-500); font-weight: 500;">
+        @allSubjectGoals.Count mục tiêu
+      </span>
+      <button class="btn btn-sm btn-outline-primary py-1 px-3 d-flex align-items-center gap-1" style="font-size: 12px;"
+              type="button"
+              data-bs-toggle="offcanvas" data-bs-target="#journey-@ladder.UserSubjectId" aria-controls="journey-@ladder.UserSubjectId"
+              title="Xem hành trình mục tiêu môn @ladder.SubjectName">
+        <i class="bi bi-graph-up"></i> Xem hành trình
+      </button>
+      @if (ladder.IsDetached) {
+        <form asp-controller="Grades" asp-action="DeleteUserSubject" method="post" class="d-inline"
+              data-confirm="Xóa vĩnh viễn môn &quot;@ladder.SubjectName&quot;? Mục tiêu, hoạt động, deadline và phiên học của môn sẽ bị xóa; ghi chú, tài liệu, flashcard được giữ nhưng không còn gắn môn. Thao tác không thể hoàn tác."
+              onsubmit="return confirm(this.dataset.confirm)">
+          <input type="hidden" name="id" value="@ladder.UserSubjectId" />
+          <input type="hidden" name="currentGradeBookId" value="@ViewData["CurrentGradeBookId"]" />
+          <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 d-flex align-items-center gap-1" style="font-size: 12px; border-radius: 6px;" title="Xóa vĩnh viễn môn @ladder.SubjectName">
+            <i class="bi bi-trash3"></i> Xóa vĩnh viễn môn
+          </button>
+        </form>
+      }
+      <button class="btn-icon-subtle collapse-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#subject-goals-@ladder.UserSubjectId" aria-expanded="true" aria-controls="subject-goals-@ladder.UserSubjectId" title="Thu gọn / Mở rộng môn học">
+        <i class="bi bi-chevron-up"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Subject Goals List (Collapsible) -->
+  <div class="collapse show" id="subject-goals-@ladder.UserSubjectId">
+    @if (!allSubjectGoals.Any()) {
+      <div class="p-4 text-center rounded-3 bg-white border mb-3" style="font-size:13px; color:var(--sh-slate-500);">
+        <p class="mb-2">Môn học này chưa có mục tiêu nào.</p>
+        @if (!ladder.IsDetached) {
+          <button class="btn-primary-sh" style="font-size:12px; padding:6px 14px;"
+                  type="button"
+                  onclick="openAddGoalForSubject(@ladder.UserSubjectId)">
+            <i class="bi bi-trophy me-1"></i>Đặt mục tiêu
+          </button>
+        }
+      </div>
+    } else {
+      <div class="d-flex flex-column gap-2 mb-3" id="goal-list-@ladder.UserSubjectId">
+        @for (int gIdx = 0; gIdx < allSubjectGoals.Count; gIdx++)
+        {
+          var goal = allSubjectGoals[gIdx];
+          var isBase = goal.IsBaseGoal || (hasBaseGoal && baseGoal != null && goal.Id == baseGoal.Id);
+          var isDone = goal.GoalLifecycleStatus == StudyHub.BLL.Constants.GradeConstants.GoalLifecycle.Done;
+          var isInProgress = goal.GoalLifecycleStatus == StudyHub.BLL.Constants.GradeConstants.GoalLifecycle.InProgress;
+          var isExpanded = (gIdx == 0);
+
+          int progressPct = goal.ProgressPercent ?? 0;
+          string progressText = goal.ProgressPercent.HasValue ? $"{progressPct}%" : "Chưa có điểm";
+          // Màu theo % so với mục tiêu (giống bảng điểm): đã đạt / sắp đạt (≥ 80%) / còn xa.
+          string progressTone = "tone-" + StudyHub.BLL.Services.Grades.GoalStatusEvaluator.ProgressTone(goal.GoalLifecycleStatus, goal.ProgressPercent);
+
+          <div class="goal-card-full">
+            <!-- Main Goal Header Row -->
+            <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+              <!-- 1. Left: Bullseye Icon + Title + Current Score -->
+              <div class="d-flex align-items-center gap-3" style="flex: 1 1 30%; min-width: 240px;">
+                <div class="goal-icon-bullseye flex-shrink-0">
+                  <i class="bi bi-bullseye"></i>
+                </div>
+                <div class="d-flex flex-column overflow-hidden text-truncate">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="fw-bold text-truncate" style="font-size: 15px; color: var(--sh-slate-900);" title="@goal.Title">
+                      @goal.Title
+                    </span>
+                    @if (isBase) {
+                      <span class="badge-base-goal">Mục tiêu gốc</span>
+                    }
+                    @if (goal.IsOverdue) {
+                      <span class="badge bg-danger-subtle text-danger" style="font-size:10px;">Quá hạn</span>
+                    }
+                  </div>
+                  <div style="font-size: 12px; color: var(--sh-slate-500); margin-top: 2px;">
+                    Điểm hiện tại:
+                    <span class="goal-current-score-pill @(!currentAvg.HasValue ? "no-score" : "")">
+                      @(currentAvg?.ToString("0.0") ?? "Chưa có điểm")
+                    </span>
+                    / 10
+                    @if (goal.EndDate.HasValue) {
+                      <span class="ms-2">· Hạn: @goal.EndDate.Value.ToString("dd/MM/yyyy")</span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Middle: Progress Track & Percent -->
+              <div class="goal-progress-section">
+                <div class="goal-progress-label">Tiến độ thực hiện</div>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="goal-progress-track">
+                    <div class="goal-progress-fill @progressTone" style="width: @progressPct%;"></div>
+                  </div>
+                  <span class="goal-progress-text @progressTone">@progressText</span>
+                </div>
+              </div>
+
+              <!-- 3. Right: Status Badge & Actions -->
+              <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                <!-- Automated Status Pill with Dot -->
+                @if (isDone) {
+                  <span class="goal-status-pill status-pill-done">
+                    <span class="status-dot dot-done"></span>Đã xong
+                  </span>
+                } else if (isInProgress) {
+                  <span class="goal-status-pill status-pill-inprogress">
+                    <span class="status-dot dot-inprogress"></span>Đang thực hiện
+                  </span>
+                } else {
+                  <span class="goal-status-pill status-pill-todo">
+                    <span class="status-dot dot-todo"></span>To do
+                  </span>
+                }
+
+                <!-- Edit Button -->
+                <button type="button" class="btn-icon-subtle" title="Sửa mục tiêu"
+                        data-title="@goal.Title"
+                        data-deadline="@(goal.EndDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                        onclick="editGoal(@goal.Id, this.dataset.title, @goal.TargetValue.ToString(System.Globalization.CultureInfo.InvariantCulture), @isBase.ToString().ToLower(), @isDone.ToString().ToLower(), this.dataset.deadline)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+
+                <!-- Delete Button (Only for additional rungs, never for base goal) -->
+                @if (!isBase) {
+                  <button type="button" class="btn-icon-subtle danger" title="Xóa nấc bổ sung"
+                          onclick="confirmDeleteAdditionalGoal(@goal.Id, '@goal.TargetValue.ToString("0.0")')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                }
+
+                <!-- Collapse Toggle Button -->
+                <button class="btn-icon-subtle collapse-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#activities-collapse-@goal.Id" aria-expanded="@(isExpanded ? "true" : "false")" aria-controls="activities-collapse-@goal.Id" title="Thu gọn / Mở rộng hoạt động">
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Activities Collapsible Section -->
+            <div class="collapse @(isExpanded ? "show" : "")" id="activities-collapse-@goal.Id">
+              <partial name="Goals/_GoalActivitiesPartial" model="goal" />
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Hành trình mục tiêu của môn (offcanvas) -->
+  <partial name="Goals/_GoalJourneyPartial" model="ladder" />
+</div>

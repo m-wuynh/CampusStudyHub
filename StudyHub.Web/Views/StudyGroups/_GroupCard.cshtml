@@ -1,0 +1,25 @@
+@model StudyHub.BLL.DTOs.GroupSummaryResponse
+<div class="col-12 col-md-6 col-xl-4">
+  <article class="sh-card group-discord-card p-4 h-100 d-flex flex-column">
+    <div class="d-flex flex-wrap gap-1 mb-3">@foreach (var subject in Model.Subjects) { <span class="subject-badge @subject.CssClass">@subject.Name</span> }</div>
+    <span class="group-access-badge mb-2">@(Model.JoinMode == "InviteOnly" ? "Chỉ qua lời mời" : Model.JoinMode == "Open" ? "Tham gia ngay" : "Cần trưởng nhóm duyệt")</span>
+    <h3 class="h6">@Model.Name</h3><p class="line-clamp-2">@Model.Description</p>
+    @if (!string.IsNullOrWhiteSpace(Model.Goal)) { <p><i class="bi bi-bullseye"></i> @Model.Goal</p> }
+    <p>@Model.MeetingFormat · @Model.MeetingSchedule</p>
+    <p>@Model.MemberCount / @(Model.MaxMembers?.ToString() ?? "Không giới hạn") thành viên</p>
+    @if (Model.MembershipStatus == "Pending") { <p class="text-warning">Đang chờ duyệt</p> }
+    @if (Model.PendingMemberCount > 0) { <p>@Model.PendingMemberCount yêu cầu mới</p> }
+    <div class="d-flex gap-2 mt-auto">
+      <a asp-controller="StudyGroups" asp-action="Details" asp-route-groupId="@Model.Id" class="btn-primary-sh">@(Model.IsMember ? "Vào nhóm" : "Xem nhóm")</a>
+      @if (Model.IsOwner) { <span class="btn-secondary-sh">Trưởng nhóm</span> }
+      else if (Model.IsMember || Model.MembershipStatus == "Pending")
+      {
+        <form asp-controller="StudyGroups" asp-action="Leave" asp-route-groupId="@Model.Id" method="post"><button class="btn-secondary-sh" type="submit">@(Model.IsMember ? "Rời nhóm" : "Rút yêu cầu")</button></form>
+      }
+      else if (Model.JoinMode != "InviteOnly" && Model.MembershipStatus != "Banned")
+      {
+        <form asp-controller="StudyGroups" asp-action="Join" asp-route-groupId="@Model.Id" method="post"><button class="btn-secondary-sh" type="submit">@(Model.JoinMode == "Open" ? "Tham gia ngay" : "Gửi yêu cầu")</button></form>
+      }
+    </div>
+  </article>
+</div>

@@ -172,34 +172,38 @@
     const container = document.getElementById('gl-resources');
     if (!container) return;
 
-    const flashcards = (state.resources || [])
-      .filter(resource => resource.kind === 'Flashcard');
-    const available = (state.availableResources || [])
-      .filter(resource => resource.kind === 'Flashcard');
+    const resources = (state.resources || [])
+      .filter(resource => resource.kind === 'Flashcard' || resource.kind === 'Pdf');
     const counter = document.getElementById('gl-resource-count');
-    if (counter) counter.textContent = String(flashcards.length);
+    if (counter) counter.textContent = String(resources.length);
 
-    const toolbar = available.length
-      ? button('flashcard-share', '+ Chia sẻ flashcard', '', '', true)
-      : '';
-    const cards = flashcards.map(resource => `
+    const toolbar = `<div class="gl-actions mb-3">
+      ${button('flashcard-share', '+ Chia sẻ flashcard', '', '', true)}
+      ${button('pdf-share', '+ Chia sẻ tài liệu')}
+    </div>`;
+    const cards = resources.map(resource => {
+      const isPdf = resource.kind === 'Pdf';
+      const openUrl = isPdf
+        ? `/Pdf/Documents/${encodeURIComponent(resource.id)}?shareId=${encodeURIComponent(resource.shareId)}`
+        : `/Groups/${encodeURIComponent(page.dataset.groupId)}/Resources/Flashcard/${encodeURIComponent(resource.id)}`;
+      return `
       <article class="gl-card">
         <h3>${esc(resource.title)}</h3>
-        <div class="gl-meta">Flashcard · ${esc(resource.ownerName)}</div>
+        <div class="gl-meta">${isPdf ? 'PDF' : 'Flashcard'} · ${esc(resource.ownerName)}</div>
         <div class="gl-actions">
-          <a class="btn-primary-sh"
-             href="/Groups/${encodeURIComponent(page.dataset.groupId)}/Resources/Flashcard/${encodeURIComponent(resource.id)}">
-            Mở flashcard
+          <a class="btn-primary-sh" href="${openUrl}">
+            ${isPdf ? 'Xem tài liệu' : 'Mở flashcard'}
           </a>
           ${state.canManage || resource.ownerUserId === state.currentUserId
-            ? button('resource-unshare', 'Gỡ chia sẻ', resource.id, 'data-kind="Flashcard"')
+            ? button('resource-unshare', 'Gỡ chia sẻ', resource.id, `data-kind="${resource.kind}"`)
             : ''}
         </div>
-      </article>`).join('');
+      </article>`;
+    }).join('');
 
     container.innerHTML = toolbar +
       (cards ? `<div class="gl-list">${cards}</div>`
-        : empty('Nhóm chưa có flashcard được chia sẻ.'));
+        : empty('Nhóm chưa có tài liệu hoặc flashcard được chia sẻ.'));
   }
 
   function renderQuestions() {
@@ -269,10 +273,24 @@
       'Chia sẻ');
   }
 
+  function sharePdfResource() {
+    const pdfs = (state.availableResources || [])
+      .filter(resource => resource.kind === 'Pdf');
+    if (!pdfs.length) throw new Error('Bạn chưa có PDF phù hợp để chia sẻ vào nhóm này.');
+
+    return openForm('Chia sẻ tài liệu',
+      select('resource', 'Tài liệu PDF', pdfs.map(resource =>
+        option(resource.id, resource.title)).join('')) +
+      '<p class="gl-meta">Nhóm chỉ nhận file PDF gốc. Ghi chú, tô sáng, nét vẽ và annotation cá nhân không được chia sẻ.</p>',
+      data => api(`/resources/Pdf/${data.get('resource')}`, 'PUT'),
+      'Chia sẻ');
+  }
+
   async function dispatch(b) {
     const action = b.dataset.glAction;
     const id = Number(b.dataset.id);
     if (action === 'flashcard-share') return shareFlashcardResource();
+    if (action === 'pdf-share') return sharePdfResource();
     if (action === 'refresh') {
   return load();
 }
@@ -316,11 +334,6 @@ if (!state) {
           area('feedback', 'Nhận xét (bắt buộc khi yêu cầu sửa)', submission.feedback),
           data => api(`/assignments/${id}/submissions/${submission.id}/review`, 'PUT', { status: data.get('status'), feedback: data.get('feedback') }));
       }
-      // case 'resource-share':
-      //   if (!state.availableResources.length) throw new Error('Bạn chưa có tài nguyên chưa chia sẻ. Hãy tạo ghi chú, tải PDF hoặc tạo bộ flashcard trước.');
-      //   return openForm('Chia sẻ tài nguyên của bạn', select('resource', 'Chọn tài nguyên', state.availableResources.map(r => option(`${r.kind}/${r.id}`, `${r.title} (${r.kind})`)).join('')) +
-      //     '<p class="gl-meta">Thành viên nhóm được đọc tài nguyên. Bạn vẫn giữ quyền chỉnh sửa; gỡ chia sẻ hoặc rời nhóm sẽ đưa tài nguyên về riêng tư.</p>',
-      //     data => api(`/resources/${data.get('resource')}`, 'PUT'), 'Chia sẻ');
       case 'resource-unshare':
         return openForm('Gỡ chia sẻ tài nguyên', '<p>Tài nguyên trở về riêng tư của chủ sở hữu và không còn được nhóm truy cập.</p>',
           () => api(`/resources/${b.dataset.kind}/${id}`, 'DELETE'), 'Gỡ chia sẻ');
