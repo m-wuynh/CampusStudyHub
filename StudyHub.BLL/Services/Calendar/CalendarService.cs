@@ -37,16 +37,20 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
     {
         var utcNow = DateTime.UtcNow;
         // Chỉ lấy nhắc nhở dạng thông báo thường trên web (InApp), loại trừ thông báo Gmail/Email
+        // Giới hạn trong vòng 24 giờ qua để loại bỏ các nhắc nhở cũ/tồn đọng từ các ngày trước
+        var minRemindAtUtc = utcNow.AddHours(-24);
         var reminders = await repository.ListAsync<Reminder>(r => 
             r.UserId == userId && 
             r.Status == "Pending" && 
             r.RemindAtUtc <= utcNow && 
+            r.RemindAtUtc >= minRemindAtUtc &&
             r.Channel != "Email" && 
             r.Channel != "gmail");
         
         var eventIds = reminders.Select(r => r.ScheduleEventId).Distinct().Where(id => id.HasValue).Select(id => id!.Value).ToList();
         
-        var events = await repository.ListAsync<ScheduleEvent>(e => eventIds.Contains(e.ScheduleEventId) && !e.IsDeleted);
+        var now = DateTime.Now;
+        var events = await repository.ListAsync<ScheduleEvent>(e => eventIds.Contains(e.ScheduleEventId) && !e.IsDeleted && e.EndAtLocal >= now);
 
         return events.Select(e => new ScheduleEventDto(
             e.ScheduleEventId,
@@ -251,6 +255,15 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         entity.IsDeleted = true;
         entity.UpdatedAtUtc = DateTime.UtcNow;
         repository.Update(entity);
+
+        // Hủy toàn bộ nhắc nhở đang chờ (Pending) của sự kiện vừa bị xóa
+        var pendingReminders = await repository.ListAsync<Reminder>(r => r.ScheduleEventId == id && r.Status == "Pending");
+        foreach (var rem in pendingReminders)
+        {
+            rem.Status = "Cancelled";
+            repository.Update(rem);
+        }
+
         await repository.SaveChangesAsync();
     }
 

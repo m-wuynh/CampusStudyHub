@@ -12,7 +12,7 @@ namespace StudyHub.Web.Controllers.Calendar;
 [Route("Calendar")]
 public sealed class CalendarController(ICalendarService calendarService) : Controller
 {
-    private long CurrentUserId => long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "1");
+    private long CurrentUserId => long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 
     [AllowAnonymous]
     [HttpGet("")]
@@ -214,16 +214,27 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
         var now = DateTime.Now;
         var events = await calendarService.GetActiveRemindersAsync(CurrentUserId);
 
-        // Sort by start time
+        // Chỉ lấy các sự kiện chưa kết thúc và không bắt đầu quá 24h trước
         var upcoming = events
+            .Where(e => e.EndAtLocal >= now && (now - e.StartAtLocal).TotalHours <= 24)
             .OrderBy(e => e.StartAtLocal)
             .Take(10)
             .Select(e =>
             {
                 var diff = e.StartAtLocal - now;
                 string timeLabel;
-                if (diff.TotalMinutes < 60)
-                    timeLabel = $"Còn {(int)diff.TotalMinutes} phút nữa";
+                if (diff.TotalMinutes <= 0)
+                {
+                    if (now <= e.EndAtLocal)
+                        timeLabel = $"Đang diễn ra (từ {e.StartAtLocal:HH:mm})";
+                    else
+                        timeLabel = $"Đã diễn ra ({e.StartAtLocal:dd/MM HH:mm})";
+                }
+                else if (diff.TotalMinutes < 60)
+                {
+                    int mins = (int)Math.Ceiling(diff.TotalMinutes);
+                    timeLabel = $"Còn {Math.Max(1, mins)} phút nữa";
+                }
                 else if (diff.TotalHours < 24)
                     timeLabel = $"Hôm nay lúc {e.StartAtLocal:HH:mm}";
                 else if (diff.TotalDays < 2)
@@ -252,11 +263,13 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
                     "Other" => "var(--sh-amber-600)",
                     _       => "var(--sh-emerald-600)"
                 };
-                bool isUrgent = diff.TotalHours < 24;
+                bool isUrgent = diff.TotalHours < 24 && diff.TotalMinutes > 0;
 
                 return new
                 {
                     id = e.Id,
+                    startAt = e.StartAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    endAt = e.EndAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
                     title = e.Title,
                     timeLabel,
                     icon,

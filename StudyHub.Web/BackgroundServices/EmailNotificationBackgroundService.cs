@@ -67,9 +67,9 @@ public class EmailNotificationBackgroundService : BackgroundService
             }
 
             var ev = reminder.ScheduleEvent;
-            if (ev == null)
+            if (ev == null || ev.IsDeleted)
             {
-                reminder.Status = "Failed";
+                reminder.Status = "Cancelled";
                 continue;
             }
 
