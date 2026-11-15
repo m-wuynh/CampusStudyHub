@@ -77,6 +77,24 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubCo
         return View("Form", model);
     }
 
+    [HttpPost("{groupId:long}/Delete")]
+    public async Task<IActionResult> Delete(string groupId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await studyGroups.DeleteGroupAsync(groupId, cancellationToken);
+            TempData["GroupSuccess"] = "Đã xóa nhóm học tập.";
+            return RedirectToAction(nameof(Index));
+        }
+        catch (StudyGroupException exception)
+        {
+            if (exception.StatusCode == 403) return Forbid();
+            if (exception.StatusCode == 404) return NotFound();
+            TempData["GroupError"] = exception.Message;
+            return RedirectToAction(nameof(Details), new { groupId });
+        }
+    }
+
     [HttpPost("{groupId:long}/Join")]
     public Task<IActionResult> Join(string groupId, CancellationToken cancellationToken) =>
         Perform(groupId, async () => (await studyGroups.JoinAsync(groupId, cancellationToken)).Message);

@@ -25,6 +25,10 @@
       @if (Model.Group.IsOwner)
       {
         <a asp-action="Edit" asp-route-groupId="@Model.Group.Id" class="btn-primary-sh"><i class="bi bi-pencil-square"></i>Chỉnh sửa nhóm</a>
+        <form asp-action="Delete" asp-route-groupId="@Model.Group.Id" method="post"
+              onsubmit="return confirm('Bạn có chắc muốn xóa nhóm? Nhóm sẽ biến mất khỏi danh sách và tất cả thành viên sẽ không thể truy cập nhóm nữa.');">
+          <button id="delete-group-btn" type="submit" class="btn-secondary-sh" style="color:var(--sh-rose-600);"><i class="bi bi-trash3"></i>Xóa nhóm</button>
+        </form>
       }
       else if (Model.Group.IsMember)
       {
