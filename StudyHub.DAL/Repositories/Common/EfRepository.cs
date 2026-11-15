@@ -13,7 +13,6 @@ public sealed class EfRepository(
 {
     public IGoogleAuthRepository GoogleAuth { get; } = googleAuth;
     public IStudyGroupRepository StudyGroups { get; } = studyGroups;
-
     public IQueryable<TEntity> Query<TEntity>(bool asNoTracking = true) where TEntity : class
     {
         var query = context.Set<TEntity>().AsQueryable();

@@ -59,76 +59,134 @@ public sealed partial class SqlGroupLearningRepository
             resources, available, progress);
     }
 
-    private async Task<List<SharedResourceData>> ResourcesAsync(long groupId, long userId, bool available, CancellationToken ct)
-    {
-        var notes = db.Notes.AsNoTracking().Where(x => !x.IsDeleted);
-        var docs = db.Documents.AsNoTracking().Where(x => !x.IsDeleted &&
-            (x.ExternalUrl != null || (x.MimeType == "application/pdf" && x.StorageKey != null && x.StorageKey.StartsWith("notes-pdf/"))));
-        var decks = db.FlashcardDecks.AsNoTracking().Where(x => !x.IsDeleted);
-        notes = available ? notes.Where(x => x.OwnerUserId == userId && x.StudyGroupId == null) : notes.Where(x => x.StudyGroupId == groupId && x.Visibility == "Group");
-        docs = available ? docs.Where(x => x.OwnerUserId == userId && x.StudyGroupId == null) : docs.Where(x => x.StudyGroupId == groupId && x.Visibility == "Group");
-        decks = available ? decks.Where(x => x.OwnerUserId == userId && x.StudyGroupId == null) : decks.Where(x => x.StudyGroupId == groupId && x.Visibility == "Group");
-        var result = await notes.Select(x => new SharedResourceData(x.NoteId, "Note", x.Title, x.OwnerUserId, x.OwnerUser.DisplayName)).ToListAsync(ct);
-        result.AddRange(await docs.Select(x => new SharedResourceData(x.DocumentId, "Document", x.Title, x.OwnerUserId, x.OwnerUser.DisplayName)).ToListAsync(ct));
-        result.AddRange(await decks.Select(x => new SharedResourceData(x.DeckId, "Flashcard", x.Title, x.OwnerUserId, x.OwnerUser.DisplayName)).ToListAsync(ct));
-        return result.OrderBy(x => x.Title).ToList();
-    }
+    private async Task<List<SharedResourceData>> ResourcesAsync(
+    long groupId,
+    long userId,
+    bool available,
+    CancellationToken ct)
+{
+    var decks = db.FlashcardDecks
+        .AsNoTracking()
+        .Where(x => !x.IsDeleted);
 
-    public Task ShareAsync(long groupId, long userId, string kind, long resourceId, bool shared, CancellationToken ct) =>
-        WriteAsync(groupId, userId, false, async manage =>
+    decks = available
+        ? decks.Where(x =>
+            x.OwnerUserId == userId &&
+            x.StudyGroupId == null)
+        : decks.Where(x =>
+            x.StudyGroupId == groupId &&
+            x.Visibility == "Group");
+
+    var result = await decks
+        .Select(x => new SharedResourceData(
+            x.DeckId,
+            "Flashcard",
+            x.Title,
+            x.OwnerUserId,
+            x.OwnerUser.DisplayName))
+        .ToListAsync(ct);
+
+    return result
+        .OrderBy(x => x.Title)
+        .ToList();
+}
+
+    public Task ShareAsync(
+    long groupId,
+    long userId,
+    string kind,
+    long resourceId,
+    bool shared,
+    CancellationToken ct) =>
+    WriteAsync(
+        groupId,
+        userId,
+        false,
+        async manage =>
         {
-            void Check(long owner, long? currentGroup)
+            // Notes/PDF dùng API NotesV3.
+            if (kind != "Flashcard")
             {
-                if (shared && owner != userId || !shared && owner != userId && !manage)
-                    throw new StudyGroupRepositoryException("forbidden", "Bạn không có quyền thay đổi chia sẻ tài nguyên này.");
-                Require(shared ? currentGroup == null || currentGroup == groupId : currentGroup == groupId,
-                    "Tài nguyên đã được chia sẻ ở nhóm khác hoặc không thuộc nhóm này.");
+                throw Missing();
             }
-            var visibility = shared ? "Group" : "Private";
-            long? targetGroup = shared ? groupId : null;
-            switch (kind)
-            {
-                case "Note":
-                    var note = await db.Notes.SingleOrDefaultAsync(x => x.NoteId == resourceId && !x.IsDeleted, ct) ?? throw Missing();
-                    Check(note.OwnerUserId, note.StudyGroupId);
-                    note.Visibility = visibility; note.StudyGroupId = targetGroup; note.UpdatedAtUtc = DateTime.UtcNow;
-                    break;
-                case "Document":
-                    var doc = await db.Documents.SingleOrDefaultAsync(x => x.DocumentId == resourceId && !x.IsDeleted, ct) ?? throw Missing();
-                    Check(doc.OwnerUserId, doc.StudyGroupId);
-                    Require(doc.ExternalUrl != null || (doc.MimeType == "application/pdf" && doc.StorageKey?.StartsWith("notes-pdf/") == true), "Chỉ hỗ trợ PDF của Notes hoặc liên kết tài liệu.");
-                    if (doc.ExternalUrl != null) Require(IsWebUrl(doc.ExternalUrl), "Liên kết tài liệu phải dùng HTTP hoặc HTTPS.");
-                    doc.Visibility = visibility; doc.StudyGroupId = targetGroup; doc.UpdatedAtUtc = DateTime.UtcNow;
-                    break;
-                case "Flashcard":
-                    var deck = await db.FlashcardDecks.SingleOrDefaultAsync(x => x.DeckId == resourceId && !x.IsDeleted, ct) ?? throw Missing();
-                    Check(deck.OwnerUserId, deck.StudyGroupId);
-                    deck.Visibility = visibility; deck.StudyGroupId = targetGroup; deck.UpdatedAtUtc = DateTime.UtcNow;
-                    break;
-                default: throw Missing();
-            }
-        }, ct);
 
+            var deck = await db.FlashcardDecks
+                .SingleOrDefaultAsync(
+                    x => x.DeckId == resourceId &&
+                         !x.IsDeleted,
+                    ct)
+                ?? throw Missing();
+
+            // Giữ nguyên điều kiện quyền của flashcard.
+            if ((shared && deck.OwnerUserId != userId) ||
+                (!shared &&
+                 deck.OwnerUserId != userId &&
+                 !manage))
+            {
+                throw new StudyGroupRepositoryException(
+                    "forbidden",
+                    "Bạn không có quyền thay đổi chia sẻ tài nguyên này.");
+            }
+
+            Require(
+                shared
+                    ? deck.StudyGroupId == null ||
+                      deck.StudyGroupId == groupId
+                    : deck.StudyGroupId == groupId,
+                "Tài nguyên đã được chia sẻ ở nhóm khác hoặc không thuộc nhóm này.");
+
+            deck.Visibility = shared ? "Group" : "Private";
+            deck.StudyGroupId = shared ? groupId : null;
+            deck.UpdatedAtUtc = DateTime.UtcNow;
+        },
+        ct);
     private static bool IsWebUrl(string url) => Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http";
 
-    public async Task<SharedContentData> ReadResourceAsync(long groupId, long userId, string kind, long resourceId, CancellationToken ct)
+    public async Task<SharedContentData> ReadResourceAsync(
+    long groupId,
+    long userId,
+    string kind,
+    long resourceId,
+    CancellationToken ct)
+{
+    await AccessAsync(
+        groupId,
+        userId,
+        false,
+        ct);
+
+    if (kind != "Flashcard")
     {
-        await AccessAsync(groupId, userId, false, ct);
-        switch (kind)
-        {
-            case "Note":
-                var note = await db.Notes.AsNoTracking().SingleOrDefaultAsync(x => x.NoteId == resourceId && x.StudyGroupId == groupId && x.Visibility == "Group" && !x.IsDeleted, ct) ?? throw Missing();
-                return new(kind, note.Title, note.Body, null, null, []);
-            case "Document":
-                var doc = await db.Documents.AsNoTracking().SingleOrDefaultAsync(x => x.DocumentId == resourceId && x.StudyGroupId == groupId && x.Visibility == "Group" && !x.IsDeleted, ct) ?? throw Missing();
-                return new(kind, doc.Title, doc.Description, doc.ExternalUrl != null && IsWebUrl(doc.ExternalUrl) ? doc.ExternalUrl : null,
-                    doc.MimeType == "application/pdf" && doc.StorageKey?.StartsWith("notes-pdf/") == true ? doc.StorageKey : null, []);
-            case "Flashcard":
-                var deck = await db.FlashcardDecks.AsNoTracking().SingleOrDefaultAsync(x => x.DeckId == resourceId && x.StudyGroupId == groupId && x.Visibility == "Group" && !x.IsDeleted, ct) ?? throw Missing();
-                var cards = await db.Flashcards.AsNoTracking().Where(x => x.DeckId == resourceId && !x.IsDeleted).OrderBy(x => x.SortOrder)
-                    .Select(x => new ResourceCardData(x.FrontText, x.BackText)).ToListAsync(ct);
-                return new(kind, deck.Title, deck.Description, null, null, cards);
-            default: throw Missing();
-        }
+        throw Missing();
     }
+
+    var deck = await db.FlashcardDecks
+        .AsNoTracking()
+        .SingleOrDefaultAsync(
+            x => x.DeckId == resourceId &&
+                 x.StudyGroupId == groupId &&
+                 x.Visibility == "Group" &&
+                 !x.IsDeleted,
+            ct)
+        ?? throw Missing();
+
+    var cards = await db.Flashcards
+        .AsNoTracking()
+        .Where(x =>
+            x.DeckId == resourceId &&
+            !x.IsDeleted)
+        .OrderBy(x => x.SortOrder)
+        .Select(x => new ResourceCardData(
+            x.FrontText,
+            x.BackText))
+        .ToListAsync(ct);
+
+    return new SharedContentData(
+        kind,
+        deck.Title,
+        deck.Description,
+        null,
+        null,
+        cards);
+}
 }

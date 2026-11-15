@@ -1,4 +1,4 @@
-using StudyHub.BLL.DTOs;
+using StudyHub.BLL.DTOs.Flashcards;
 using StudyHub.DAL.Enums.Flashcards;
 
 namespace StudyHub.BLL.Services.Flashcards;

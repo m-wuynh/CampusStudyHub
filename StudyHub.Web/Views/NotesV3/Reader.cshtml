@@ -1,0 +1,93 @@
+@model StudyHub.Web.ViewModels.NotesV3.NotesReaderViewModel
+@{
+    ViewData["Title"] = Model.Title;
+    ViewData["PageTitle"] = "Đọc PDF";
+    ViewData["PageSubtitle"] = Model.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var viewerUrl = Url.Action("Viewer", "Pdfs",
+        new { id = Model.DocumentId, page = Model.CurrentPage, shareId = Model.ShareId });
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/notesv3/notes.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notesv3/pdf-reader.css" asp-append-version="true" />
+}
+
+<div class="notesv3 notesv3-reader container-fluid py-4">
+    <header class="notesv3-page-header mb-3">
+        <a class="btn-secondary-sh notesv3-back-button"
+           asp-controller="NotesV3" asp-action="Index">
+            <i class="bi bi-arrow-left"></i> Quay lại Thư viện
+        </a>
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-2">
+            <div>
+                <h1 class="h4 mb-1">@Model.Title</h1>
+                <p class="text-muted small mb-0">@Model.FileName · @Model.PageCount trang</p>
+            </div>
+            <a class="btn btn-outline-primary btn-sm" data-reader-book-link
+               asp-controller="Pdfs" asp-action="Book"
+               asp-route-id="@Model.DocumentId" asp-route-shareId="@Model.ShareId"
+               asp-route-page="@Model.CurrentPage">
+                <i class="bi bi-journal-text"></i> Sổ ghi chú PDF
+            </a>
+        </div>
+    </header>
+
+    @if (TempData["Success"] is string success)
+    {
+        <div class="alert alert-success" role="status">@success</div>
+    }
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
+
+    <input type="checkbox" id="notesv3-note-toggle" class="visually-hidden" checked />
+    <div class="notesv3-reader-studybar">
+        <span><i class="bi bi-shield-check"></i> PDF gốc luôn được giữ nguyên</span>
+        <label for="notesv3-note-toggle" class="btn btn-outline-primary btn-sm notesv3-toggle-button">
+            <i class="bi bi-layout-sidebar-inset-reverse"></i>
+            <span class="notesv3-hide-label">Ẩn ghi chú</span>
+            <span class="notesv3-show-label">Mở ghi chú</span>
+        </label>
+    </div>
+
+    <div class="notesv3-reader-grid mt-3">
+        <main class="notesv3-reader-frame">
+            <iframe title="Trình xem PDF: @Model.Title" src="@viewerUrl"></iframe>
+        </main>
+        <aside class="notesv3-reader-note">
+            <div class="notesv3-note-heading">
+                <div>
+                    <h2 class="h6 mb-1">Ghi chú trang @Model.CurrentPage</h2>
+                    <p class="text-muted small mb-0">Ghi chú chữ ở đây lưu riêng với dấu trên PDF.</p>
+                </div>
+                <i class="bi bi-pencil-square"></i>
+            </div>
+            @if (Model.IsArchived)
+            {
+                <p class="text-muted small mt-3">PDF đã lưu trữ. Ghi chú chỉ có thể xem.</p>
+            }
+            <form asp-controller="Pdfs" asp-action="SavePdfPageNote" method="post"
+                  class="notesv3-note-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="documentId" value="@Model.DocumentId" />
+                <input type="hidden" name="versionId" value="@Model.VersionId" />
+                <input type="hidden" name="pageNumber" value="@Model.CurrentPage" />
+                <input type="hidden" name="versionToken" value="@Model.NoteVersionToken" />
+                <input type="hidden" name="shareId" value="@Model.ShareId" />
+                <label class="visually-hidden" for="pdf-page-note">Nội dung ghi chú</label>
+                <textarea class="form-control" id="pdf-page-note" name="text"
+                          placeholder="Viết ý chính của trang này…" readonly="@Model.IsArchived">@Model.NoteText</textarea>
+                @if (!Model.IsArchived)
+                {
+                    <button class="btn btn-primary" type="submit">Lưu ghi chú trang</button>
+                }
+            </form>
+        </aside>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/notesv3/reader-position.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,65 @@
+@model StudyHub.BLL.DTOs.YearGradeSummaryDto
+@{
+    var hasActiveGoals = ViewData["HasActiveGoals"] as bool? ?? false;
+    var belowTarget = Model.SubjectsBelowTarget;
+}
+
+<!-- ── Stats Row ── -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="sv-stat">
+      <span class="sv-stat-icon"><i class="bi bi-graph-up-arrow"></i></span>
+      <div class="sv-stat-body">
+        <p class="sv-stat-label">ĐTB chung</p>
+        <p class="sv-stat-value is-big" id="stat-avg">@(Model.CurrentAverage10?.ToString("0.0") ?? "-")</p>
+        <p class="sv-stat-sub">Theo hệ số môn</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="sv-stat">
+      <span class="sv-stat-icon is-emerald"><i class="bi bi-trophy"></i></span>
+      <div class="sv-stat-body">
+        <p class="sv-stat-label">Điểm cao nhất</p>
+        <p class="sv-stat-value is-big">@(Model.HighestScore?.ToString("0.0") ?? "-")</p>
+        <p class="sv-stat-sub truncate" title="@Model.HighestSubjectName">@(Model.HighestSubjectName)</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="sv-stat">
+      <span class="sv-stat-icon is-amber"><i class="bi bi-arrow-down-circle"></i></span>
+      <div class="sv-stat-body">
+        <p class="sv-stat-label">Điểm thấp nhất</p>
+        <p class="sv-stat-value is-big">@(Model.LowestScore?.ToString("0.0") ?? "-")</p>
+        <p class="sv-stat-sub truncate" title="@Model.LowestSubjectName">@(Model.LowestSubjectName)</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="sv-stat">
+      @if (belowTarget > 0) {
+        <span class="sv-stat-icon is-rose"><i class="bi bi-flag"></i></span>
+        <div class="sv-stat-body">
+          <p class="sv-stat-label">Môn dưới mục tiêu</p>
+          <p class="sv-stat-value is-big" style="color:var(--sh-rose-600);">@belowTarget</p>
+          <p class="sv-stat-sub">Cần cải thiện</p>
+        </div>
+      } else if (hasActiveGoals) {
+        <span class="sv-stat-icon is-emerald"><i class="bi bi-check2-circle"></i></span>
+        <div class="sv-stat-body">
+          <p class="sv-stat-label">Môn dưới mục tiêu</p>
+          <p class="sv-stat-value is-big" style="color:var(--sh-emerald-600);">0</p>
+          <p class="sv-stat-sub">Không có môn nào dưới mục tiêu</p>
+        </div>
+      } else {
+        <span class="sv-stat-icon is-neutral"><i class="bi bi-flag"></i></span>
+        <div class="sv-stat-body">
+          <p class="sv-stat-label">Môn dưới mục tiêu</p>
+          <p class="sv-stat-value is-big" style="color:var(--sh-slate-400);">—</p>
+          <p class="sv-stat-sub">Chưa đặt mục tiêu</p>
+        </div>
+      }
+    </div>
+  </div>
+</div>

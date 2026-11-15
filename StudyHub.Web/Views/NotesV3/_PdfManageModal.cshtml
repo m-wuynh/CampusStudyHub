@@ -1,0 +1,79 @@
+@model StudyHub.Web.ViewModels.NotesV3.PdfCardViewModel
+@using StudyHub.Web.ViewModels.NotesV3
+
+@{
+    var groups = (IReadOnlyList<GroupOptionViewModel>)ViewData["Groups"]!;
+}
+
+<div class="modal fade notesv3-library-modal" id="managePdf-@Model.Id" tabindex="-1" aria-labelledby="managePdfTitle-@Model.Id" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="managePdfTitle-@Model.Id">Quản lý PDF</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn muốn làm gì với <strong>@Model.Title</strong>?</p>
+
+                @if (!Model.IsArchived)
+                {
+                    <details class="notesv3-library-option">
+                        <summary><i class="bi bi-pencil-square"></i> Đổi tên PDF</summary>
+                        <form asp-controller="Pdfs" asp-action="RenamePdf" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="versionToken" value="@Model.VersionToken" />
+                            <label class="form-label" for="pdf-title-@Model.Id">Tên mới</label>
+                            <input class="form-control" id="pdf-title-@Model.Id" name="title" value="@Model.Title" maxlength="200" required />
+                            <button class="btn btn-primary btn-sm" type="submit">Lưu tên</button>
+                        </form>
+                    </details>
+                }
+
+                <details class="notesv3-library-option">
+                    <summary><i class="bi bi-archive"></i> @(Model.IsArchived ? "Bỏ lưu trữ" : "Lưu trữ PDF")</summary>
+                    <form asp-controller="Pdfs" asp-action="SetPdfArchived" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <input type="hidden" name="versionToken" value="@Model.VersionToken" />
+                        <input type="hidden" name="archived" value="@(Model.IsArchived ? "false" : "true")" />
+                        <p>@(Model.IsArchived ? "Đưa PDF trở lại thư viện đang dùng." : "Cất PDF khỏi danh sách đang dùng.")</p>
+                        <button class="btn btn-outline-primary btn-sm" type="submit">@(Model.IsArchived ? "Bỏ lưu trữ" : "Lưu trữ")</button>
+                    </form>
+                </details>
+
+                @if (!Model.IsArchived && groups.Count > 0)
+                {
+                    <details class="notesv3-library-option">
+                        <summary><i class="bi bi-people"></i> Chia sẻ vào nhóm</summary>
+                        <form asp-controller="Pdfs" asp-action="SharePdf" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="documentId" value="@Model.Id" />
+                            <p>Nhóm sẽ nhận bản PDF gốc, không có đánh dấu cá nhân.</p>
+                            <label class="form-label" for="group-@Model.Id">Chọn nhóm</label>
+                            <select class="form-select" id="group-@Model.Id" name="groupId" required>
+                                <option value="">Chọn nhóm</option>
+                                @foreach (var group in groups)
+                                {
+                                    <option value="@group.Id">@group.Name</option>
+                                }
+                            </select>
+                            <button class="btn btn-primary btn-sm" type="submit">Chia sẻ</button>
+                        </form>
+                    </details>
+                }
+
+                <details class="notesv3-library-option is-danger">
+                    <summary><i class="bi bi-trash"></i> Xóa PDF</summary>
+                    <form asp-controller="Pdfs" asp-action="DeletePdf" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <input type="hidden" name="versionToken" value="@Model.VersionToken" />
+                        <p>PDF sẽ bị ẩn khỏi thư viện, kể cả tài liệu đã chia sẻ vào nhóm.</p>
+                        <button class="btn btn-outline-danger btn-sm" type="submit">Xác nhận xóa PDF</button>
+                    </form>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>

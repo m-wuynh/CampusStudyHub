@@ -71,7 +71,7 @@
         </div>
       </a>
 
-      <a asp-controller="Notes" asp-action="Index" class="sidebar-nav-item" id="sidebar-nav-notes">
+      <a asp-controller="NotesV3" asp-action="Index" class="sidebar-nav-item" id="sidebar-nav-notes">
         <div class="d-flex align-items-center gap-3">
           <i class="bi bi-file-earmark-text nav-icon"></i>
           <span>Ghi chú &amp; Tài liệu</span>
@@ -219,7 +219,7 @@
                   class="btn-icon-sh position-relative"
                   title="Thông báo">
             <i class="bi bi-bell fs-6"></i>
-            <span class="notif-dot" id="notif-indicator"></span>
+            <span class="notif-dot" id="notif-indicator" style="display:none;"></span>
           </button>
 
           <div id="notifications-menu"
@@ -373,6 +373,72 @@
         localStorage.setItem('sh_notif_toasted', JSON.stringify(toastedIds));
       }
 
+      function getNotifKey(item) {
+        if (!item) return '';
+        return item.startAt ? `${item.id}_${item.startAt}` : `${item.id}_${item.timeLabel || ''}`;
+      }
+
+      function formatTimeLabel(item) {
+        if (!item) return '';
+        let label = item.timeLabel || '';
+        if (label.includes('Còn -') || (item.startAt && new Date(item.startAt) < new Date())) {
+          if (item.startAt) {
+            const start = new Date(item.startAt);
+            const now = new Date();
+            const diffMs = start - now;
+            if (diffMs < -60 * 60 * 1000) {
+              const dStr = start.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+              const tStr = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              return `Đã qua (${dStr} lúc ${tStr})`;
+            } else if (diffMs <= 0) {
+              return `Đang diễn ra (từ ${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
+            }
+          }
+          return label.replace(/Còn -\d+ phút nữa/, 'Đã qua');
+        }
+        return label;
+      }
+
+      // Dọn dẹp nhãn thời gian âm nếu từng lưu trong lịch sử trước đây
+      try {
+        let oldHistory = JSON.parse(localStorage.getItem('sh_calendar_notif_history') || '[]');
+        let modified = false;
+        oldHistory.forEach(item => {
+          if (item.timeLabel && item.timeLabel.includes('Còn -')) {
+            item.timeLabel = formatTimeLabel(item);
+            modified = true;
+          }
+        });
+        if (modified) localStorage.setItem('sh_calendar_notif_history', JSON.stringify(oldHistory));
+      } catch (e) {}
+
+      function saveCalendarNotificationHistory(item, notifKey) {
+        try {
+          let deletedKeys = JSON.parse(localStorage.getItem('sh_notif_deleted') || '[]');
+          if (deletedKeys.includes(notifKey)) return;
+
+          let history = JSON.parse(localStorage.getItem('sh_calendar_notif_history') || '[]');
+          const idx = history.findIndex(h => h.key === notifKey);
+          if (idx === -1) {
+            history.unshift({
+              id: item.id,
+              key: notifKey,
+              title: item.title,
+              timeLabel: formatTimeLabel(item),
+              eventType: item.eventType,
+              icon: item.icon || 'bi-book',
+              iconBg: item.iconBg || 'rgba(79,70,229,0.08)',
+              iconColor: item.iconColor || 'var(--sh-indigo-600)',
+              timeStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              read: false
+            });
+            if (history.length > 30) history = history.slice(0, 30);
+            localStorage.setItem('sh_calendar_notif_history', JSON.stringify(history));
+            window.dispatchEvent(new CustomEvent('calendar-notif-updated'));
+          }
+        } catch (e) {}
+      }
+
       function typeLabel(type) {
         switch (type) {
           case 'Exam': return 'Kiểm tra / Thi';
@@ -382,69 +448,142 @@
         }
       }
 
+      function deleteNotification(key) {
+        let history = JSON.parse(localStorage.getItem('sh_calendar_notif_history') || '[]');
+        history = history.filter(h => h.key !== key);
+        localStorage.setItem('sh_calendar_notif_history', JSON.stringify(history));
+
+        let deletedKeys = JSON.parse(localStorage.getItem('sh_notif_deleted') || '[]');
+        if (!deletedKeys.includes(key)) {
+          deletedKeys.push(key);
+          localStorage.setItem('sh_notif_deleted', JSON.stringify(deletedKeys));
+        }
+
+        if (!readIds.includes(key)) {
+          readIds.push(key);
+          saveRead();
+        }
+
+        loadNotifications();
+      }
+
       async function loadNotifications() {
         try {
-          const res = await fetch('/Calendar/GetUpcomingNotifications');
-          if (!res.ok) throw new Error('Lỗi tải thông báo');
-          const data = await res.json();
+          let serverItems = [];
+          try {
+            const res = await fetch('/Calendar/GetUpcomingNotifications');
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.items) serverItems = data.items;
+            }
+          } catch(e) {}
 
-          if (data.items.length === 0) {
-            list.innerHTML = `
-              <div class="text-center py-4 text-muted" style="font-size:12px;">
-                <i class="bi bi-bell-slash me-1"></i>Không có sự kiện sắp tới
-              </div>`;
-            badge.style.display = 'none';
-            indicator.style.display = 'none';
-            return;
-          }
+          let history = JSON.parse(localStorage.getItem('sh_calendar_notif_history') || '[]');
+          let deletedKeys = JSON.parse(localStorage.getItem('sh_notif_deleted') || '[]');
 
-          const unreadItems = data.items.filter(i => !readIds.includes(i.id));
-          const unreadCount = unreadItems.length;
+          // Thêm các item từ server vào history nếu chưa có và chưa bị xóa
+          serverItems.forEach(item => {
+            const key = getNotifKey(item);
+            if (deletedKeys.includes(key)) return;
+
+            const idx = history.findIndex(h => h.key === key);
+            if (idx === -1) {
+              history.unshift({
+                id: item.id,
+                key: key,
+                title: item.title,
+                timeLabel: formatTimeLabel(item),
+                eventType: item.eventType,
+                icon: item.icon || 'bi-book',
+                iconBg: item.iconBg || 'rgba(79,70,229,0.08)',
+                iconColor: item.iconColor || 'var(--sh-indigo-600)',
+                isUrgent: item.isUrgent,
+                read: readIds.includes(key)
+              });
+            } else {
+              history[idx].timeLabel = formatTimeLabel(item);
+              history[idx].isUrgent = item.isUrgent;
+            }
+          });
+
+          // Lọc bỏ những item đã bị xóa
+          history = history.filter(h => !deletedKeys.includes(h.key));
+          if (history.length > 30) history = history.slice(0, 30);
+          localStorage.setItem('sh_calendar_notif_history', JSON.stringify(history));
+
+          const unreadCount = history.filter(h => !readIds.includes(h.key)).length;
 
           // Update badge
           if (unreadCount > 0) {
             badge.textContent = unreadCount + ' mới';
             badge.style.display = '';
-            indicator.style.display = '';
+            indicator.style.display = 'block';
           } else {
             badge.style.display = 'none';
             indicator.style.display = 'none';
           }
 
-          // Render items
-          list.innerHTML = data.items.map((item, idx) => {
-            const isUnread = !readIds.includes(item.id);
-            const urgentBg = item.isUrgent && isUnread ? 'background:rgba(79,70,229,0.04);' : '';
+          if (history.length === 0) {
+            list.innerHTML = `
+              <div class="text-center py-4 text-muted" style="font-size:12px;">
+                <i class="bi bi-bell-slash me-1"></i>Không có thông báo nào
+              </div>`;
+            return;
+          }
+
+          // Render items (Chỉ xem và có nút x để xóa)
+          list.innerHTML = history.map((item, idx) => {
+            const itemKey = item.key;
+            const isUnread = !readIds.includes(itemKey);
+            const urgentBg = isUnread ? 'background:rgba(79,70,229,0.04);' : '';
             const border = idx > 0 ? 'border-top:1px solid var(--sh-slate-100);' : '';
             const dot = isUnread
-              ? `<span style="width:8px;height:8px;background:var(--sh-indigo-600);border-radius:50%;display:block;flex-shrink:0;margin-top:6px;"></span>`
+              ? `<span style="width:7px;height:7px;background:var(--sh-indigo-600);border-radius:50%;display:inline-block;flex-shrink:0;"></span>`
               : '';
             return `
-              <div class="p-3 d-flex gap-3 align-items-start notif-item"
-                   data-id="${item.id}"
-                   style="font-size:12px;cursor:pointer;${urgentBg}${border}">
+              <div class="p-3 d-flex gap-2 align-items-start notif-item"
+                   data-key="${itemKey}"
+                   style="font-size:12px;${urgentBg}${border}">
                 <div class="p-2 rounded-3 flex-shrink-0"
                      style="background:${item.iconBg};color:${item.iconColor};height:fit-content;">
                   <i class="bi ${item.icon}"></i>
                 </div>
-                <div class="flex-grow-1 overflow-hidden">
-                  <p class="mb-0 fw-semibold text-truncate" style="color:var(--sh-slate-900);">${item.title}</p>
-                  <p class="mb-0" style="color:var(--sh-slate-500);">${item.timeLabel}</p>
+                <div class="flex-grow-1 overflow-hidden notif-content" data-key="${itemKey}" style="cursor:default;" title="Bấm để đánh dấu đã xem">
+                  <div class="d-flex align-items-center gap-1.5 mb-1">
+                    <p class="mb-0 fw-semibold text-truncate" style="color:var(--sh-slate-900);font-size:13px;">${item.title}</p>
+                    ${dot}
+                  </div>
+                  <p class="mb-0 text-muted" style="font-size:12px;">${formatTimeLabel(item)}</p>
                   <p class="mb-0 mt-1" style="font-size:10px;color:var(--sh-slate-400);">${typeLabel(item.eventType)}</p>
                 </div>
-                ${dot}
+                <button type="button" class="btn-delete-notif btn btn-sm p-0 border-0 text-muted flex-shrink-0 ms-1"
+                        data-key="${itemKey}"
+                        style="font-size:13px; cursor:pointer; background:transparent; line-height:1; padding:3px 6px !important;"
+                        title="Xóa thông báo này"
+                        aria-label="Xóa">
+                  <i class="bi bi-x-lg"></i>
+                </button>
               </div>`;
           }).join('');
 
-          // Click to navigate to update page
-          list.querySelectorAll('.notif-item').forEach(el => {
-            el.addEventListener('click', () => {
-              const id = el.dataset.id;
-              if (!readIds.includes(Number(id))) {
-                readIds.push(Number(id));
+          // Click vào nội dung: chỉ đánh dấu đã xem, KHÔNG chuyển trang (tránh lỗi đỏ)
+          list.querySelectorAll('.notif-content').forEach(el => {
+            el.addEventListener('click', (e) => {
+              const key = el.dataset.key;
+              if (!readIds.includes(key)) {
+                readIds.push(key);
                 saveRead();
+                loadNotifications();
               }
-              window.location.href = '/Calendar/Update/' + id;
+            });
+          });
+
+          // Click vào nút X: xóa thông báo khỏi danh sách
+          list.querySelectorAll('.btn-delete-notif').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const key = btn.dataset.key;
+              deleteNotification(key);
             });
           });
 
@@ -453,14 +592,24 @@
         }
       }
 
+      // Stop click inside menu from closing the menu
+      menu.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+
       // Toggle menu
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
+        
+        // Close other dropdowns
+        document.querySelectorAll('.sh-dropdown').forEach(d => {
+          if (d.id !== 'notifications-menu') d.style.display = 'none';
+        });
+
         const isVisible = menu.style.display === 'block';
         menu.style.display = isVisible ? 'none' : 'block';
-        if (!isVisible && !loaded) {
+        if (!isVisible) {
           loadNotifications();
-          loaded = true;
         }
       });
 
@@ -472,17 +621,14 @@
       });
 
       // Mark all read
-      markAllBtn.addEventListener('click', function () {
-        fetch('/Calendar/GetUpcomingNotifications')
-          .then(r => r.json())
-          .then(data => {
-            readIds = data.items.map(i => i.id);
-            saveRead();
-            badge.style.display = 'none';
-            indicator.style.display = 'none';
-            // Re-render without dots
-            loadNotifications();
-          });
+      markAllBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        let history = JSON.parse(localStorage.getItem('sh_calendar_notif_history') || '[]');
+        readIds = history.map(h => h.key);
+        saveRead();
+        badge.style.display = 'none';
+        indicator.style.display = 'none';
+        loadNotifications();
       });
 
       // Load badge count on page load (background)
@@ -490,16 +636,44 @@
         fetch('/Calendar/GetUpcomingNotifications')
           .then(r => r.json())
           .then(data => {
-            const unreadItems = data.items.filter(i => !readIds.includes(i.id));
+            const deletedKeys = JSON.parse(localStorage.getItem('sh_notif_deleted') || '[]');
+            const unreadItems = data.items.filter(i => {
+              const k = getNotifKey(i);
+              return !readIds.includes(k) && !deletedKeys.includes(k);
+            });
             if (unreadItems.length > 0) {
               badge.textContent = unreadItems.length + ' mới';
               badge.style.display = '';
-              indicator.style.display = '';
+              indicator.style.display = 'block';
               
               // Pop toast for new notifications
               unreadItems.forEach(item => {
-                  if (!toastedIds.includes(item.id)) {
+                  const notifKey = getNotifKey(item);
+                  
+                  // Chuẩn hóa nhãn thời gian
+                  item.timeLabel = formatTimeLabel(item);
+
+                  // Luôn lưu vào lịch sử thông báo trong icon quả chuông để người dùng xem lại
+                  saveCalendarNotificationHistory(item, notifKey);
+
+                  // Kiểm tra sự kiện đã qua trong quá khứ hoặc có nhãn thời gian âm/đã qua
+                  const eventStart = item.startAt ? new Date(item.startAt) : null;
+                  const isPastEvent = (eventStart && (eventStart < new Date(Date.now() - 15 * 60 * 1000))) || 
+                                      (item.timeLabel && item.timeLabel.includes('Đã qua'));
+
+                  // Nếu sự kiện đã qua trong quá khứ, không bật popup làm phiền người dùng
+                  if (isPastEvent) {
+                      if (!toastedIds.includes(notifKey)) {
+                          toastedIds.push(notifKey);
+                          saveToasted();
+                      }
+                      return;
+                  }
+
+                  if (!toastedIds.includes(notifKey)) {
                       // Custom on-screen notification that cannot be blocked by browser!
+                      const NOTIF_DISPLAY_DURATION = 6000; // Thời gian hiển thị (6000ms = 6 giây, có thể đổi tùy ý)
+
                       const pop = document.createElement('div');
                       pop.style.position = 'fixed';
                       pop.style.top = '20px';
@@ -507,32 +681,38 @@
                       pop.style.backgroundColor = '#fff';
                       pop.style.borderLeft = '5px solid var(--sh-indigo-600)';
                       pop.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
-                      pop.style.padding = '20px';
-                      pop.style.borderRadius = '8px';
+                      pop.style.padding = '16px 20px';
+                      pop.style.borderRadius = '10px';
                       pop.style.zIndex = '999999';
                       pop.style.width = '320px';
                       pop.style.transition = 'all 0.4s ease';
                       pop.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h5 class="mb-0 fw-bold" style="color: var(--sh-slate-900); font-size: 16px;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0 fw-bold d-flex align-items-center" style="color: var(--sh-slate-900); font-size: 15px;">
                                 <i class="bi bi-bell-fill text-warning me-2"></i>Nhắc nhở sự kiện
                             </h5>
-                            <button class="btn-close" style="font-size: 12px;"></button>
+                            <button type="button" class="btn-close-pop btn btn-sm p-0 border-0 text-muted" 
+                                    style="line-height: 1; font-size: 16px; cursor: pointer; background: transparent;" 
+                                    title="Đóng thông báo" aria-label="Close">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
                         </div>
                         <p class="mb-1 fw-bold" style="color: var(--sh-indigo-700);">${item.title}</p>
-                        <p class="mb-0 text-muted" style="font-size: 13px;">${item.timeLabel}</p>
+                        <p class="mb-0 text-muted" style="font-size: 13px;">${formatTimeLabel(item)}</p>
                       `;
                       
                       document.body.appendChild(pop);
                       
-                      // Auto remove after 10 seconds or on click
+                      // Auto remove after NOTIF_DISPLAY_DURATION ms or on click
                       const removePop = () => {
                           pop.style.opacity = '0';
                           pop.style.transform = 'translateX(100%)';
                           setTimeout(() => pop.remove(), 400);
                       };
-                      pop.querySelector('.btn-close').onclick = removePop;
-                      setTimeout(removePop, 10000);
+                      
+                      const closeBtn = pop.querySelector('.btn-close-pop');
+                      if (closeBtn) closeBtn.onclick = removePop;
+                      setTimeout(removePop, NOTIF_DISPLAY_DURATION);
                       
                       // Play sound if possible
                       try {
@@ -540,13 +720,18 @@
                           audio.play().catch(e => console.log('Autoplay blocked'));
                       } catch(e) {}
                       
-                      toastedIds.push(item.id);
+                      toastedIds.push(notifKey);
                   }
               });
               saveToasted();
             } else {
               badge.style.display = 'none';
               indicator.style.display = 'none';
+            }
+
+            // Nếu người dùng đang mở menu quả chuông thì tự động cập nhật danh sách
+            if (menu.style.display === 'block') {
+              loadNotifications();
             }
           })
           .catch(() => {});

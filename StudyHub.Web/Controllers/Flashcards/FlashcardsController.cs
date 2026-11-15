@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using StudyHub.BLL.Services.Flashcards.Interfaces;
 using StudyHub.Web.ViewModels.Flashcards;
-using StudyHub.BLL.DTOs;
+using StudyHub.BLL.DTOs.Flashcards;
 using StudyHub.BLL.Services.Flashcards;
 using Microsoft.AspNetCore.DataProtection.KeyManagement.Internal;
 using StudyHub.BLL.Services.Auth;
@@ -12,7 +12,10 @@ namespace StudyHub.Web.Controllers.Flashcards;
 
 [Authorize]
 [Route("Flashcards")]
-public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckService, IFlashcardService flashcardService, ICurrentUser currentUser) : Controller
+public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckService,
+    IFlashcardService flashcardService,
+    ILearnSessionService learnSessionService,
+    ICurrentUser currentUser) : Controller
 {
 
     //deck management
@@ -272,8 +275,8 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         return RedirectToAction(nameof(Details), new { deckId });
     }
 
-    [HttpGet("{deckId:long}/Study")]
-    public async Task<IActionResult> Study(
+    [HttpGet("{deckId:long}/Browse")]
+    public async Task<IActionResult> Browse(
         long deckId,
         CancellationToken cancellationToken)
     {
@@ -292,14 +295,21 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
             currentUser.UserId,
             cancellationToken);
 
-        var model = new FlashcardStudyViewModel
+        var model = new FlashcardBrowseViewModel
         {
             DeckId = deck.DeckId,
             DeckTitle = deck.Title,
             Cards = cards
         };
 
-        return View("Study", model);
+        return View("Browse", model);
+
+    }
+
+    [HttpGet("{deckId:long}/Study")]
+    public IActionResult Study(long deckId)
+    {
+        return RedirectToAction(nameof(Browse), new { deckId });
 
     }
 
@@ -319,30 +329,117 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
             return NotFound();
         }
 
-        var question = await flashcardService.GetLearnQuestionAsync(
+        var session = await learnSessionService.StartAsync(
             deckId,
             currentUser.UserId,
-            cancellationToken: cancellationToken);
+            cancellationToken);
 
-        var model = new FlashcardLearnViewModel
+        if (session is null)
         {
-            DeckId = deck.DeckId,
-            DeckTitle = deck.Title,
-            Question = question
-        };
+            return View("Learn", new FlashcardLearnViewModel
+            {
+                DeckId = deck.DeckId,
+                DeckTitle = deck.Title
+            });
+        }
 
-        return View("Learn", model);
+        return RedirectToAction(
+            nameof(LearnSession),
+            new
+            {
+                deckId,
+                sessionId = session.SessionId
+            });
 
     }
 
-    [HttpPost("{deckId:long}/Learn/Answer")]
+    [HttpGet("{deckId:long}/Learn/{sessionId:guid}")]
+    public async Task<IActionResult> LearnSession(
+        long deckId,
+        Guid sessionId,
+        CancellationToken cancellationToken)
+    {
+        var deck = await flashcardDeckService.GetDeckDetailAsync(
+            deckId,
+            currentUser.UserId,
+            cancellationToken);
+
+        if(deck is null)
+        {
+            return NotFound();
+        }
+
+        var session = learnSessionService.GetInfo(
+            sessionId,
+            deckId,
+            currentUser.UserId);
+
+        if(session is null)
+        {
+            TempData["FlashcardError"] = "Phiên học không tồn tại hoặc đã hết hạn";
+            return RedirectToAction(nameof(Learn), new { deckId });
+        }
+
+        LearnSessionQuestionDto? question = null;
+
+        if (!session.IsCompleted)
+        {
+            try
+            {
+                question = await learnSessionService
+                    .GetCurrentQuestionAsync(
+                    sessionId,
+                    deckId,
+                    currentUser.UserId,
+                    cancellationToken);
+            }
+            catch (InvalidOperationException)
+            {
+                return Conflict(
+                    "Trạng thái phiên học đã thay đổi. Hãy tải lại trang");
+            }
+
+            session = learnSessionService.GetInfo(
+                sessionId,
+                deckId,
+                currentUser.UserId);
+
+            if(session is null)
+            {
+                TempData["FlashcardError"] = "Phiên học không tồn tại hoặc đã hết hạn";
+                return RedirectToAction(nameof(Details), new { deckId });
+            }
+
+            if(question is null && !session.IsCompleted)
+            {
+                TempData["FlashcardError"] = "Không thể lấy câu hỏi hiện tại. Hãy tải lại trang";
+                return RedirectToAction(nameof(Details), new { deckId });
+            }
+
+
+
+            
+        }
+
+            var model = new FlashcardLearnViewModel {
+                DeckId = deck.DeckId,
+                DeckTitle = deck.Title,
+                Session = session,
+                Question = question
+            };
+
+            return View("Learn", model);
+    }
+
+    [HttpPost("{deckId:long}/Learn/{sessionId:guid}/Answer")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SubmitLearnAnswer(
         long deckId,
+        Guid sessionId,
         FlashcardLearnAnswerFormViewModel model,
         CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
+        if (!ModelState.IsValid || model.QuestionToken == Guid.Empty)
         {
             return BadRequest(new
             {
@@ -352,9 +449,11 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
 
         try
         {
-            var result = await flashcardService.SubmitLearnAnswerAsync(
+            var result = await learnSessionService.AnswerAsync(
+                sessionId,
                 deckId,
                 currentUser.UserId,
+                model.QuestionToken,
                 new SubmitFlashcardLearnAnswerRequestDto(
                     model.QuestionCardId,
                     model.SelectedAnswer),
@@ -362,20 +461,36 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
 
             if(result is null)
             {
-                return NotFound();
+                return NotFound(new
+                {
+                    message = "Phiên học không tồn tại hoặc đã hết hạn"
+                });
             }
 
             return Json(new
             {
-                questionCardId = result.QuestionCardId,
-                selectedAnswer = result.SelectedAnswer,
-                correctAnswer = result.CorrectAnswer,
-                isCorrect = result.IsCorrect
+                questionCardId = result.Answer.QuestionCardId,
+                selectedAnswer = result.Answer.SelectedAnswer,
+                correctAnswer = result.Answer.CorrectAnswer,
+                isCorrect = result.Answer.IsCorrect,
+
+                cardStatus = result.Card.Status.ToString(),
+                totalCards = result.Session.NewCount,
+                learningCount = result.Session.LearningCount,
+                learnedCount = result.Session.LearnedCount,
+                isCompleted = result.Session.IsCompleted
             });
         }
         catch(ArgumentException ex)
         {
             return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+        catch(InvalidOperationException ex)
+        {
+            return Conflict(new
             {
                 message = ex.Message
             });

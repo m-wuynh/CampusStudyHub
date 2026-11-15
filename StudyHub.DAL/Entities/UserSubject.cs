@@ -27,6 +27,9 @@ public partial class UserSubject
 
     public bool IsArchived { get; set; }
 
+    /// <summary>Thứ tự hiển thị môn trong sổ điểm.</summary>
+    public int DisplayOrder { get; set; }
+
     public virtual AcademicTerm? AcademicTerm { get; set; }
 
     public virtual GradeBook? GradeBook { get; set; }

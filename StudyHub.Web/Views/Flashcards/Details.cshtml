@@ -4,13 +4,13 @@
     ViewData["Title"] = Model.Deck.Title;
 }
 
-<div class="container py-4">
+<div class="container py-4" id="flashcardDeckDetails" data-deck-id="@Model.Deck.DeckId">
 
     <a asp-controller="Flashcards"
        asp-action="Index"
        class="btn btn-outline-secondary mb-3">
         <i class="bi bi-arrow-left"></i>
-        My Flashcards
+        Deck của tôi
     </a>
 
     <div class="d-flex gap-2">
@@ -20,9 +20,9 @@
             <div class="d-flex flex-wrap gap-2">
 
                 <a asp-controller="Flashcards"
-                   asp-action="Study"
+                   asp-action="Browse"
                    asp-route-deckId="@Model.Deck.DeckId"
-                   class="btn btn-outline-primary">
+                   class="btn btn-primary">
 
                     <i class="bi bi-card-text"></i>
                     Xem thẻ
@@ -34,7 +34,7 @@
                    class="btn btn-primary">
 
                     <i class="bi bi-mortarboard"></i>
-                    Learn
+                    Luyện tập
                 </a>
 
             </div>
@@ -90,16 +90,18 @@
 
                             <div class="flex-grow-1">
 
-                                <div class="small text-muted mb-1">
-                                    Mặt trước
+                                <div class="flashcard-field-label mb-2">
+                                    Thuật ngữ 
+                                    @* fronttext *@
                                 </div>
 
                                 <div class="fw-semibold mb-3">
                                     @card.FrontText
                                 </div>
 
-                                <div class="small text-muted mb-1">
-                                    Mặt sau
+                                <div class="flashcard-field-label mb-2">
+                                    Khái niệm
+                                    @* backtext *@
                                 </div>
 
                                 <div>
@@ -133,9 +135,9 @@
 
                         </div>
 
-                        <div class="small text-muted mt-3">
+                        @* <div class="small text-muted mt-3">
                             SortOrder: @card.SortOrder
-                        </div>
+                        </div> *@
 
                     </div>
                 </div>
@@ -347,54 +349,12 @@
 
 
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+    <script src="~/js/flashcards/details.js"
+            asp-append-version="true"></script>
+}
 
-            const deckId = '@Model.Deck.DeckId';
-
-
-            const editModal =
-                document.getElementById('editCardModal');
-
-            editModal?.addEventListener(
-                'show.bs.modal',
-                function(event) {
-
-                    const button = event.relatedTarget;
-
-                    const cardId =
-                        button.getAttribute('data-card-id');
-
-                    document.getElementById('editFrontText').value =
-                        button.getAttribute('data-front') ?? '';
-
-                    document.getElementById('editBackText').value =
-                        button.getAttribute('data-back') ?? '';
-
-                    document.getElementById('editSortOrder').value =
-                        button.getAttribute('data-sort-order') ?? 0;
-
-                    document.getElementById('editCardForm').action =
-                        `/Flashcards/${deckId}/Cards/${cardId}/Edit`;
-                });
-
-
-            const deleteModal =
-                document.getElementById('deleteCardModal');
-
-            deleteModal?.addEventListener(
-                'show.bs.modal',
-                function(event) {
-
-                    const button = event.relatedTarget;
-
-                    const cardId =
-                        button.getAttribute('data-card-id');
-
-                    document.getElementById('deleteCardForm').action =
-                        `/Flashcards/${deckId}/Cards/${cardId}/Delete`;
-                });
-
-        });
-    </script>
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/flashcards/details.css"
+          asp-append-version="true" />
 }

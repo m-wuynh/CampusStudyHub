@@ -1,4 +1,4 @@
-﻿        .fc {
+        .fc {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             color: #3c4043;
         }
@@ -17,84 +17,112 @@
         
         /* Toolbar (Top Area) */
         .fc-header-toolbar {
-            padding: 12px 24px;
+            padding: 16px 24px;
             margin-bottom: 0 !important;
-            border-bottom: 1px solid #dadce0;
+            border-bottom: 1px solid #f3f4f6;
             display: flex;
             align-items: center;
         }
         .fc-toolbar-title {
-            font-size: 1.375rem !important;
-            font-weight: 400 !important;
-            color: #3c4043;
-            margin-left: 16px !important;
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
+            color: #111827 !important;
+            margin-left: 18px !important;
         }
 
         /* Toolbar Buttons */
         .fc-button-primary {
             background-color: #fff !important;
-            color: #3c4043 !important;
-            border: 1px solid #dadce0 !important;
-            border-radius: 4px !important;
+            color: #374151 !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 10px !important;
             text-transform: capitalize;
             font-weight: 500 !important;
             box-shadow: none !important;
-            padding: 6px 16px !important;
-            font-size: 14px !important;
-            transition: background-color 0.15s;
+            padding: 6px 14px !important;
+            font-size: 13.5px !important;
+            transition: all 0.15s ease;
         }
         .fc-button-primary:hover {
-            background-color: #f1f3f4 !important;
-        }
-        .fc-button-primary:not(:disabled).fc-button-active, 
-        .fc-button-primary:not(:disabled):active {
-            background-color: #e8f0fe !important;
-            color: #1a73e8 !important;
-            border-color: #e8f0fe !important;
+            background-color: #f9fafb !important;
+            border-color: #d1d5db !important;
         }
         .fc-today-button {
             border-radius: 20px !important;
             padding: 6px 20px !important;
-            margin-right: 16px !important;
+            margin-right: 14px !important;
+            font-weight: 600 !important;
+        }
+
+        /* Segmented View Switcher (Tuần / Ngày) in Right Toolbar */
+        .fc-header-toolbar .fc-toolbar-chunk:last-child .fc-button-group {
+            background: #f3f4f6;
+            padding: 4px;
+            border-radius: 20px;
+            border: none;
+            display: inline-flex;
+            gap: 2px;
+        }
+        .fc-header-toolbar .fc-toolbar-chunk:last-child .fc-button {
+            background: transparent !important;
+            border: none !important;
+            color: #6b7280 !important;
+            font-weight: 500 !important;
+            border-radius: 16px !important;
+            padding: 6px 20px !important;
+            box-shadow: none !important;
+            font-size: 13.5px !important;
+            transition: all 0.15s ease;
+        }
+        .fc-header-toolbar .fc-toolbar-chunk:last-child .fc-button:hover {
+            color: #111827 !important;
+        }
+        .fc-header-toolbar .fc-toolbar-chunk:last-child .fc-button.fc-button-active,
+        .fc-header-toolbar .fc-toolbar-chunk:last-child .fc-button:active {
+            background: #ffffff !important;
+            color: #7c3aed !important;
+            font-weight: 600 !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
         }
         
         /* Day Headers */
         .fc-col-header-cell {
-            padding: 8px 0 4px 0;
-            border-bottom: 1px solid #dadce0 !important;
+            padding: 12px 0 8px 0;
+            border-bottom: 1px solid #f3f4f6 !important;
         }
         .fc-col-header-cell-cushion {
             display: flex;
             flex-direction: column;
             align-items: center;
             text-decoration: none !important;
-            color: #70757a;
-            font-size: 11px;
+            color: #6b7280;
+            font-size: 12px;
             font-weight: 500;
-            text-transform: uppercase;
         }
         
         /* Custom date number inside header */
         .sh-date-num {
-            font-size: 24px;
-            font-weight: 400;
-            width: 46px;
-            height: 46px;
-            line-height: 46px;
+            font-size: 20px;
+            font-weight: 700;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
             border-radius: 50%;
             display: inline-block;
             text-align: center;
             margin-top: 4px;
-            color: #3c4043;
+            color: #111827;
         }
         
-        /* Highlight Today */
+        /* Highlight Today (Purple Circle like Mockup) */
         .fc-day-today .fc-col-header-cell-cushion {
-            color: #1a73e8;
+            color: #7c3aed !important;
+            font-weight: 700 !important;
         }
         .fc-day-today .sh-date-num {
-            background-color: #1a73e8;
-            color: #fff;
+            background-color: #7c3aed !important;
+            color: #fff !important;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
         }
         
         /* Time Axis (Y-Axis) */
@@ -169,4 +197,387 @@
             text-decoration: line-through;
             opacity: 0.8;
             border-left: 3px solid #1e8e3e !important;
+        }
+
+        /* ========================================================
+           ROW 1: Search Bar & Add Button Styling
+           ======================================================== */
+        .btn-hero-add {
+            background-color: #7c3aed;
+            color: #ffffff !important;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 12px 26px;
+            border-radius: 20px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            border: none;
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+        }
+        .btn-hero-add:hover {
+            background-color: #6d28d9;
+            box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+            transform: translateY(-1px);
+            color: #ffffff !important;
+        }
+
+        .calendar-search-wrapper {
+            width: 100%;
+            position: relative;
+        }
+
+        .calendar-search-input-group {
+            position: relative;
+            width: 100%;
+        }
+
+        .calendar-search-input-group .search-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: #2563eb;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .calendar-search-input {
+            width: 100%;
+            height: 48px;
+            padding: 8px 42px 8px 48px;
+            font-size: 14.5px;
+            font-weight: 400;
+            color: #1f2937;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 24px;
+            outline: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .calendar-search-input:hover {
+            border-color: #d1d5db;
+        }
+
+        .calendar-search-input:focus {
+            background-color: #ffffff;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+        }
+
+        .calendar-search-clear {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: #9ca3af !important;
+            cursor: pointer;
+            z-index: 2;
+            line-height: 1;
+        }
+
+        .calendar-search-clear:hover {
+            color: #374151 !important;
+        }
+
+        /* Search Results Dropdown */
+        .calendar-search-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            width: 100%;
+            max-height: 420px;
+            overflow-y: auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+            z-index: 1080;
+        }
+
+        .calendar-search-results-list {
+            max-height: 360px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            padding: 12px 18px;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f9fafb;
+        }
+
+        .search-result-item.active {
+            background-color: #f5f3ff;
+        }
+
+        .result-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        /* ========================================================
+           ROW 2: Purple Hero Banner Styling
+           ======================================================== */
+        .calendar-hero-card {
+            background: #7c3aed;
+            border-radius: 24px;
+            padding: 26px 32px;
+            box-shadow: 0 8px 24px rgba(124, 58, 237, 0.2);
+            position: relative;
+        }
+
+        .hero-watermark-star {
+            position: absolute;
+            right: 48px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 170px;
+            height: 170px;
+            color: rgba(255, 255, 255, 0.18);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .hero-card-title {
+            font-size: 14.5px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.88);
+            letter-spacing: 0.1px;
+        }
+
+        .hero-card-percent {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        .hero-progress-track {
+            width: 100%;
+            max-width: 440px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.28);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .hero-progress-fill {
+            height: 100%;
+            background: #ffffff;
+            border-radius: 10px;
+            transition: width 0.4s ease;
+        }
+
+        .hero-stat-pill {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(4px);
+            color: #ffffff;
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            user-select: none;
+            transition: background-color 0.15s ease;
+        }
+
+        .hero-stat-pill:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Live event filter states on calendar */
+        .event-search-dimmed {
+            opacity: 0.25 !important;
+            filter: grayscale(60%) !important;
+            transition: opacity 0.2s ease, filter 0.2s ease;
+        }
+
+        .event-search-match {
+            opacity: 1 !important;
+            box-shadow: 0 0 0 2px #7c3aed, 0 4px 10px rgba(124, 58, 237, 0.35) !important;
+            z-index: 5 !important;
+            transition: all 0.2s ease;
+        }
+
+        /* Event highlight pulse when clicked from search result */
+        @@keyframes eventHighlightPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7); }
+            50% { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+        }
+
+        .event-pulse {
+            animation: eventHighlightPulse 1s ease-in-out 3;
+            z-index: 20 !important;
+        }
+
+        /* ========================================================
+           ROW: Form & Editor Styling (Create / Update Pages)
+           ======================================================== */
+        .calendar-form-card {
+            background: #ffffff;
+            border: 1px solid #f1f3f4;
+            border-radius: 24px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+        }
+
+        .calendar-form-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 7px;
+        }
+
+        .calendar-form-label i {
+            color: #7c3aed;
+        }
+
+        .calendar-form-input {
+            width: 100%;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 10px 16px;
+            font-size: 14px;
+            color: #1f2937;
+            background-color: #ffffff;
+            outline: none;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .calendar-form-input:hover {
+            border-color: #d1d5db;
+        }
+
+        .calendar-form-input:focus {
+            border-color: #7c3aed !important;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15) !important;
+            background-color: #ffffff;
+        }
+
+        .btn-purple-primary {
+            background-color: #7c3aed !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 11px 26px;
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .btn-purple-primary:hover {
+            background-color: #6d28d9 !important;
+            box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+            transform: translateY(-1px);
+            color: #ffffff !important;
+        }
+
+        .btn-purple-cancel {
+            background-color: #f3f4f6;
+            color: #4b5563 !important;
+            font-weight: 500;
+            font-size: 14px;
+            padding: 11px 22px;
+            border-radius: 20px;
+            border: none;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-purple-cancel:hover {
+            background-color: #e5e7eb;
+            color: #111827 !important;
+        }
+
+        .btn-purple-add-notif {
+            background-color: #f5f3ff !important;
+            color: #7c3aed !important;
+            border: 1.5px dashed #ddd6fe !important;
+            font-weight: 600;
+            font-size: 13.5px;
+            border-radius: 20px;
+            padding: 8px 20px;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .btn-purple-add-notif:hover {
+            background-color: #ede9fe !important;
+            color: #6d28d9 !important;
+            border-color: #c4b5fd !important;
+        }
+
+        .notif-row-purple {
+            background-color: #fcfaff;
+            border: 1px solid #f3e8ff;
+            border-radius: 12px;
+            padding: 8px 12px;
+            transition: all 0.15s ease;
+        }
+
+        .notif-row-purple:hover {
+            border-color: #e9d5ff;
+            background-color: #f5f3ff;
+        }
+
+        .notif-select-purple {
+            border: 1px solid #e9d5ff;
+            border-radius: 8px;
+            background-color: #ffffff;
+            color: #4c1d95;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 4px 10px;
+            outline: none;
+        }
+
+        .notif-select-purple:focus {
+            border-color: #7c3aed;
+        }
+
+        .notif-input-purple {
+            border: 1px solid #e9d5ff;
+            border-radius: 8px;
+            background-color: #ffffff;
+            color: #4c1d95;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            padding: 4px 6px;
+            outline: none;
+            width: 54px;
+        }
+
+        .notif-input-purple:focus {
+            border-color: #7c3aed;
         }

@@ -1,0 +1,36 @@
+@model StudyHub.Web.ViewModels.NotesV3.NotebookCardViewModel
+
+<div class="modal fade notesv3-library-modal" id="manageNotebook-@Model.Id" tabindex="-1" aria-labelledby="manageNotebookTitle-@Model.Id" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="manageNotebookTitle-@Model.Id">Quản lý notebook</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn muốn làm gì với <strong>@Model.Title</strong>?</p>
+
+                <details class="notesv3-library-option">
+                    <summary><i class="bi bi-pencil-square"></i> Đổi tên notebook</summary>
+                    <form asp-controller="Notebooks" asp-action="RenameNotebook" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <label class="form-label" for="notebook-title-@Model.Id">Tên mới</label>
+                        <input class="form-control" id="notebook-title-@Model.Id" name="title" value="@Model.Title" maxlength="200" required />
+                        <button class="btn btn-primary btn-sm" type="submit">Lưu tên</button>
+                    </form>
+                </details>
+
+                <details class="notesv3-library-option is-danger">
+                    <summary><i class="bi bi-trash"></i> Xóa notebook</summary>
+                    <form asp-controller="Notebooks" asp-action="DeleteNotebook" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <p>Notebook và các trang bên trong sẽ bị ẩn.</p>
+                        <button class="btn btn-outline-danger btn-sm" type="submit">Xác nhận xóa</button>
+                    </form>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>

@@ -14,30 +14,43 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
     {
         var entities = await repository.ListAsync<ScheduleEvent>(e => e.UserId == userId && !e.IsDeleted);
         
-        return entities.Select(e => new ScheduleEventDto(
-            e.ScheduleEventId,
-            e.Title,
-            e.EventType,
-            e.StartAtLocal,
-            e.EndAtLocal,
-            e.TimeZoneId,
-            e.RepeatMode,
-            e.RepeatUntilDate,
-            e.Location,
-            e.Description,
-            e.GoalId,
-            e.IsCompleted
-        )).ToList();
+        return entities
+            .Select(e => new ScheduleEventDto(
+                e.ScheduleEventId,
+                e.Title,
+                e.EventType,
+                e.StartAtLocal,
+                e.EndAtLocal,
+                e.TimeZoneId,
+                e.RepeatMode,
+                e.RepeatUntilDate,
+                e.Location,
+                e.Description,
+                e.GoalId,
+                e.IsCompleted
+            ))
+            .Where(dto => ScheduleOccurrenceService.GetStarts(dto, fromDate, toDate).Count > 0)
+            .ToList();
     }
 
     public async Task<List<ScheduleEventDto>> GetActiveRemindersAsync(long userId)
     {
         var utcNow = DateTime.UtcNow;
-        var reminders = await repository.ListAsync<Reminder>(r => r.UserId == userId && r.Status == "Pending" && r.RemindAtUtc <= utcNow);
+        // Chỉ lấy nhắc nhở dạng thông báo thường trên web (InApp), loại trừ thông báo Gmail/Email
+        // Giới hạn trong vòng 24 giờ qua để loại bỏ các nhắc nhở cũ/tồn đọng từ các ngày trước
+        var minRemindAtUtc = utcNow.AddHours(-24);
+        var reminders = await repository.ListAsync<Reminder>(r => 
+            r.UserId == userId && 
+            r.Status == "Pending" && 
+            r.RemindAtUtc <= utcNow && 
+            r.RemindAtUtc >= minRemindAtUtc &&
+            r.Channel != "Email" && 
+            r.Channel != "gmail");
         
         var eventIds = reminders.Select(r => r.ScheduleEventId).Distinct().Where(id => id.HasValue).Select(id => id!.Value).ToList();
         
-        var events = await repository.ListAsync<ScheduleEvent>(e => eventIds.Contains(e.ScheduleEventId) && !e.IsDeleted);
+        var now = DateTime.Now;
+        var events = await repository.ListAsync<ScheduleEvent>(e => eventIds.Contains(e.ScheduleEventId) && !e.IsDeleted && e.EndAtLocal >= now);
 
         return events.Select(e => new ScheduleEventDto(
             e.ScheduleEventId,
@@ -87,7 +100,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
 
         if (endLocal <= startLocal)
         {
-            throw new ArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
+            throw new ArgumentException("Giờ không hợp lệ , Vui lòng đặt lại");
         }
 
         var entity = new ScheduleEvent
@@ -242,6 +255,15 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         entity.IsDeleted = true;
         entity.UpdatedAtUtc = DateTime.UtcNow;
         repository.Update(entity);
+
+        // Hủy toàn bộ nhắc nhở đang chờ (Pending) của sự kiện vừa bị xóa
+        var pendingReminders = await repository.ListAsync<Reminder>(r => r.ScheduleEventId == id && r.Status == "Pending");
+        foreach (var rem in pendingReminders)
+        {
+            rem.Status = "Cancelled";
+            repository.Update(rem);
+        }
+
         await repository.SaveChangesAsync();
     }
 
@@ -250,9 +272,9 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == eventId && e.UserId == userId && !e.IsDeleted);
         if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
 
-        if (isCompleted && entity.EndAtLocal < DateTime.Now)
+        if (entity.EndAtLocal < DateTime.Now)
         {
-            throw new InvalidOperationException("Ca học đã quá hạn và được tính là Bỏ lỡ (Missed), không thể cập nhật.");
+            throw new InvalidOperationException("Ca học đã kết thúc, không thể thay đổi trạng thái.");
         }
 
         entity.IsCompleted = isCompleted;
@@ -266,9 +288,9 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == id && e.UserId == userId && !e.IsDeleted);
         if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
 
-        if (!entity.IsCompleted && entity.EndAtLocal < DateTime.Now)
+        if (entity.EndAtLocal < DateTime.Now)
         {
-            throw new InvalidOperationException("Ca học đã quá hạn và được tính là Bỏ lỡ (Missed), không thể cập nhật.");
+            throw new InvalidOperationException("Ca học đã kết thúc, không thể thay đổi trạng thái.");
         }
 
         entity.IsCompleted = !entity.IsCompleted;
@@ -277,4 +299,41 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         await repository.SaveChangesAsync();
         return entity.IsCompleted;
     }
+
+    public async Task<List<ScheduleEventDto>> SearchEventsAsync(long userId, string keyword, int maxResults = 20)
+    {
+        if (string.IsNullOrWhiteSpace(keyword))
+            return [];
+
+        var kw = keyword.Trim();
+
+        var entities = await repository.ListAsync<ScheduleEvent>(e =>
+            e.UserId == userId &&
+            !e.IsDeleted &&
+            (e.Title.Contains(kw) ||
+             (e.Location != null && e.Location.Contains(kw)) ||
+             (e.Description != null && e.Description.Contains(kw))));
+
+        var now = DateTime.Now;
+
+        return entities
+            .OrderBy(e => e.EndAtLocal < now) // Upcoming or happening events first
+            .ThenBy(e => Math.Abs((e.StartAtLocal - now).TotalMinutes)) // Closest to current time
+            .Take(maxResults)
+            .Select(e => new ScheduleEventDto(
+                e.ScheduleEventId,
+                e.Title,
+                e.EventType,
+                e.StartAtLocal,
+                e.EndAtLocal,
+                e.TimeZoneId,
+                e.RepeatMode,
+                e.RepeatUntilDate,
+                e.Location,
+                e.Description,
+                e.GoalId,
+                e.IsCompleted
+            )).ToList();
+    }
 }
+

@@ -12,7 +12,7 @@ namespace StudyHub.Web.Controllers.Calendar;
 [Route("Calendar")]
 public sealed class CalendarController(ICalendarService calendarService) : Controller
 {
-    private long CurrentUserId => long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "1");
+    private long CurrentUserId => long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 
     [HttpGet("")]
     public async Task<IActionResult> Index(DateOnly? date)
@@ -57,6 +57,45 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
                 });
             }
         }
+        return Json(result);
+    }
+
+    [HttpGet("SearchEvents")]
+    public async Task<IActionResult> SearchEvents([FromQuery] string? q)
+    {
+        if (string.IsNullOrWhiteSpace(q))
+            return Json(new List<object>());
+
+        var events = await calendarService.SearchEventsAsync(CurrentUserId, q.Trim());
+        var now = DateTime.Now;
+
+        var result = events.Select(ev =>
+        {
+            var isPast = ev.EndAtLocal < now;
+            var isCompleted = ev.IsCompleted;
+            var status = isCompleted ? "completed" : (isPast ? "missed" : "pending");
+            var statusText = isCompleted ? "Đã hoàn thành" : (isPast ? "Đã quá hạn" : "Sắp tới");
+
+            return new
+            {
+                id = ev.Id,
+                title = ev.Title,
+                eventType = ev.EventType,
+                start = ev.StartAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
+                end = ev.EndAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
+                startDateStr = ev.StartAtLocal.ToString("dd/MM/yyyy"),
+                startTimeStr = ev.StartAtLocal.ToString("HH:mm"),
+                endTimeStr = ev.EndAtLocal.ToString("HH:mm"),
+                dateFormatted = ev.StartAtLocal.ToString("ddd, dd 'thg' MM, yyyy", new System.Globalization.CultureInfo("vi-VN")),
+                location = ev.Location,
+                description = ev.Description,
+                isCompleted = ev.IsCompleted,
+                isPast = isPast,
+                status = status,
+                statusText = statusText
+            };
+        });
+
         return Json(result);
     }
 
@@ -106,6 +145,13 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
     {
         var ev = await calendarService.GetEventAsync(CurrentUserId, id);
         if (ev == null) return NotFound();
+
+        if (ev.EndAtLocal < DateTime.Now || ev.IsCompleted)
+        {
+            TempData["ErrorMessage"] = "Sự kiện đã kết thúc hoặc đã hoàn thành, chỉ được phép xóa chứ không thể chỉnh sửa.";
+            return RedirectToAction("Index");
+        }
+
         var reminders = await calendarService.GetEventRemindersAsync(CurrentUserId, id);
         var model = new CalendarUpdateViewModel(
             ev.Id,
@@ -165,16 +211,27 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
         var now = DateTime.Now;
         var events = await calendarService.GetActiveRemindersAsync(CurrentUserId);
 
-        // Sort by start time
+        // Chỉ lấy các sự kiện chưa kết thúc và không bắt đầu quá 24h trước
         var upcoming = events
+            .Where(e => e.EndAtLocal >= now && (now - e.StartAtLocal).TotalHours <= 24)
             .OrderBy(e => e.StartAtLocal)
             .Take(10)
             .Select(e =>
             {
                 var diff = e.StartAtLocal - now;
                 string timeLabel;
-                if (diff.TotalMinutes < 60)
-                    timeLabel = $"Còn {(int)diff.TotalMinutes} phút nữa";
+                if (diff.TotalMinutes <= 0)
+                {
+                    if (now <= e.EndAtLocal)
+                        timeLabel = $"Đang diễn ra (từ {e.StartAtLocal:HH:mm})";
+                    else
+                        timeLabel = $"Đã diễn ra ({e.StartAtLocal:dd/MM HH:mm})";
+                }
+                else if (diff.TotalMinutes < 60)
+                {
+                    int mins = (int)Math.Ceiling(diff.TotalMinutes);
+                    timeLabel = $"Còn {Math.Max(1, mins)} phút nữa";
+                }
                 else if (diff.TotalHours < 24)
                     timeLabel = $"Hôm nay lúc {e.StartAtLocal:HH:mm}";
                 else if (diff.TotalDays < 2)
@@ -203,11 +260,13 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
                     "Other" => "var(--sh-amber-600)",
                     _       => "var(--sh-emerald-600)"
                 };
-                bool isUrgent = diff.TotalHours < 24;
+                bool isUrgent = diff.TotalHours < 24 && diff.TotalMinutes > 0;
 
                 return new
                 {
                     id = e.Id,
+                    startAt = e.StartAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    endAt = e.EndAtLocal.ToString("yyyy-MM-ddTHH:mm:ss"),
                     title = e.Title,
                     timeLabel,
                     icon,

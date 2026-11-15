@@ -1,0 +1,35 @@
+using StudyHub.DAL.Enums.Flashcards;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace StudyHub.BLL.DTOs.Flashcards
+{
+    public sealed record LearnCardSnapshotDto(
+        long CardId,
+        LearnCardStatus Status,
+        int CorrrectCount,
+        int IncorrectCount);
+
+    public sealed record LearnSessionInfoDto(
+        Guid SessionId,
+        long DeckId,
+        int TotalCards,
+        int NewCount,
+        int LearningCount,
+        int LearnedCount,
+        bool IsCompleted);
+
+    public sealed record LearnSessionQuestionDto(
+        Guid SessionId,
+        Guid QuestionToken,
+        FlashcardLearnQuestionDto Question);
+
+    public sealed record LearnSessionAnswerDto(
+        FlashcardLearnAnswerResultDto Answer,
+        LearnCardSnapshotDto Card,
+        LearnSessionInfoDto Session);
+    
+}

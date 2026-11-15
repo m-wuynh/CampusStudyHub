@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using StudyHub.BLL.DTOs;
 using StudyHub.BLL.Services.Auth;
 using StudyHub.BLL.Services.Calendar;
+using StudyHub.BLL.Services.Dashboard;
 using StudyHub.BLL.Services.Flashcards.Interfaces;
 using StudyHub.BLL.Services.Grades;
 using StudyHub.Web.ViewModels.Dashboard;
@@ -20,7 +21,8 @@ public sealed class DashboardController(
     ICurrentUser currentUser,
     ICalendarService calendarService,
     IGradeService gradeService,
-    IFlashcardDeckService flashcardDeckService) : Controller
+    IFlashcardDeckService flashcardDeckService,
+    IDashboardNotesService dashboardNotesService) : Controller
 {
     private long CurrentUserId => currentUser.UserId > 0 ? currentUser.UserId : (long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 1);
 
@@ -61,118 +63,132 @@ public sealed class DashboardController(
         var gradesPage = await gradeService.GetGradePageAsync(userId, null, cancellationToken, includeSubjectOptions: false);
         var currentAvg = gradesPage.Summary.CurrentAverage10;
 
-        string? currentRankText = currentAvg.HasValue
-            ? (currentAvg >= 8.0m ? "Học sinh Giỏi" : currentAvg >= 6.5m ? "Khá" : "Trung bình")
-            : null;
-
         string? academicTermLabel = gradesPage.GradeBook?.Name;
 
-        // Goals logic
+        // Goals – Q15 = A: tính trong BLL (GoalOverviewCalculator).
         GoalSummaryDto? goalSummary = null;
-        var allGoals = gradesPage.GoalLadders.SelectMany(l => l.Goals.Where(g => g.Status != GoalStatus.Cancelled)).ToList();
-
-        if (allGoals.Any())
+        var overview = GoalOverviewCalculator.Build(gradesPage.GoalLadders);
+        if (overview != null)
         {
-            var activeGoal = allGoals.FirstOrDefault(g => g.Status == GoalStatus.InProgress)
-                             ?? allGoals.OrderByDescending(g => g.TargetValue).FirstOrDefault();
-
-            decimal targetAvg = activeGoal?.TargetValue ?? 8.0m;
-            int overallProgress = currentAvg.HasValue && targetAvg > 0
-                ? Math.Min(100, (int)Math.Floor(currentAvg.Value / targetAvg * 100m))
-                : 0;
-
-            var highlightedGoals = new List<HighlightedGoalDto>();
-            foreach (var ladder in gradesPage.GoalLadders)
-            {
-                var curGoal = ladder.Goals.FirstOrDefault(g => g.Status == GoalStatus.InProgress || g.Status == GoalStatus.Achieved);
-                if (curGoal != null)
-                {
-                    int pct = ladder.CurrentAverage10.HasValue && curGoal.TargetValue > 0
-                        ? Math.Min(100, (int)Math.Floor(ladder.CurrentAverage10.Value / curGoal.TargetValue * 100m))
-                        : 0;
-
-                    highlightedGoals.Add(new HighlightedGoalDto(
-                        ladder.SubjectName,
-                        curGoal.TargetValue,
-                        ladder.CurrentAverage10,
-                        pct
-                    ));
-                }
-            }
-
-            goalSummary = new GoalSummaryDto(currentAvg, targetAvg, overallProgress, highlightedGoals.Take(3).ToList());
+            goalSummary = new GoalSummaryDto(
+                currentAvg,
+                overview.TargetAverage,
+                overview.OverallProgressPercent,
+                overview.Highlights.Select(h => new HighlightedGoalDto(h.SubjectName, h.TargetValue, h.CurrentValue, h.ProgressPercent)).ToList());
         }
 
         // ── 3. Schedule & Events Data ──────────────────────────────────
-        var todayEvents = await calendarService.GetEventsAsync(userId, today, today);
-        var upcomingEventsRaw = await calendarService.GetEventsAsync(userId, today, today.AddDays(7));
+        var allCandidateEvents = await calendarService.GetEventsAsync(userId, today, today.AddDays(7));
 
-        var upcomingSummary = new List<UpcomingEventSummaryDto>();
-        UpcomingEventSummaryDto? nextExam = null;
-
-        foreach (var ev in upcomingEventsRaw.OrderBy(e => e.StartAtLocal))
+        var todayEvents = new List<ScheduleEventDto>();
+        foreach (var ev in allCandidateEvents)
         {
-            var evDate = DateOnly.FromDateTime(ev.StartAtLocal);
-            int daysLeft = evDate.DayNumber - today.DayNumber;
-
-            string typeLabel = ev.EventType switch
+            var starts = ScheduleOccurrenceService.GetStarts(ev, today, today);
+            var duration = ev.EndAtLocal - ev.StartAtLocal;
+            foreach (var startDt in starts)
             {
-                "Exam" => "Kiểm tra",
-                "Class" => "Lịch học",
-                "Other" => "Bài tập",
-                _ => "Tự học"
-            };
-
-            string badgeCss = ev.EventType switch
-            {
-                "Exam" => "exam",
-                "Class" => "group",
-                "Other" => "homework",
-                _ => "study"
-            };
-
-            var dto = new UpcomingEventSummaryDto(
-                ev.Id,
-                ev.Title,
-                ev.EventType,
-                typeLabel,
-                badgeCss,
-                ev.StartAtLocal.ToString("dd/MM/yyyy"),
-                ev.StartAtLocal.ToString("HH:mm"),
-                daysLeft >= 0 ? daysLeft : null
-            );
-
-            if (ev.EventType == "Exam" && nextExam == null && daysLeft >= 0)
-            {
-                nextExam = dto;
+                todayEvents.Add(ev with { StartAtLocal = startDt, EndAtLocal = startDt.Add(duration) });
             }
+        }
+        todayEvents = todayEvents.OrderBy(e => e.StartAtLocal).ToList();
 
-            if (daysLeft >= 0)
+        // Sự kiện sắp diễn ra: mọi loại sự kiện chưa bắt đầu, trong 7 ngày tới.
+        var upcomingSummary = new List<UpcomingEventSummaryDto>();
+
+        foreach (var ev in allCandidateEvents)
+        {
+            var starts = ScheduleOccurrenceService.GetStarts(ev, today, today.AddDays(7));
+            var duration = ev.EndAtLocal - ev.StartAtLocal;
+            foreach (var startDt in starts)
             {
+                if (startDt < now)
+                {
+                    continue;
+                }
+
+                var evDate = DateOnly.FromDateTime(startDt);
+                int daysLeft = evDate.DayNumber - today.DayNumber;
+
+                if (daysLeft > 7)
+                {
+                    continue;
+                }
+
+                string typeLabel = ev.EventType switch
+                {
+                    "Exam" => "Kiểm tra",
+                    "Class" => "Lịch học",
+                    "Other" => "Bài tập",
+                    _ => "Tự học"
+                };
+
+                string badgeCss = ev.EventType switch
+                {
+                    "Exam" => "exam",
+                    "Class" => "group",
+                    "Other" => "homework",
+                    _ => "study"
+                };
+
+                var dto = new UpcomingEventSummaryDto(
+                    ev.Id,
+                    ev.Title,
+                    ev.EventType,
+                    typeLabel,
+                    badgeCss,
+                    startDt.ToString("dd/MM/yyyy"),
+                    startDt.ToString("HH:mm"),
+                    daysLeft
+                );
+
                 upcomingSummary.Add(dto);
             }
         }
 
-        if (nextExam == null && upcomingSummary.Any())
-        {
-            nextExam = upcomingSummary.First();
-        }
+        upcomingSummary = upcomingSummary
+            .OrderBy(e => e.DaysLeftText)
+            .ThenBy(e => e.TimeText)
+            .ToList();
+
+        var nextEvent = upcomingSummary.FirstOrDefault();
 
         // ── 4. Weekly Performance Widget Calculation ──────────────────
         int diff = (7 + (now.DayOfWeek - DayOfWeek.Monday)) % 7;
         var startOfWeek = today.AddDays(-1 * diff);
         var endOfWeek = startOfWeek.AddDays(6);
 
-        var weeklyEvents = await calendarService.GetEventsAsync(userId, startOfWeek, endOfWeek);
-        int weeklyTotal = weeklyEvents.Count;
-        int weeklyCompleted = weeklyEvents.Count(e => e.IsCompleted);
-        int weeklyMissed = weeklyEvents.Count(e => !e.IsCompleted && e.EndAtLocal < now);
+        var weeklyCandidateEvents = await calendarService.GetEventsAsync(userId, startOfWeek, endOfWeek);
+        int weeklyTotal = 0;
+        int weeklyCompleted = 0;
+        int weeklyMissed = 0;
+
+        foreach (var ev in weeklyCandidateEvents)
+        {
+            var starts = ScheduleOccurrenceService.GetStarts(ev, startOfWeek, endOfWeek);
+            var duration = ev.EndAtLocal - ev.StartAtLocal;
+            foreach (var startDt in starts)
+            {
+                weeklyTotal++;
+                var endDt = startDt.Add(duration);
+                if (ev.IsCompleted)
+                {
+                    weeklyCompleted++;
+                }
+                else if (endDt < now)
+                {
+                    weeklyMissed++;
+                }
+            }
+        }
 
         // ── 5. Flashcards Data ────────────────────────────────────────
         var decks = await flashcardDeckService.GetMyDecksAsync(userId, cancellationToken);
         int totalDecks = decks.Count;
 
         var flashcardSummary = new FlashcardSummaryDto(totalDecks, totalDecks, decks.Take(3).ToList());
+
+        // ── 6. Recent Notes (NotesV3) ─────────────────────────────────
+        var recentNotes = await dashboardNotesService.GetRecentNotesAsync(userId, 4, cancellationToken);
 
         // Build ViewModel
         var model = new DashboardIndexViewModel(
@@ -182,16 +198,17 @@ public sealed class DashboardController(
             timeGreeting,
             todayEvents.Count,
             todayEvents.Count(e => e.IsCompleted),
-            nextExam,
+            nextEvent,
             currentAvg,
-            currentRankText,
             goalSummary,
             todayEvents.OrderBy(e => e.StartAtLocal).ToList(),
-            upcomingSummary.Take(4).ToList(),
+            upcomingSummary,
             flashcardSummary,
             weeklyTotal,
             weeklyCompleted,
-            weeklyMissed
+            weeklyMissed,
+            RecentNotes: recentNotes.Notes,
+            NotesAvailable: recentNotes.IsAvailable
         );
 
         return View(model);
