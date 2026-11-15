@@ -57,6 +57,9 @@
     </header>
 
 
+    @if (TempData["Success"] is string success) { <div class="alert alert-success pdf-reader-alert" role="status">@success</div> }
+    @if (TempData["Error"] is string error) { <div class="alert alert-danger pdf-reader-alert" role="alert">@error</div> }
+
     @if (isShared)
     {
         <div class="pdf-reader-view-only"><i class="bi bi-eye"></i> Tài liệu nhóm · Chế độ chỉ xem</div>

@@ -53,6 +53,15 @@
 
 
 
+    @if (TempData["FlashcardSuccess"] is string success)
+    {
+        <div class="alert alert-success" role="status">@success</div>
+    }
+    @if (TempData["FlashcardError"] is string error)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
+
     @if (Model.Cards.Count == 0)
     {
         <div class="border rounded-4
