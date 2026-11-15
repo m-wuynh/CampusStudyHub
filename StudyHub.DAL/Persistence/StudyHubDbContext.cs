@@ -621,6 +621,12 @@ public partial class StudyHubDbContext : DbContext
                 e.CompletedAtUtc
             }, "IX_LearnSession_Resume");
 
+
+            entity.HasIndex(e => new { e.UserId, e.DeckId },
+                    "UX_LearnSession_Active")
+                .IsUnique()
+                .HasFilter("[CompletedAtUtc] IS NULL AND [InvalidatedAtUtc] IS NULL");
+
             entity.HasOne<User>()
                 .WithMany()
                 .HasForeignKey(e => e.UserId)

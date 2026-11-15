@@ -12,6 +12,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 
 namespace StudyHub.BLL.Services.Flashcards.Implementations
 {
@@ -74,7 +76,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             if (distinctAnswers < 2)
                 return null;
 
-            var eligilbleCards = cards
+            var eligibleCards = cards
                 .GroupBy(c => c.BackText.Trim(),
                         StringComparer.OrdinalIgnoreCase)
                 .Where(g => g.Select(c => c.FrontText.Trim())
@@ -83,7 +85,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
                 .SelectMany(g => g)
                 .ToList();
 
-            if (eligilbleCards.Count == 0)
+            if (eligibleCards.Count == 0)
                 return null;
 
             var session = new FlashcardLearnSession
@@ -96,9 +98,25 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             };
 
             await repository.AddAsync(session, cancellationToken);
-            await repository.SaveChangesAsync(cancellationToken);
 
-            return session.SessionId;
+            try
+            {
+                await repository.SaveChangesAsync(cancellationToken);
+                return session.SessionId;
+            }
+            catch (DbUpdateException ex)
+                when (ex.InnerException is SqlException sql &&
+                      sql.Number is 2601 or 2627 &&
+                      sql.Message.Contains("UX_LearnSession_Active"))
+            {
+                return repository.Query<FlashcardLearnSession>()
+                    .Where(s => s.UserId == userId &&
+                                s.DeckId == deckId &&
+                                s.CompletedAtUtc == null &&
+                                s.InvalidatedAtUtc == null)
+                    .Select(s => (Guid?)s.SessionId)
+                    .FirstOrDefault();
+            }
 
 
 
@@ -178,12 +196,48 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             session.QuestionToken = Guid.NewGuid();
             session.QuestionOptionsJson = JsonSerializer.Serialize(question.Options);
 
-            await repository.SaveChangesAsync(cancellationtoken);
+
+            try
+            {
+                await repository.SaveChangesAsync(cancellationtoken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                var saved = await repository.FirstOrDefaultAsync<FlashcardLearnSession>(
+                    s => s.SessionId == sessionId &&
+                         s.UserId == userId &&
+                         s.DeckId == deckId,
+                    cancellationtoken);
+
+                if (saved?.CurrentCardId != cardId ||
+                    saved.QuestionToken is null ||
+                    string.IsNullOrWhiteSpace(saved.QuestionOptionsJson) ||
+                    saved.CompletedAtUtc.HasValue ||
+                    saved.InvalidatedAtUtc.HasValue)
+                    throw new InvalidOperationException(
+                        "Phiên học đã thay đổi. Hãy tải lại trang.");
+
+                var savedOptions = JsonSerializer.Deserialize<List<FlashcardLearnOptionDto>>(
+                    saved.QuestionOptionsJson);
+
+                if (savedOptions is null)
+                    throw new InvalidOperationException(
+                        "Không thể khôi phục đáp án. Hãy tải lại trang.");
+
+                return new LearnSessionQuestionDto(
+                    sessionId,
+                    saved.QuestionToken.Value,
+                    new FlashcardLearnQuestionDto(
+                        cardId,
+                        question.QuestionText,
+                        savedOptions));
+            }
 
             return new LearnSessionQuestionDto(
                 sessionId,
                 session.QuestionToken.Value,
                 question);
+
         }
 
         public async Task<FlashcardLearnAnswerResultDto?> SubmitAnswerAsync(
@@ -205,10 +259,25 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
 
             if (session is null ||
                 session.UserId != userId ||
-                session.DeckId != deckId ||
-                session.CompletedAtUtc != null ||
+                session.DeckId != deckId)
+                return null;
+
+            var alreadySubmitted = await repository.AnyAsync<FlashcardReview>(
+                r => r.RequestId == questionToken &&
+                r.SessionId == sessionId &&
+                r.UserId == userId &&
+                r.FlashcardId == request.QuestionCardId,
+                cancellationToken);
+            if (alreadySubmitted)
+                throw new InvalidOperationException("Lượt trả lời đã được ghi nhận. Hãy tải lại trang.");
+
+            if (session.CompletedAtUtc != null ||
                 session.InvalidatedAtUtc != null)
                 return null;
+
+
+            if (await HasCardsChangedAsync(session, cancellationToken))
+                throw new InvalidOperationException("Bộ thẻ đã thay đổi. Hãy bắt đầu phiên mới");
 
             if (questionToken == Guid.Empty ||
                 session.QuestionToken != questionToken ||
@@ -283,11 +352,27 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             session.QuestionOptionsJson = null;
 
             await repository.SaveChangesAsync(cancellationToken);
+
+            var state = await GetStateAsync(
+                sessionId, deckId, userId, cancellationToken);
+            if(state?.Session.IsCompleted == true)
+            {
+                session.CompletedAtUtc = DateTime.UtcNow;
+                session.CompletedTotalCards = state.Session.TotalCards;
+
+                await repository.SaveChangesAsync(cancellationToken);
+            }
             await transaction.CommitAsync(cancellationToken);
 
             return answer;
 
         }
+        //luồng hoạt động chính của hàm submitanswerasync()
+        // 1. Kiểm tra session hợp lệ (Đúng UserId, DeckId, chưa hoàn thành)
+        // 2. Kiểm tra session có bị thay đổi (Deck thay đổi, Card thay đổi)
+        // 3. Kiểm tra questionToken hợp lệ (Đúng token, đúng card)
+        //4. Chấm đáp án và lưu lịch sử trả lời vào FlashcardReview
+
 
 
         public async Task<DbLearnStateDto?> GetStateAsync(
@@ -307,6 +392,25 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             if (session.InvalidatedAtUtc.HasValue)
                 throw new InvalidOperationException(
                     "Phiên học đã bị hủy do Deck thay đổi. Hãy bắt đầu lại.");
+
+            if (session.CompletedAtUtc.HasValue &&
+                session.CompletedTotalCards.HasValue)
+            {
+                int totalCards = session.CompletedTotalCards.Value;
+
+                var info1 = new LearnSessionInfoDto(
+                    sessionId,
+                    deckId,
+                    totalCards,
+                    0,
+                    0,
+                    totalCards,
+                    true,
+                    session.ShuffleEnabled);
+
+                return new DbLearnStateDto(info1, null);
+            }
+
 
             if (session.CompletedAtUtc is null && 
                 await HasCardsChangedAsync(session, cancellationtoken))
@@ -377,11 +481,11 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
 
             bool completed = learnedCount == states.Count;
 
-            if(completed && session.CompletedAtUtc is null)
-            {
-                session.CompletedAtUtc = DateTime.UtcNow;
-                await repository.SaveChangesAsync(cancellationtoken);
-            }
+            //if(completed && session.CompletedAtUtc is null)
+            //{
+            //    session.CompletedAtUtc = DateTime.UtcNow;
+            //    await repository.SaveChangesAsync(cancellationtoken);
+            //}
 
             //ưu tiên Card mới sau đó ôn lại card đang Learning
             //long? nextCardId = completed ? null :
