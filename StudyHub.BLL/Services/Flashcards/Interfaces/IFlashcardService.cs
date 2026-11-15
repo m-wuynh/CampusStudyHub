@@ -21,12 +21,14 @@ namespace StudyHub.BLL.Services.Flashcards.Interfaces
             CancellationToken cancellationToken = default);
 
         Task<bool> UpdateCardAsync(
+            long deckId,
             long cardId,
             long currentUserId,
             UpdateFlashcardRequestDto request,
             CancellationToken cancellationToken = default);
 
         Task<bool> DeleteCardAsync(
+            long deckId,
             long cardId,
             long currentUserId,
             CancellationToken cancellationToken = default);

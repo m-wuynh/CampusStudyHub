@@ -120,6 +120,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
         }
 
         public async Task<bool> UpdateCardAsync(
+            long deckId,
             long cardId,
             long currentuserID,
             UpdateFlashcardRequestDto request,
@@ -127,6 +128,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
         {
             var card = await repository.FirstOrDefaultAsync<Flashcard>(
                 c => c.FlashcardId == cardId &&
+                c.DeckId == deckId &&
                 !c.IsDeleted,
                 cancellationToken);
 
@@ -136,7 +138,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             }
 
             var deck = await repository.FirstOrDefaultAsync<FlashcardDeck>(
-               d => d.DeckId == card.DeckId &&
+               d => d.DeckId == deckId &&
                d.OwnerUserId == currentuserID &&
                !d.IsDeleted,
                cancellationToken);
@@ -174,12 +176,14 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
         }
 
         public async Task<bool> DeleteCardAsync(
+            long deckId,
             long cardId,
             long currentUserUd,
             CancellationToken cancellationToken = default)
         {
             var card = await repository.FirstOrDefaultAsync<Flashcard>(
                 c => c.FlashcardId == cardId &&
+                c.DeckId == deckId &&
                 !c.IsDeleted,
                 cancellationToken);
 
@@ -189,7 +193,7 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
             }
 
             var deck = await repository.FirstOrDefaultAsync<FlashcardDeck>(
-                d => d.DeckId == card.DeckId &&
+                d => d.DeckId == deckId &&
                 d.OwnerUserId == currentUserUd &&
                 !d.IsDeleted,
                 cancellationToken);

@@ -259,6 +259,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         try
         {
             var updated = await flashcardService.UpdateCardAsync(
+                deckId,
                 cardId,
                 currentUser.UserId,
                 new UpdateFlashcardRequestDto(
@@ -290,6 +291,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         CancellationToken cancellationToken)
     {
         var deleted = await flashcardService.DeleteCardAsync(
+            deckId,
             cardId,
             currentUser.UserId,
             cancellationToken);
@@ -466,7 +468,14 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(ex.Message);
+            TempData["FlashcardError"] = ex.Message;
+            return RedirectToAction(nameof(Learn), new { deckId });
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            TempData["FlashcardError"] =
+                "Phiên học đã thay đổi. Hãy bắt đầu hoặc tiếp tục lại.";
+            return RedirectToAction(nameof(Learn), new { deckId });
         }
     }
 
