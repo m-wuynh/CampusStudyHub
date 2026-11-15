@@ -138,8 +138,8 @@
         return openForm('Kết thúc buổi học', area('summary', 'Kết quả đã đạt được *', '', 4000, true),
           data => submitForm('SessionStatus', { id, status: 'Completed', summary: data.get('summary'), revision: session.revision }));
       case 'attendance': {
-        const people = session.attendees;
-        if (!people.length) throw new Error('Chưa có thành viên để điểm danh.');
+        const people = session.attendees.filter(attendee => attendee.userId !== session.createdByUserId);
+        if (!people.length) throw new Error('Chưa có thành viên đăng ký để điểm danh.');
         const rows = people.map((member, index) => {
           const attended = session.attendees.find(a => a.userId === member.userId)?.attended === true;
           return `<tr><td>${index + 1}</td><th scope="row">${esc(member.name)}</th><td>

@@ -34,6 +34,7 @@ else if (panel == "sessions")
         var started = session.StartsAtUtc <= now;
         var registered = session.Attendees.Any(a => a.UserId == data.CurrentUserId);
         var isCreator = session.CreatedByUserId == data.CurrentUserId;
+        var registrants = session.Attendees.Where(a => a.UserId != session.CreatedByUserId).ToList();
         <article class="gl-card">
             <h3>@session.Title</h3><span class="gl-badge">@(session.Status switch { "Scheduled" => "Đã lên lịch", "Completed" => "Đã kết thúc", _ => "Đã hủy" })</span>
             <div class="gl-meta">@Date(session.StartsAtUtc) → @Date(session.EndsAtUtc)</div>
@@ -41,12 +42,11 @@ else if (panel == "sessions")
             @if (!string.IsNullOrEmpty(session.Preparation)) { <p><strong>Chuẩn bị:</strong> @session.Preparation</p> }
             @if (!string.IsNullOrEmpty(session.Location)) { <p>📍 @session.Location</p> }
             @if ((registered || isCreator) && WebUrl(session.MeetingUrl)) { <a href="@session.MeetingUrl" target="_blank" rel="noopener noreferrer">Mở liên kết buổi học ↗</a> }
-            <div class="gl-meta">@session.Attendees.Count đăng ký · @session.Attendees.Count(a => a.Attended) có mặt</div>
-            @if (session.Attendees.Count > 0) { <details><summary>Người tham gia</summary><p>@string.Join(" · ", session.Attendees.Select(a => a.Name + (a.Attended ? " ✓" : "")))</p></details> }
+            <div class="gl-meta">@registrants.Count đăng ký · @session.Attendees.Count(a => a.Attended) có mặt</div>
+            @if (registrants.Count > 0) { <details><summary>Người đăng ký</summary><p>@string.Join(" · ", registrants.Select(a => a.Name + (a.Attended ? " ✓" : "")))</p></details> }
             @if (!string.IsNullOrEmpty(session.Summary)) { <p><strong>@(session.Status == "Cancelled" ? "Lý do hủy" : "Tổng kết"):</strong> @session.Summary</p> }
             <div class="gl-actions">
                 @if (scheduled && !started && !isCreator) { @Button("session-register", registered ? "Hủy đăng ký" : "Đăng ký tham gia", session.Id, "data-registered", (!registered).ToString().ToLowerInvariant()) }
-                @if (isCreator) { <span class="gl-meta">Bạn đã tự động tham gia với vai trò người tạo.</span> }
                 @if (data.CanManage && session.Status != "Cancelled" && started) { @Button("attendance", "Điểm danh", session.Id) }
                 @if (data.CanManage && scheduled && started) { @Button("session-complete", "Kết thúc & tổng kết", session.Id) }
             </div>

@@ -164,7 +164,6 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             entity.Title = input.Title; entity.Objective = input.Objective; entity.Preparation = input.Preparation;
             entity.Location = input.Location; entity.MeetingUrl = input.MeetingUrl;
             entity.StartsAtUtc = input.StartsAtUtc; entity.EndsAtUtc = input.EndsAtUtc;
-            entity.Attendees.Add(new GroupSessionAttendance { UserId = userId });
             await data.AddAsync(entity);
         }, ct);
 
@@ -185,7 +184,8 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             var session = await data.Query<GroupStudySession>(false).Include(x => x.Attendees)
                 .SingleOrDefaultAsync(x => x.Id == sessionId && x.StudyGroupId == groupId, ct) ?? throw Missing();
             Require(session.Status == "Scheduled" && session.StartsAtUtc > DateTimeOffset.UtcNow, "Đã đóng đăng ký cho buổi học này.");
-            Require(session.CreatedByUserId != userId, "Người tạo đã tự động tham gia và không thể hủy đăng ký buổi học.");
+            Require(session.CreatedByUserId != userId, "Người tạo là giảng viên của buổi học, không đăng ký với vai trò người học.");
+            RemoveLegacyCreatorAttendance(session);
             var attendee = session.Attendees.SingleOrDefault(x => x.UserId == userId);
             if (registered && attendee is null) session.Attendees.Add(new GroupSessionAttendance { UserId = userId });
             if (!registered && attendee is not null) data.Remove(attendee);
@@ -197,9 +197,11 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             var session = await data.Query<GroupStudySession>(false).Include(x => x.Attendees)
                 .SingleOrDefaultAsync(x => x.Id == sessionId && x.StudyGroupId == groupId, ct) ?? throw Missing();
             Require(session.Status != "Cancelled" && session.StartsAtUtc <= DateTimeOffset.UtcNow, "Chỉ điểm danh buổi học đã bắt đầu và không bị hủy.");
-            var roster = session.Attendees.Select(x => x.UserId).ToHashSet();
+            var roster = session.Attendees.Where(x => x.UserId != session.CreatedByUserId)
+                .Select(x => x.UserId).ToHashSet();
             Require(roster.SetEquals(entries.Select(entry => entry.UserId)),
                 "Danh sách đăng ký đã thay đổi. Hãy tải lại trang trước khi lưu điểm danh.");
+            RemoveLegacyCreatorAttendance(session);
             var attendanceByUser = session.Attendees.ToDictionary(x => x.UserId);
             foreach (var entry in entries)
             {
@@ -207,6 +209,15 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
                 row.Attended = entry.Attended!.Value;
             }
         }, ct);
+
+    // Older versions enrolled the instructor as a learner. Remove that legacy row on writes.
+    private void RemoveLegacyCreatorAttendance(GroupStudySession session)
+    {
+        var creatorAttendance = session.Attendees.SingleOrDefault(attendee => attendee.UserId == session.CreatedByUserId);
+        if (creatorAttendance is null) return;
+        session.Attendees.Remove(creatorAttendance);
+        data.Remove(creatorAttendance);
+    }
 
     private Task SaveAssignmentAsyncCore(long groupId, long userId, GroupAssignment input, IReadOnlyList<long> assignees, CancellationToken ct) =>
         WriteAsync(groupId, userId, true, async _ =>
@@ -308,6 +319,11 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             .OrderBy(x => x.User.DisplayName).Select(x => new LearningMember(x.UserId, x.User.DisplayName)).ToListAsync(ct);
         var sessions = await data.Query<GroupStudySession>(false).AsNoTracking().Where(x => x.StudyGroupId == groupId)
             .Include(x => x.Attendees).ThenInclude(x => x.User).AsSplitQuery().OrderByDescending(x => x.StartsAtUtc).ToListAsync(ct);
+        foreach (var session in sessions)
+        {
+            // Detached projection also excludes instructors from legacy sessions and progress totals.
+            session.Attendees = session.Attendees.Where(attendee => attendee.UserId != session.CreatedByUserId).ToList();
+        }
         var assignments = await data.Query<GroupAssignment>(false).AsNoTracking().Where(x => x.StudyGroupId == groupId)
             .Include(x => x.Assignees).ThenInclude(x => x.User)
             .Include(x => x.Assignees).ThenInclude(x => x.Submissions).AsSplitQuery().OrderByDescending(x => x.DueAtUtc).ToListAsync(ct);
