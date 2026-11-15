@@ -58,6 +58,9 @@
                 <i class="bi bi-type"></i><span>Tên sự kiện <span class="text-danger">*</span></span>
             </label>
             <input id="event-title" type="text" class="calendar-form-input" placeholder="Ví dụ: Kiểm tra 1 tiết Toán, Học nhóm giải tích..." />
+            <div id="event-title-error" class="text-danger small mt-1 d-none" style="font-size: 12.5px; font-weight: 500;">
+                <i class="bi bi-exclamation-circle-fill me-1"></i>Vui lòng nhập tên sự kiện
+            </div>
         </div>
         
         <!-- Ngày, Giờ bắt đầu, Giờ kết thúc -->
@@ -162,8 +165,24 @@
             container.appendChild(row);
         }
 
+        // Tự động ẩn lỗi khi người dùng bắt đầu gõ tên sự kiện
+        document.addEventListener('DOMContentLoaded', () => {
+            const titleInput = document.getElementById('event-title');
+            if (titleInput) {
+                titleInput.addEventListener('input', function() {
+                    const titleError = document.getElementById('event-title-error');
+                    if (this.value.trim().length > 0) {
+                        if (titleError) titleError.classList.add('d-none');
+                        this.classList.remove('border-danger');
+                    }
+                });
+            }
+        });
+
         async function submitEvent() {
-            const title = document.getElementById('event-title').value;
+            const titleInput = document.getElementById('event-title');
+            const titleError = document.getElementById('event-title-error');
+            const title = titleInput ? titleInput.value : '';
             const date = document.getElementById('event-date').value;
             let start = document.getElementById('event-start').value;
             let end = document.getElementById('event-end').value;
@@ -171,8 +190,21 @@
             const loc = document.getElementById('event-location').value;
             const desc = document.getElementById('event-description').value;
 
-            if (!title || !title.trim() || !date || !start || !end || !category) {
-                showToast('Vui lòng điền đủ thông tin bắt buộc', 'error');
+            // Kiểm tra riêng trường Tên sự kiện: hiện chữ đỏ ngay bên dưới và focus
+            if (!title || !title.trim()) {
+                if (titleError) titleError.classList.remove('d-none');
+                if (titleInput) {
+                    titleInput.classList.add('border-danger');
+                    titleInput.focus();
+                }
+                return;
+            } else {
+                if (titleError) titleError.classList.add('d-none');
+                if (titleInput) titleInput.classList.remove('border-danger');
+            }
+
+            if (!date || !start || !end || !category) {
+                showToast('Vui lòng điền đủ thông tin thời gian và loại sự kiện', 'error');
                 return;
             }
 

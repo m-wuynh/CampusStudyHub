@@ -37,10 +37,13 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
     {
         var utcNow = DateTime.UtcNow;
         // Chỉ lấy nhắc nhở dạng thông báo thường trên web (InApp), loại trừ thông báo Gmail/Email
+        // Giới hạn trong vòng 24 giờ qua để loại bỏ các nhắc nhở cũ/tồn đọng từ các ngày trước
+        var minRemindAtUtc = utcNow.AddHours(-24);
         var reminders = await repository.ListAsync<Reminder>(r => 
             r.UserId == userId && 
             r.Status == "Pending" && 
             r.RemindAtUtc <= utcNow && 
+            r.RemindAtUtc >= minRemindAtUtc &&
             r.Channel != "Email" && 
             r.Channel != "gmail");
         
