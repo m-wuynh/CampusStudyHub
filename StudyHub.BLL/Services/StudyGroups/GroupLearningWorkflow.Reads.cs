@@ -1,28 +1,31 @@
+using StudyHub.DAL.Entities.Pdf;
+using StudyHub.DAL.Repositories.Common;
 using Microsoft.EntityFrameworkCore;
 using StudyHub.DAL.Entities;
-using StudyHub.DAL.Repositories.Pdf;
-using StudyHub.DAL.Repositories.StudyGroups.Models;
+using StudyHub.BLL.Services.Pdf.Sharing;
+using StudyHub.BLL.Services.Pdf;
+using StudyHub.BLL.Services.StudyGroups.Models;
 
-namespace StudyHub.DAL.Repositories.StudyGroups;
+namespace StudyHub.BLL.Services.StudyGroups;
 
-public sealed partial class SqlGroupLearningRepository
+public sealed partial class GroupLearningWorkflow
 {
     public async Task<GroupLearningData> GetAsync(long groupId, long userId, DateOnly weekStart, CancellationToken ct)
     {
         var manage = await AccessAsync(groupId, userId, false, ct);
-        var members = await db.GroupMembers.AsNoTracking().Where(x => x.StudyGroupId == groupId && x.Status == "Active")
+        var members = await data.Query<GroupMember>(false).AsNoTracking().Where(x => x.StudyGroupId == groupId && x.Status == "Active")
             .OrderBy(x => x.User.DisplayName).Select(x => new LearningMember(x.UserId, x.User.DisplayName)).ToListAsync(ct);
-        var sessions = await db.GroupStudySessions.AsNoTracking().Where(x => x.StudyGroupId == groupId)
+        var sessions = await data.Query<GroupStudySession>(false).AsNoTracking().Where(x => x.StudyGroupId == groupId)
             .Include(x => x.Attendees).ThenInclude(x => x.User).AsSplitQuery().OrderByDescending(x => x.StartsAtUtc).ToListAsync(ct);
-        var assignments = await db.GroupAssignments.AsNoTracking().Where(x => x.StudyGroupId == groupId)
+        var assignments = await data.Query<GroupAssignment>(false).AsNoTracking().Where(x => x.StudyGroupId == groupId)
             .Include(x => x.Assignees).ThenInclude(x => x.User)
             .Include(x => x.Assignees).ThenInclude(x => x.Submissions).AsSplitQuery().OrderByDescending(x => x.DueAtUtc).ToListAsync(ct);
-        var questions = await db.GroupQuestions.AsNoTracking().Where(x => x.StudyGroupId == groupId)
+        var questions = await data.Query<GroupQuestion>(false).AsNoTracking().Where(x => x.StudyGroupId == groupId)
             .Include(x => x.Author).Include(x => x.Answers).ThenInclude(x => x.Author)
             .AsSplitQuery().OrderByDescending(x => x.CreatedAtUtc).ToListAsync(ct);
         var resources = await ResourcesAsync(groupId, userId, false, ct);
         var available = await ResourcesAsync(groupId, userId, true, ct);
-        var goal = await db.GroupWeeklyGoals.AsNoTracking().SingleOrDefaultAsync(x => x.StudyGroupId == groupId && x.WeekStart == weekStart, ct);
+        var goal = await data.Query<GroupWeeklyGoal>(false).AsNoTracking().SingleOrDefaultAsync(x => x.StudyGroupId == groupId && x.WeekStart == weekStart, ct);
 
         // Weekly reporting uses Vietnam's calendar boundaries, not the server's local time.
         var start = new DateTimeOffset(weekStart.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7)).ToUniversalTime();
@@ -66,7 +69,7 @@ public sealed partial class SqlGroupLearningRepository
     bool available,
     CancellationToken ct)
 {
-    var decks = db.FlashcardDecks
+    var decks = data.Query<FlashcardDeck>(false)
         .AsNoTracking()
         .Where(x => !x.IsDeleted);
 
@@ -90,17 +93,17 @@ public sealed partial class SqlGroupLearningRepository
 
     if (available)
     {
-        var pdfs = await db.PdfDocuments
+        var pdfs = await data.Query<PdfDocument>(false)
             .AsNoTracking()
             .Where(document =>
                 document.OwnerUserId == userId &&
                 !document.IsDeleted &&
-                !db.PdfDocumentShares.Any(share =>
+                !data.Query<PdfDocumentShare>(false).Any(share =>
                     share.DocumentId == document.DocumentId &&
                     share.StudyGroupId == groupId &&
                     share.IsActive))
             .Join(
-                db.Users.AsNoTracking(),
+                data.Query<User>(false).AsNoTracking(),
                 document => document.OwnerUserId,
                 owner => owner.UserId,
                 (document, owner) => new SharedResourceData(
@@ -116,10 +119,10 @@ public sealed partial class SqlGroupLearningRepository
     else
     {
         var pdfs = await (
-            from share in db.PdfDocumentShares.AsNoTracking()
-            join document in db.PdfDocuments.AsNoTracking()
+            from share in data.Query<PdfDocumentShare>(false).AsNoTracking()
+            join document in data.Query<PdfDocument>(false).AsNoTracking()
                 on share.DocumentId equals document.DocumentId
-            join owner in db.Users.AsNoTracking()
+            join owner in data.Query<User>(false).AsNoTracking()
                 on document.OwnerUserId equals owner.UserId
             where share.StudyGroupId == groupId &&
                   share.IsActive &&
@@ -155,8 +158,6 @@ public sealed partial class SqlGroupLearningRepository
         {
             if (string.Equals(kind, "Pdf", StringComparison.OrdinalIgnoreCase))
             {
-                // Business logic (ownership check, duplicate check, auth)
-                // được xử lý bởi PdfSharingService ở BLL — không còn ở DAL.
                 try
                 {
                     if (shared)
@@ -170,11 +171,9 @@ public sealed partial class SqlGroupLearningRepository
                             resourceId, groupId, userId, manage, ct);
                     }
                 }
-                catch (Exception ex) when (ex is not StudyGroupRepositoryException)
+                catch (PdfException ex)
                 {
-                    // Map PdfException → StudyGroupRepositoryException
-                    // để caller (BLL GroupLearningService) nhận được lỗi đúng format.
-                    var statusCode = (int?)ex.GetType().GetProperty("StatusCode")?.GetValue(ex);
+                    var statusCode = ex.StatusCode;
                     var code = statusCode switch
                     {
                         403 => "forbidden",
@@ -182,7 +181,7 @@ public sealed partial class SqlGroupLearningRepository
                         409 => "update_conflict",
                         _ => "invalid_action"
                     };
-                    throw new StudyGroupRepositoryException(code, ex.Message);
+                    throw new StudyGroupWorkflowException(code, ex.Message);
                 }
 
                 return;
@@ -193,7 +192,7 @@ public sealed partial class SqlGroupLearningRepository
                 throw Missing();
             }
 
-            var deck = await db.FlashcardDecks
+            var deck = await data.Query<FlashcardDeck>(false)
                 .SingleOrDefaultAsync(
                     x => x.DeckId == resourceId &&
                          !x.IsDeleted,
@@ -206,7 +205,7 @@ public sealed partial class SqlGroupLearningRepository
                  deck.OwnerUserId != userId &&
                  !manage))
             {
-                throw new StudyGroupRepositoryException(
+                throw new StudyGroupWorkflowException(
                     "forbidden",
                     "Bạn không có quyền thay đổi chia sẻ tài nguyên này.");
             }
@@ -243,7 +242,7 @@ public sealed partial class SqlGroupLearningRepository
         throw Missing();
     }
 
-    var deck = await db.FlashcardDecks
+    var deck = await data.Query<FlashcardDeck>(false)
         .AsNoTracking()
         .SingleOrDefaultAsync(
             x => x.DeckId == resourceId &&
@@ -253,7 +252,7 @@ public sealed partial class SqlGroupLearningRepository
             ct)
         ?? throw Missing();
 
-    var cards = await db.Flashcards
+    var cards = await data.Query<Flashcard>(false)
         .AsNoTracking()
         .Where(x =>
             x.DeckId == resourceId &&

@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="~/css/group-learning.css" asp-append-version="true" />
 <div id="group-details-page"
      data-group-id="@Model.Group.Id"
+     data-learning-url="@Url.Content($"~/Groups/{Model.Group.Id}/Learning/")"
      data-current-user-id="@Model.Group.Members.FirstOrDefault(member => member.IsCurrentUser)?.UserId"
      data-is-member="@Model.Group.IsMember.ToString().ToLowerInvariant()"
      data-is-owner="@Model.Group.IsOwner.ToString().ToLowerInvariant()"
@@ -211,7 +212,8 @@
     </div>
 
     <div id="gl-resources" aria-live="polite">
-        <p>Đang tải tài nguyên…</p>
+        @{ ViewData["LearningPanel"] = "resources"; }
+        <partial name="_LearningContent" model="Model" />
     </div>
 </section>
 
@@ -267,5 +269,5 @@
 @section Scripts {
   <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@9.0.6/dist/browser/signalr.min.js"></script>
   <script src="~/js/group-details.js" asp-append-version="true"></script>
-  <script src="~/js/group-learning.js" asp-append-version="true"></script>
+  <script src="~/js/group-learning-forms.js" asp-append-version="true"></script>
 }

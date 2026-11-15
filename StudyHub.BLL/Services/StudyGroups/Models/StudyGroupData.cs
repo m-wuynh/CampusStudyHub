@@ -1,4 +1,4 @@
-namespace StudyHub.DAL.Repositories.StudyGroups.Models;
+namespace StudyHub.BLL.Services.StudyGroups.Models;
 
 public sealed class StudyGroupData
 {
@@ -96,7 +96,7 @@ public sealed class UpdateStudyGroupData
     public short? MaxMembers { get; init; }
 }
 
-public sealed class StudyGroupRepositoryException(string code, string message) : Exception(message)
+public sealed class StudyGroupWorkflowException(string code, string message) : Exception(message)
 {
     public string Code { get; } = code;
 }

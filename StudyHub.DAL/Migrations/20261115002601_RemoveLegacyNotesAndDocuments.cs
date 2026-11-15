@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,53 +11,23 @@ namespace StudyHub.DAL.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "AuditLogs");
-
-            migrationBuilder.DropTable(
-                name: "ContentReports");
-
-            migrationBuilder.DropTable(
-                name: "DocumentAnnotations");
-
-            migrationBuilder.DropTable(
-                name: "DocumentBookmarks");
-
-            migrationBuilder.DropTable(
-                name: "GroupAnnotationSessions");
-
-            migrationBuilder.DropTable(
-                name: "GroupAnnotationSets");
-
-            migrationBuilder.DropTable(
-                name: "GroupChangeRequests");
-
-            migrationBuilder.DropTable(
-                name: "GroupNoteRevisions");
-
-            migrationBuilder.DropTable(
-                name: "NoteReferenceLinks");
-
-            migrationBuilder.DropTable(
-                name: "NotesOutboxEvents");
-
-            migrationBuilder.DropTable(
-                name: "PdfPageNotes");
-
-            migrationBuilder.DropTable(
-                name: "GroupDocumentShares");
-
-            migrationBuilder.DropTable(
-                name: "GroupNotes");
-
-            migrationBuilder.DropTable(
-                name: "DocumentVersions");
-
-            migrationBuilder.DropTable(
-                name: "Notes");
-
-            migrationBuilder.DropTable(
-                name: "Documents");
+            // Optional legacy tables may already be absent. Drop children before parents.
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[AuditLogs];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[ContentReports];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[DocumentAnnotations];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[DocumentBookmarks];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[GroupAnnotationSessions];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[GroupAnnotationSets];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[GroupChangeRequests];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[GroupNoteRevisions];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[NoteReferenceLinks];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[NotesOutboxEvents];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[PdfPageNotes];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[GroupDocumentShares];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[GroupNotes];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[DocumentVersions];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[Notes];");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS [dbo].[Documents];");
         }
 
         /// <inheritdoc />

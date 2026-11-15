@@ -1,4 +1,4 @@
-namespace StudyHub.DAL.Repositories.StudyGroups.Models;
+namespace StudyHub.BLL.Services.StudyGroups.Models;
 
 public sealed record LearningMember(long UserId, string Name);
 public sealed record AttendanceData(long UserId, string Name, bool Attended);

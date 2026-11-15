@@ -1,8 +1,8 @@
-using StudyHub.DAL.Repositories.StudyGroups.Models;
+using StudyHub.BLL.Services.StudyGroups.Models;
 
-namespace StudyHub.DAL.Repositories.StudyGroups;
+namespace StudyHub.BLL.Services.StudyGroups;
 
-public interface IStudyGroupRepository
+public interface IStudyGroupWorkflow
 {
     Task DeleteAsync(long groupId, long ownerUserId, CancellationToken cancellationToken = default);
 

@@ -1,11 +1,5 @@
-namespace StudyHub.DAL.Repositories.Pdf;
+namespace StudyHub.BLL.Services.Pdf.Sharing;
 
-/// <summary>
-/// Port contract cho PDF sharing operations.
-/// Được định nghĩa ở DAL để SqlGroupLearningRepository có thể phụ thuộc
-/// mà không tạo circular dependency DAL → BLL.
-/// Implementation nằm ở BLL (PdfSharingService).
-/// </summary>
 public interface IPdfSharingService
 {
     /// <summary>

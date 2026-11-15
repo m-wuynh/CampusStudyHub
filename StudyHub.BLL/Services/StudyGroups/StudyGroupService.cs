@@ -1,19 +1,20 @@
 using StudyHub.BLL.DTOs;
-using StudyHub.BLL.Services.Auth;
 using StudyHub.DAL.Repositories.Common;
-using StudyHub.DAL.Repositories.StudyGroups.Models;
+using StudyHub.BLL.Services.Auth;
+
+using StudyHub.BLL.Services.StudyGroups.Models;
 
 namespace StudyHub.BLL.Services.StudyGroups;
 
-public sealed class StudyGroupService(IRepository repository, ICurrentUser currentUser) : IStudyGroupService
+public sealed class StudyGroupService(IStudyGroupWorkflow workflow, ICurrentUser currentUser, IRepository data) : IStudyGroupService
 {
     public Task DeleteGroupAsync(string groupId, CancellationToken cancellationToken = default) =>
-        ExecuteAsync(() => repository.StudyGroups.DeleteAsync(
+        ExecuteAsync(() => workflow.DeleteAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken));
 
     public async Task<IReadOnlyList<GroupSubjectOptionResponse>> GetSubjectOptionsAsync(
         CancellationToken cancellationToken = default) =>
-        (await repository.StudyGroups.GetSubjectOptionsAsync(currentUser.UserId, cancellationToken))
+        (await workflow.GetSubjectOptionsAsync(currentUser.UserId, cancellationToken))
             .Select(item => new GroupSubjectOptionResponse(item.Name, item.IsCustom))
             .ToList();
 
@@ -21,7 +22,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         string? searchText = null,
         CancellationToken cancellationToken = default)
     {
-        var groups = await repository.StudyGroups.GetVisibleAsync(
+        var groups = await workflow.GetVisibleAsync(
             currentUser.UserId, searchText, cancellationToken);
         return groups
             .OrderByDescending(group => group.CurrentMembershipStatus == "Active")
@@ -36,24 +37,24 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         CancellationToken cancellationToken = default)
     {
         var id = ParseId(groupId, "Mã nhóm không hợp lệ.");
-        var group = await repository.StudyGroups.GetAsync(id, currentUser.UserId, cancellationToken);
+        var group = await workflow.GetAsync(id, currentUser.UserId, cancellationToken);
         return group is null ? null : ToDetails(group);
     }
 
     public async Task<GroupMembershipResponse> JoinAsync(
         string groupId,
         CancellationToken cancellationToken = default) =>
-        ToMembership(await ExecuteAsync(() => repository.StudyGroups.RequestJoinAsync(
+        ToMembership(await ExecuteAsync(() => workflow.RequestJoinAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken)));
 
     public async Task<GroupMembershipResponse> LeaveOrWithdrawAsync(
         string groupId,
         CancellationToken cancellationToken = default) =>
-        ToMembership(await ExecuteAsync(() => repository.StudyGroups.LeaveOrWithdrawAsync(
+        ToMembership(await ExecuteAsync(() => workflow.LeaveOrWithdrawAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken)));
 
     public async Task<GroupMembershipResponse> RequestUnbanAsync(string groupId, CancellationToken cancellationToken = default) =>
-        ToMembership(await ExecuteAsync(() => repository.StudyGroups.RequestUnbanAsync(
+        ToMembership(await ExecuteAsync(() => workflow.RequestUnbanAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken)));
 
     public Task<GroupPostResponse> AddMessageAsync(
@@ -87,7 +88,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         ValidateLength(request.MeetingSchedule, 250, "Lịch học không được dài quá 250 ký tự.");
         ValidateLength(request.Rules, 2000, "Nội quy không được dài quá 2000 ký tự.");
 
-        var created = await ExecuteAsync(() => repository.StudyGroups.CreateAsync(new CreateStudyGroupData
+        var created = await ExecuteAsync(() => workflow.CreateAsync(new CreateStudyGroupData
         {
             OwnerUserId = currentUser.UserId,
             Name = name,
@@ -123,7 +124,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         ValidateLength(request.MeetingSchedule, 250, "Lịch học không được dài quá 250 ký tự.");
         ValidateLength(request.Rules, 2000, "Nội quy không được dài quá 2000 ký tự.");
 
-        var updated = await ExecuteAsync(() => repository.StudyGroups.UpdateAsync(
+        var updated = await ExecuteAsync(() => workflow.UpdateAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."),
             currentUser.UserId,
             new UpdateStudyGroupData
@@ -151,7 +152,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
     {
         var normalizedAction = NormalizeChoice(action, string.Empty,
             ["approve", "reject", "kick", "ban", "unban", "promote", "demote"], "Thao tác thành viên không hợp lệ.");
-        return ExecuteAsync(() => repository.StudyGroups.ManageMemberAsync(
+        return ExecuteAsync(() => workflow.ManageMemberAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."),
             currentUser.UserId,
             ParseId(targetUserId, "Mã thành viên không hợp lệ."),
@@ -169,7 +170,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
             throw new StudyGroupException("invalid_expiry", "Lời mời phải có hạn từ 1 đến 30 ngày.");
         if (maxUses is < 1 or > 1000)
             throw new StudyGroupException("invalid_uses", "Số lượt dùng phải từ 1 đến 1000.");
-        var invite = await ExecuteAsync(() => repository.StudyGroups.CreateInviteAsync(
+        var invite = await ExecuteAsync(() => workflow.CreateInviteAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId,
             expiresInDays, maxUses, cancellationToken));
         return ToInvite(invite);
@@ -180,20 +181,20 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         CancellationToken cancellationToken = default)
     {
         var normalized = NormalizeInviteCode(inviteCode);
-        var invite = await repository.StudyGroups.GetInviteAsync(normalized, cancellationToken);
+        var invite = await workflow.GetInviteAsync(normalized, cancellationToken);
         return invite is null ? null : ToInvite(invite);
     }
 
     public async Task<GroupMembershipResponse> AcceptInviteAsync(
         string inviteCode,
         CancellationToken cancellationToken = default) =>
-        ToMembership(await ExecuteAsync(() => repository.StudyGroups.AcceptInviteAsync(
+        ToMembership(await ExecuteAsync(() => workflow.AcceptInviteAsync(
             NormalizeInviteCode(inviteCode), currentUser.UserId, cancellationToken)));
 
     public Task<bool> CanAccessChatAsync(
         string groupId,
         CancellationToken cancellationToken = default) =>
-        repository.StudyGroups.IsActiveMemberAsync(
+        workflow.IsActiveMemberAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId, cancellationToken);
 
     private async Task<GroupPostResponse> AddPostAsync(
@@ -205,7 +206,7 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         CancellationToken cancellationToken)
     {
         var normalized = Required(content, "Nội dung không được để trống.", maxLength);
-        var post = await ExecuteAsync(() => repository.StudyGroups.AddPostAsync(
+        var post = await ExecuteAsync(() => workflow.AddPostAsync(
             ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId,
             normalized, postType, isPinned, cancellationToken));
         return ToPost(post);
@@ -359,19 +360,21 @@ public sealed class StudyGroupService(IRepository repository, ICurrentUser curre
         return normalized;
     }
 
-    private static async Task<T> ExecuteAsync<T>(Func<Task<T>> action)
+    private async Task<T> ExecuteAsync<T>(Func<Task<T>> action)
     {
-        try { return await action(); }
-        catch (StudyGroupRepositoryException exception) { throw Map(exception); }
+        try { return await data.ExecuteAsync(action); }
+        catch (StudyGroupWorkflowException exception) { throw Map(exception); }
+        catch (DataConflictException exception) { throw new StudyGroupException("update_conflict", exception.Message, 409); }
     }
 
-    private static async Task ExecuteAsync(Func<Task> action)
+    private async Task ExecuteAsync(Func<Task> action)
     {
-        try { await action(); }
-        catch (StudyGroupRepositoryException exception) { throw Map(exception); }
+        try { await data.ExecuteAsync(async () => { await action(); return true; }); }
+        catch (StudyGroupWorkflowException exception) { throw Map(exception); }
+        catch (DataConflictException exception) { throw new StudyGroupException("update_conflict", exception.Message, 409); }
     }
 
-    private static StudyGroupException Map(StudyGroupRepositoryException exception) =>
+    private static StudyGroupException Map(StudyGroupWorkflowException exception) =>
         new(exception.Code, exception.Message, exception.Code switch
         {
             "not_found" or "member_not_found" or "invite_not_found" => 404,

@@ -1,0 +1,167 @@
+@model StudyGroupDetailsViewModel
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    var data = Model.Learning;
+    var panel = ViewData["LearningPanel"] as string;
+    var now = DateTimeOffset.UtcNow;
+    string Date(DateTimeOffset value) => value.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm");
+    string Status(string value) => value switch { "Submitted" => "Đã nộp", "Completed" => "Hoàn thành", "NeedsRevision" => "Cần sửa", _ => value };
+    bool WebUrl(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https";
+    IHtmlContent Button(string action, string label, long? id = null, string? attribute = null, string? value = null)
+    {
+        var tag = new TagBuilder("button");
+        tag.Attributes["type"] = "button";
+        tag.Attributes["class"] = "btn-secondary-sh";
+        tag.Attributes["data-gl-action"] = action;
+        if (id.HasValue) tag.Attributes["data-id"] = id.Value.ToString();
+        if (attribute != null) tag.Attributes[attribute] = value ?? "";
+        tag.InnerHtml.Append(label);
+        return tag;
+    }
+}
+@if (data is null)
+{
+    <p class="gl-empty">Không tải được dữ liệu học tập. Vui lòng tải lại trang.</p>
+}
+else if (panel == "sessions")
+{
+    @if (data.CanManage) { @Button("session-new", "+ Tạo buổi học") }
+    <div class="gl-list">
+    @foreach (var session in data.Sessions.OrderByDescending(s => s.Status == "Scheduled" && s.EndsAtUtc > now).ThenBy(s => s.Status == "Scheduled" && s.EndsAtUtc > now ? s.StartsAtUtc.UtcTicks : -s.StartsAtUtc.UtcTicks))
+    {
+        var scheduled = session.Status == "Scheduled";
+        var started = session.StartsAtUtc <= now;
+        var registered = session.Attendees.Any(a => a.UserId == data.CurrentUserId);
+        <article class="gl-card">
+            <h3>@session.Title</h3><span class="gl-badge">@(session.Status switch { "Scheduled" => "Đã lên lịch", "Completed" => "Đã kết thúc", _ => "Đã hủy" })</span>
+            <div class="gl-meta">@Date(session.StartsAtUtc) → @Date(session.EndsAtUtc)</div>
+            <p><strong>Mục tiêu:</strong> @session.Objective</p>
+            @if (!string.IsNullOrEmpty(session.Preparation)) { <p><strong>Chuẩn bị:</strong> @session.Preparation</p> }
+            @if (!string.IsNullOrEmpty(session.Location)) { <p>📍 @session.Location</p> }
+            @if (WebUrl(session.MeetingUrl)) { <a href="@session.MeetingUrl" target="_blank" rel="noopener noreferrer">Mở liên kết buổi học ↗</a> }
+            <div class="gl-meta">@session.Attendees.Count đăng ký · @session.Attendees.Count(a => a.Attended) có mặt</div>
+            @if (session.Attendees.Count > 0) { <details><summary>Người tham gia</summary><p>@string.Join(" · ", session.Attendees.Select(a => a.Name + (a.Attended ? " ✓" : "")))</p></details> }
+            @if (!string.IsNullOrEmpty(session.Summary)) { <p><strong>@(session.Status == "Cancelled" ? "Lý do hủy" : "Tổng kết"):</strong> @session.Summary</p> }
+            <div class="gl-actions">
+                @if (scheduled && !started) { @Button("session-register", registered ? "Hủy đăng ký" : "Đăng ký tham gia", session.Id, "data-registered", (!registered).ToString().ToLowerInvariant()) }
+                @if (data.CanManage && scheduled && !started) { @Button("session-edit", "Sửa lịch", session.Id) }
+                @if (data.CanManage && session.Status != "Cancelled" && started) { @Button("attendance", "Điểm danh", session.Id) }
+                @if (data.CanManage && scheduled && started) { @Button("session-complete", "Kết thúc & tổng kết", session.Id) }
+                @if (data.CanManage && scheduled) { @Button("session-cancel", "Hủy buổi học", session.Id) }
+            </div>
+        </article>
+    }
+    </div>
+    @if (data.Sessions.Count == 0) { <p class="gl-empty">Chưa có buổi học. Người quản lý có thể tạo lịch học đầu tiên.</p> }
+}
+else if (panel == "assignments")
+{
+    @if (data.CanManage) { @Button("assignment-new", "+ Giao bài tập") }
+    <div class="gl-list">
+    @foreach (var assignment in data.Assignments)
+    {
+        var mine = assignment.Submissions.Where(s => s.UserId == data.CurrentUserId).OrderByDescending(s => s.Version).FirstOrDefault();
+        var canSubmit = assignment.Status == "Open" && assignment.Assignees.Any(a => a.UserId == data.CurrentUserId) && mine?.Status != "Completed" && (assignment.AllowLateSubmission || assignment.DueAtUtc >= now);
+        var latestIds = assignment.Assignees.Select(a => assignment.Submissions.Where(s => s.UserId == a.UserId).OrderByDescending(s => s.Version).FirstOrDefault()?.Id).ToHashSet();
+        var session = data.Sessions.FirstOrDefault(s => s.Id == assignment.SessionId);
+        <article class="gl-card">
+            <h3>@assignment.Title</h3><span class="gl-badge">@(assignment.Status == "Open" ? "Đang mở" : "Đã đóng")</span>
+            @if (mine != null) { <span class="gl-badge">@Status(mine.Status)</span> }
+            <div class="gl-meta">Hạn nộp: @Date(assignment.DueAtUtc) · @(assignment.AllowLateSubmission ? "Cho phép nộp muộn" : "Không nhận bài muộn")</div>
+            @if (session != null) { <div class="gl-meta">Buổi học: @session.Title</div> }
+            <p>@assignment.Description</p>
+            <details><summary>Giao cho @assignment.Assignees.Count người</summary><p>@string.Join(" · ", assignment.Assignees.Select(a => a.Name))</p></details>
+            <div class="gl-actions">
+                @if (canSubmit) { @Button("submit", mine == null ? "Nộp bài" : "Nộp phiên bản mới", assignment.Id) }
+                @if (data.CanManage && assignment.Status == "Open") { @Button("assignment-edit", "Sửa bài tập", assignment.Id) @Button("assignment-close", "Đóng nhận bài", assignment.Id) }
+            </div>
+            <details class="mt-3"><summary>@(data.CanManage ? "Bài nộp và lịch sử phản hồi" : "Lịch sử bài nộp của bạn") (@assignment.Submissions.Count)</summary>
+            @foreach (var submission in assignment.Submissions)
+            {
+                <div class="gl-answer">
+                    <strong>@submission.Name · Lần @submission.Version</strong> <span class="gl-badge">@Status(submission.Status)</span>
+                    <div class="gl-meta">@Date(submission.SubmittedAtUtc)@(submission.IsLate ? " · Nộp muộn" : "")</div><p>@submission.Content</p>
+                    @if (WebUrl(submission.ResourceUrl)) { <a href="@submission.ResourceUrl" target="_blank" rel="noopener noreferrer">Xem bài làm ↗</a> }
+                    @if (!string.IsNullOrEmpty(submission.Feedback)) { <p><strong>Phản hồi:</strong> @submission.Feedback</p> }
+                    @if (data.CanManage && latestIds.Contains(submission.Id)) { <div class="gl-actions">@Button("review", "Nhận xét / đánh giá", assignment.Id, "data-submission", submission.Id.ToString())</div> }
+                </div>
+            }
+            @if (assignment.Submissions.Count == 0) { <p class="gl-empty">Chưa có bài nộp.</p> }
+            </details>
+        </article>
+    }
+    </div>
+    @if (data.Assignments.Count == 0) { <p class="gl-empty">Chưa có bài tập được giao.</p> }
+}
+else if (panel == "questions")
+{
+    @Button("question-new", "+ Đặt câu hỏi")
+    <div class="gl-list">
+    @foreach (var question in data.Questions)
+    {
+        <article class="gl-card" data-question-search="@($"{question.Title} {question.Subject} {question.Body}")">
+            <h3>@question.Title</h3><span class="gl-badge">@question.Subject</span><span class="gl-badge">@(question.AcceptedAnswerId.HasValue ? "Đã giải quyết" : "Đang trao đổi")</span>
+            <div class="gl-meta">@question.AuthorName · @Date(question.CreatedAtUtc)</div><p>@question.Body</p>
+            <details><summary>@question.Answers.Count câu trả lời</summary>
+            @foreach (var answer in question.Answers)
+            {
+                <div class="gl-answer @(answer.Id == question.AcceptedAnswerId ? "accepted" : "")">
+                    <strong>@answer.AuthorName</strong>
+                    @if (answer.Id == question.AcceptedAnswerId) { <span class="gl-badge good">Câu trả lời được chọn</span> }
+                    <div class="gl-meta">@Date(answer.CreatedAtUtc)</div><p>@answer.Body</p>
+                    @if (data.CanManage || question.AuthorUserId == data.CurrentUserId) { @Button("answer-accept", answer.Id == question.AcceptedAnswerId ? "Bỏ chọn" : "Chọn câu trả lời", question.Id, "data-answer", answer.Id == question.AcceptedAnswerId ? "" : answer.Id.ToString()) }
+                </div>
+            }
+            </details>
+            <div class="gl-actions">@Button("answer", "Viết câu trả lời", question.Id)</div>
+        </article>
+    }
+    </div>
+    <p id="gl-question-empty" class="gl-empty" hidden="@(data.Questions.Count != 0)">@(data.Questions.Count == 0 ? "Chưa có câu hỏi. Hãy chia sẻ điều bạn đang thắc mắc." : "Không tìm thấy câu hỏi phù hợp.")</p>
+}
+else if (panel == "resources")
+{
+    var resources = data.Resources.Where(r => r.Kind is "Flashcard" or "Pdf").ToList();
+    <div class="gl-actions mb-3">@Button("flashcard-share", "+ Chia sẻ flashcard") @Button("pdf-share", "+ Chia sẻ tài liệu")</div>
+    <div class="gl-list">
+    @foreach (var resource in resources)
+    {
+        var url = resource.Kind == "Pdf" ? Url.Content($"~/Pdf/Documents/{resource.Id}?shareId={resource.ShareId}") : Url.Action("Read", "GroupResources", new { groupId = Model.Group.Id, kind = resource.Kind, id = resource.Id });
+        <article class="gl-card"><h3>@resource.Title</h3><div class="gl-meta">@(resource.Kind == "Pdf" ? "PDF" : "Flashcard") · @resource.OwnerName</div>
+            <div class="gl-actions">
+                <a class="btn-primary-sh" href="@url">@(resource.Kind == "Pdf" ? "Xem tài liệu" : "Mở flashcard")</a>
+                @if (data.CanManage || resource.OwnerUserId == data.CurrentUserId) { @Button("resource-unshare", "Gỡ chia sẻ", resource.Id, "data-kind", resource.Kind) }
+            </div>
+        </article>
+    }
+    </div>
+    @if (resources.Count == 0) { <p class="gl-empty">Nhóm chưa có tài liệu hoặc flashcard được chia sẻ.</p> }
+}
+else if (panel == "progress")
+{
+    var progress = data.Progress;
+    var goal = progress.Goal;
+    var rate = progress.Assigned == 0 ? 0 : (int)Math.Round(progress.Completed * 100.0 / progress.Assigned);
+    @if (data.CanManage) { @Button("goal", goal == null ? "+ Đặt mục tiêu tuần" : "Sửa mục tiêu tuần") }
+    <div class="gl-metrics">
+        <div class="gl-metric"><strong>@progress.CompletedSessions</strong><span>Buổi học đã kết thúc</span></div>
+        <div class="gl-metric"><strong>@progress.Submitted/@progress.Assigned</strong><span>Lượt giao bài đã được nộp</span></div>
+        <div class="gl-metric"><strong>@progress.Completed/@progress.Assigned</strong><span>Lượt giao bài đã hoàn thành</span></div>
+        <div class="gl-metric"><strong>@rate%</strong><span>Tỷ lệ hoàn thành</span></div>
+    </div>
+    @if (goal != null)
+    {
+        <article class="gl-card"><h3>@goal.Title</h3>
+            @if (goal.TargetSessions > 0) { <p>Buổi học: @progress.CompletedSessions/@goal.TargetSessions</p><progress aria-label="Mục tiêu buổi học" value="@Math.Min(progress.CompletedSessions, goal.TargetSessions)" max="@goal.TargetSessions"></progress> }
+            @if (goal.TargetAssignments > 0) { <p>Bài tập mà mọi người được giao đã hoàn thành: @progress.FullyCompletedAssignments/@goal.TargetAssignments</p><progress aria-label="Mục tiêu bài tập" value="@Math.Min(progress.FullyCompletedAssignments, goal.TargetAssignments)" max="@goal.TargetAssignments"></progress> }
+        </article>
+    }
+    else { <p class="gl-empty">Tuần này chưa đặt mục tiêu.</p> }
+    <div class="gl-card mt-3"><h3>@(data.CanManage ? "Tiến độ thành viên hiện tại" : "Tiến độ của bạn")</h3>
+        <div class="gl-table-scroll"><table class="gl-table"><thead><tr><th>Thành viên</th><th>Có mặt / đăng ký*</th><th>Đã nộp / được giao</th><th>Hoàn thành</th></tr></thead><tbody>
+        @foreach (var member in progress.Members) { <tr><td>@member.Name</td><td>@member.AttendedSessions/@member.RegisteredSessions</td><td>@member.Submitted/@member.Assigned</td><td>@member.Completed</td></tr> }
+        </tbody></table></div>
+        <p class="gl-meta">* Chỉ tính buổi đã kết thúc trong tuần. Bài tập tính theo hạn nộp; mỗi người dùng phiên bản nộp mới nhất. Tổng nhóm giữ cả lịch sử thành viên đã rời nhóm.</p>
+    </div>
+}

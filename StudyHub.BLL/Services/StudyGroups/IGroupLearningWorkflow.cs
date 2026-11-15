@@ -1,9 +1,9 @@
 using StudyHub.DAL.Entities;
-using StudyHub.DAL.Repositories.StudyGroups.Models;
+using StudyHub.BLL.Services.StudyGroups.Models;
 
-namespace StudyHub.DAL.Repositories.StudyGroups;
+namespace StudyHub.BLL.Services.StudyGroups;
 
-public interface IGroupLearningRepository
+public interface IGroupLearningWorkflow
 {
     Task<GroupLearningData> GetAsync(long groupId, long userId, DateOnly weekStart, CancellationToken ct);
     Task SaveSessionAsync(long groupId, long userId, GroupStudySession session, CancellationToken ct);
