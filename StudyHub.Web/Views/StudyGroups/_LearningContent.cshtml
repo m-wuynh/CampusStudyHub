@@ -188,26 +188,13 @@ else if (panel == "resources")
 else if (panel == "progress")
 {
     var progress = data.Progress;
-    var goal = progress.Goal;
-    var rate = progress.Assigned == 0 ? 0 : (int)Math.Round(progress.Completed * 100.0 / progress.Assigned);
-    @if (data.CanManage) { @Button("goal", goal == null ? "+ Đặt mục tiêu tuần" : "Sửa mục tiêu tuần") }
     <div class="gl-metrics">
         <div class="gl-metric"><strong>@progress.CompletedSessions</strong><span>Buổi học đã kết thúc</span></div>
         <div class="gl-metric"><strong>@progress.Submitted/@progress.Assigned</strong><span>Lượt giao bài đã được nộp</span></div>
-        <div class="gl-metric"><strong>@progress.Completed/@progress.Assigned</strong><span>Lượt giao bài đã hoàn thành</span></div>
-        <div class="gl-metric"><strong>@rate%</strong><span>Tỷ lệ hoàn thành</span></div>
     </div>
-    @if (goal != null)
-    {
-        <article class="gl-card"><h3>@goal.Title</h3>
-            @if (goal.TargetSessions > 0) { <p>Buổi học: @progress.CompletedSessions/@goal.TargetSessions</p><progress aria-label="Mục tiêu buổi học" value="@Math.Min(progress.CompletedSessions, goal.TargetSessions)" max="@goal.TargetSessions"></progress> }
-            @if (goal.TargetAssignments > 0) { <p>Bài tập mà mọi người được giao đã hoàn thành: @progress.FullyCompletedAssignments/@goal.TargetAssignments</p><progress aria-label="Mục tiêu bài tập" value="@Math.Min(progress.FullyCompletedAssignments, goal.TargetAssignments)" max="@goal.TargetAssignments"></progress> }
-        </article>
-    }
-    else { <p class="gl-empty">Tuần này chưa đặt mục tiêu.</p> }
     <div class="gl-card mt-3"><h3>@(data.CanManage ? "Tiến độ thành viên hiện tại" : "Tiến độ của bạn")</h3>
-        <div class="gl-table-scroll"><table class="gl-table"><thead><tr><th>Thành viên</th><th>Có mặt / đăng ký*</th><th>Đã nộp / được giao</th><th>Hoàn thành</th></tr></thead><tbody>
-        @foreach (var member in progress.Members) { <tr><td>@member.Name</td><td>@member.AttendedSessions/@member.RegisteredSessions</td><td>@member.Submitted/@member.Assigned</td><td>@member.Completed</td></tr> }
+        <div class="gl-table-scroll"><table class="gl-table"><thead><tr><th>Thành viên</th><th>Có mặt / đăng ký*</th><th>Đã nộp / được giao</th></tr></thead><tbody>
+        @foreach (var member in progress.Members) { <tr><td>@member.Name</td><td>@member.AttendedSessions/@member.RegisteredSessions</td><td>@member.Submitted/@member.Assigned</td></tr> }
         </tbody></table></div>
         <p class="gl-meta">* Chỉ tính buổi đã kết thúc trong tuần. Bài tập tính theo hạn nộp; mỗi người dùng phiên bản nộp mới nhất. Tổng nhóm giữ cả lịch sử thành viên đã rời nhóm.</p>
     </div>

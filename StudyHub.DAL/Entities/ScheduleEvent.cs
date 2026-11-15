@@ -30,6 +30,7 @@ public partial class ScheduleEvent
     public string? Description { get; set; }
 
     public long? GoalId { get; set; }
+    public long? GroupStudySessionId { get; set; }
     public bool IsCompleted { get; set; }
 
     public bool IsDeleted { get; set; }

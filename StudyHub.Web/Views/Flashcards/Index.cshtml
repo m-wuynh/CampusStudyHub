@@ -6,19 +6,7 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-@if (TempData["FlashcardSuccess"] is string successMessage)
-{
-    <div class="alert alert-success mb-4">
-        @successMessage
-    </div>
-}
 
-@if (TempData["FlashcardError"] is string errorMessage)
-{
-    <div class="alert alert-danger mb-4">
-        @errorMessage
-    </div>
-}
 
 <div id="flashcards-view" style="max-width:1280px; margin:0 auto;">
 

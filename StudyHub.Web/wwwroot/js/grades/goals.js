@@ -84,7 +84,7 @@ function openAddGoalForSubject(id) {
     const gbId = sub ? (sub.gradeBookId || sub.GradeBookId) : null;
     // Môn không thuộc sổ (dữ liệu cũ) không được tạo mục tiêu mới (Q03).
     if (!gbId) {
-        alert('Môn học này không thuộc sổ điểm nào nên không thể thêm mục tiêu mới.');
+        window.showToast('Môn học này không thuộc sổ điểm nào nên không thể thêm mục tiêu mới.', 'error');
         return;
     }
 
@@ -179,7 +179,7 @@ function editGoal(id, title, targetVal, isBase, isDone, deadline) {
 }
 
 async function confirmDeleteAdditionalGoal(goalId, targetVal) {
-    if (!confirm(`Xác nhận xóa nấc mục tiêu ${targetVal}?\n\nLưu ý: Các hoạt động đã hoàn thành sẽ được giữ lại trên Lịch học cá nhân để bảo tồn lịch sử học tập.`)) return;
+    if (!await window.showConfirm(`Xác nhận xóa nấc mục tiêu ${targetVal}?\n\nLưu ý: Các hoạt động đã hoàn thành sẽ được giữ lại trên Lịch học cá nhân để bảo tồn lịch sử học tập.`)) return;
     try {
         const token = window.GradesState ? window.GradesState.getCsrfToken() : (document.querySelector('input[name="__RequestVerificationToken"]')?.value || '');
         const resp = await fetch('/Grades/DeleteGoal', {
@@ -189,9 +189,9 @@ async function confirmDeleteAdditionalGoal(goalId, targetVal) {
         });
         const res = await resp.json();
         if (res.ok) window.location.reload();
-        else alert("Lỗi khi xóa: " + res.error);
+        else window.showToast("Lỗi khi xóa: " + res.error, 'error');
     } catch (e) {
-        alert("Lỗi kết nối khi xóa nấc mục tiêu.");
+        window.showToast("Lỗi kết nối khi xóa nấc mục tiêu.", 'error');
     }
 }
 
@@ -232,9 +232,9 @@ async function submitAddActivity(e) {
         });
         const res = await resp.json();
         if (res.ok) window.location.reload();
-        else alert("Lỗi: " + res.error);
+        else window.showToast("Lỗi: " + res.error, 'error');
     } catch (err) {
-        alert("Lỗi kết nối khi tạo hoạt động.");
+        window.showToast("Lỗi kết nối khi tạo hoạt động.", 'error');
     }
 }
 
@@ -264,14 +264,14 @@ async function submitEditActivity(e) {
         });
         const res = await resp.json();
         if (res.ok) window.location.reload();
-        else alert("Lỗi: " + res.error);
+        else window.showToast("Lỗi: " + res.error, 'error');
     } catch (err) {
-        alert("Lỗi kết nối khi sửa hoạt động.");
+        window.showToast("Lỗi kết nối khi sửa hoạt động.", 'error');
     }
 }
 
 async function deleteActivity(id) {
-    if (!confirm("Bạn có chắc chắn muốn xóa hoạt động này? Hoạt động cũng sẽ được gỡ khỏi Lịch học cá nhân.")) return;
+    if (!await window.showConfirm("Bạn có chắc chắn muốn xóa hoạt động này? Hoạt động cũng sẽ được gỡ khỏi Lịch học cá nhân.")) return;
     try {
         const token = window.GradesState ? window.GradesState.getCsrfToken() : (document.querySelector('input[name="__RequestVerificationToken"]')?.value || '');
         const resp = await fetch('/Grades/DeleteGoalActivity', {
@@ -281,9 +281,9 @@ async function deleteActivity(id) {
         });
         const res = await resp.json();
         if (res.ok) window.location.reload();
-        else alert("Lỗi: " + res.error);
+        else window.showToast("Lỗi: " + res.error, 'error');
     } catch (err) {
-        alert("Lỗi kết nối khi xóa hoạt động.");
+        window.showToast("Lỗi kết nối khi xóa hoạt động.", 'error');
     }
 }
 

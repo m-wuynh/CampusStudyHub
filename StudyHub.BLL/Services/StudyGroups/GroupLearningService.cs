@@ -74,17 +74,6 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
         Run(() => ShareAsyncCore(groupId, currentUser.UserId, kind, id, shared, ct));
     public Task<SharedContentData> ReadResourceAsync(long groupId, string kind, long id, CancellationToken ct) =>
         Run(() => ReadResourceAsyncCore(groupId, currentUser.UserId, kind, id, ct));
-    public Task SaveGoalAsync(long groupId, SaveGroupGoalRequest r, CancellationToken ct)
-    {
-        if (r.WeekStart.DayOfWeek != DayOfWeek.Monday || r.TargetSessions is < 0 or > 100 ||
-            r.TargetAssignments is < 0 or > 100 || r.TargetSessions + r.TargetAssignments == 0)
-            throw Invalid("Tuần bắt đầu vào thứ Hai; mỗi chỉ tiêu từ 0–100 và cần ít nhất một chỉ tiêu lớn hơn 0.");
-        return Run(() => SaveGoalAsyncCore(groupId, currentUser.UserId, new GroupWeeklyGoal
-        {
-            WeekStart = r.WeekStart, Title = Text(r.Title, 200, true), TargetSessions = r.TargetSessions,
-            TargetAssignments = r.TargetAssignments, Revision = r.Revision
-        }, ct));
-    }
     public Task AskAsync(long groupId, AskGroupQuestionRequest r, CancellationToken ct) =>
         Run(() => AskAsyncCore(groupId, currentUser.UserId, new GroupQuestion
         {
@@ -165,6 +154,8 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             entity.Location = input.Location; entity.MeetingUrl = input.MeetingUrl;
             entity.StartsAtUtc = input.StartsAtUtc; entity.EndsAtUtc = input.EndsAtUtc;
             await data.AddAsync(entity);
+            await data.SaveChangesAsync(ct);
+            await SyncSessionCalendarAsync(entity, userId, true, ct);
         }, ct);
 
     private Task ChangeSessionAsyncCore(long groupId, long userId, long sessionId, string status, string summary, int revision, CancellationToken ct) =>
@@ -189,7 +180,44 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             var attendee = session.Attendees.SingleOrDefault(x => x.UserId == userId);
             if (registered && attendee is null) session.Attendees.Add(new GroupSessionAttendance { UserId = userId });
             if (!registered && attendee is not null) data.Remove(attendee);
+            await SyncSessionCalendarAsync(session, userId, registered, ct);
         }, ct);
+
+    private async Task SyncSessionCalendarAsync(GroupStudySession session, long userId, bool registered, CancellationToken ct)
+    {
+        var calendarEvent = await data.Query<ScheduleEvent>(false)
+            .SingleOrDefaultAsync(item => item.UserId == userId && item.GroupStudySessionId == session.Id, ct);
+        var now = DateTime.UtcNow;
+        if (!registered)
+        {
+            if (calendarEvent is null) return;
+            calendarEvent.IsDeleted = true;
+            calendarEvent.UpdatedAtUtc = now;
+            var reminders = await data.Query<Reminder>(false)
+                .Where(item => item.ScheduleEventId == calendarEvent.ScheduleEventId &&
+                    (item.Status == "Pending" || item.Status == "Processing")).ToListAsync(ct);
+            foreach (var reminder in reminders) reminder.Status = "Cancelled";
+            return;
+        }
+
+        if (calendarEvent is null)
+        {
+            calendarEvent = new ScheduleEvent { UserId = userId, GroupStudySessionId = session.Id, CreatedAtUtc = now };
+            await data.AddAsync(calendarEvent, ct);
+        }
+        calendarEvent.Title = session.Title;
+        calendarEvent.EventType = "Class";
+        calendarEvent.StartAtLocal = session.StartsAtUtc.ToOffset(TimeSpan.FromHours(7)).DateTime;
+        calendarEvent.EndAtLocal = session.EndsAtUtc.ToOffset(TimeSpan.FromHours(7)).DateTime;
+        calendarEvent.TimeZoneId = "SE Asia Standard Time";
+        calendarEvent.RepeatMode = "None";
+        calendarEvent.RepeatUntilDate = null;
+        calendarEvent.Location = session.Location.Length <= 250 ? session.Location : session.Location[..250];
+        calendarEvent.Description = $"Buổi học nhóm: {session.Title}\nMục tiêu: {session.Objective}\nChi tiết: /Groups/{session.StudyGroupId}?panel=sessions";
+        calendarEvent.IsDeleted = false;
+        calendarEvent.IsCompleted = false;
+        calendarEvent.UpdatedAtUtc = now;
+    }
 
     private Task MarkAttendanceAsyncCore(long groupId, long userId, long sessionId, IReadOnlyList<GroupAttendanceEntry> entries, CancellationToken ct) =>
         WriteAsync(groupId, userId, true, async _ =>
@@ -279,16 +307,6 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             submission.ReviewedByUserId = userId; submission.ReviewedAtUtc = DateTimeOffset.UtcNow;
         }, ct);
 
-    private Task SaveGoalAsyncCore(long groupId, long userId, GroupWeeklyGoal input, CancellationToken ct) =>
-        WriteAsync(groupId, userId, true, async _ =>
-        {
-            var goal = await data.Query<GroupWeeklyGoal>(false).SingleOrDefaultAsync(x => x.StudyGroupId == groupId && x.WeekStart == input.WeekStart, ct);
-            CheckRevision(goal?.Revision ?? 0, input.Revision);
-            if (goal is null) { goal = new GroupWeeklyGoal { StudyGroupId = groupId, WeekStart = input.WeekStart }; await data.AddAsync(goal); }
-            else goal.Revision++;
-            goal.Title = input.Title; goal.TargetSessions = input.TargetSessions; goal.TargetAssignments = input.TargetAssignments;
-        }, ct);
-
     private Task AskAsyncCore(long groupId, long userId, GroupQuestion question, CancellationToken ct) =>
         WriteAsync(groupId, userId, false, async _ =>
         {
@@ -343,7 +361,6 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             .AsSplitQuery().OrderByDescending(x => x.CreatedAtUtc).ToListAsync(ct);
         var resources = await ResourcesAsync(groupId, userId, false, ct);
         var available = await ResourcesAsync(groupId, userId, true, ct);
-        var goal = await data.Query<GroupWeeklyGoal>(false).AsNoTracking().SingleOrDefaultAsync(x => x.StudyGroupId == groupId && x.WeekStart == weekStart, ct);
 
         // Weekly reporting uses Vietnam's calendar boundaries, not the server's local time.
         var start = new DateTimeOffset(weekStart.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7)).ToUniversalTime();
@@ -358,13 +375,10 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             return new MemberProgressData(member.UserId, member.Name,
                 weekSessions.Count(x => x.Attendees.Any(a => a.UserId == member.UserId)),
                 weekSessions.Count(x => x.Attendees.Any(a => a.UserId == member.UserId && a.Attended)),
-                assigned.Count, submitted.Count, submitted.Count(x => x!.Status == "Completed"));
+                assigned.Count, submitted.Count);
         }).Where(x => manage || x.UserId == userId).ToList();
-        var progress = new LearningProgressData(weekStart,
-            goal is null ? null : new GoalData(goal.Title, goal.TargetSessions, goal.TargetAssignments, goal.Revision),
-            weekSessions.Count,
-            weekAssignments.Count(x => x.Assignees.Count > 0 && x.Assignees.All(a => a.Submissions.OrderByDescending(s => s.Version).FirstOrDefault()?.Status == "Completed")),
-            weekAssignments.Sum(x => x.Assignees.Count), latest.Count, latest.Count(x => x!.Status == "Completed"), progressMembers);
+        var progress = new LearningProgressData(weekStart, weekSessions.Count,
+            weekAssignments.Sum(x => x.Assignees.Count), latest.Count, progressMembers);
         return new GroupLearningData(userId, manage, members,
             sessions.Select(x => new SessionData(x.Id, x.Title, x.Objective, x.Preparation, x.Location,
                 x.CreatedByUserId == userId || x.Attendees.Any(a => a.UserId == userId) ? x.MeetingUrl : null,

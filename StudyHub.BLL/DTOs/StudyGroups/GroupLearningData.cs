@@ -24,11 +24,9 @@ public sealed record SharedResourceData(
 public sealed record ResourceCardData(string Front, string Back);
 public sealed record SharedContentData(string Kind, string Title, string? Body, string? ExternalUrl,
     string? StorageKey, IReadOnlyList<ResourceCardData> Cards);
-public sealed record GoalData(string Title, int TargetSessions, int TargetAssignments, int Revision);
 public sealed record MemberProgressData(long UserId, string Name, int RegisteredSessions, int AttendedSessions,
-    int Assigned, int Submitted, int Completed);
-public sealed record LearningProgressData(DateOnly WeekStart, GoalData? Goal, int CompletedSessions,
-    int FullyCompletedAssignments, int Assigned, int Submitted, int Completed,
+    int Assigned, int Submitted);
+public sealed record LearningProgressData(DateOnly WeekStart, int CompletedSessions, int Assigned, int Submitted,
     IReadOnlyList<MemberProgressData> Members);
 public sealed record GroupLearningData(long CurrentUserId, bool CanManage, IReadOnlyList<LearningMember> Members,
     IReadOnlyList<SessionData> Sessions, IReadOnlyList<AssignmentData> Assignments,

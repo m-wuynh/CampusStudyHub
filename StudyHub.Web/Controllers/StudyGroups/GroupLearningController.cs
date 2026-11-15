@@ -45,9 +45,6 @@ public sealed class GroupLearningController(IGroupLearningService service) : Con
     public Task<IActionResult> Unshare(long groupId, [FromForm, BindRequired] string kind, [FromForm, BindRequired] long id, CancellationToken ct) =>
         Change(groupId, () => service.ShareAsync(groupId, kind, id, false, ct));
     [HttpPost]
-    public Task<IActionResult> Goal(long groupId, [FromForm] SaveGroupGoalRequest request, CancellationToken ct) =>
-        Change(groupId, () => service.SaveGoalAsync(groupId, request, ct));
-    [HttpPost]
     public Task<IActionResult> Ask(long groupId, [FromForm] AskGroupQuestionRequest request, CancellationToken ct) =>
         Change(groupId, () => service.AskAsync(groupId, request, ct));
     [HttpPost]

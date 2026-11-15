@@ -73,7 +73,7 @@
       @if (ladder.IsDetached) {
         <form asp-controller="Grades" asp-action="DeleteUserSubject" method="post" class="d-inline"
               data-confirm="Xóa vĩnh viễn môn &quot;@ladder.SubjectName&quot;? Mục tiêu, hoạt động, deadline và phiên học của môn sẽ bị xóa; ghi chú, tài liệu, flashcard được giữ nhưng không còn gắn môn. Thao tác không thể hoàn tác."
-              onsubmit="return confirm(this.dataset.confirm)">
+              >
           <input type="hidden" name="id" value="@ladder.UserSubjectId" />
           <input type="hidden" name="currentGradeBookId" value="@ViewData["CurrentGradeBookId"]" />
           <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 d-flex align-items-center gap-1" style="font-size: 12px; border-radius: 6px;" title="Xóa vĩnh viễn môn @ladder.SubjectName">

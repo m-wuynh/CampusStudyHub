@@ -21,6 +21,8 @@ public partial class GroupMember
 
     public DateTime? UnbanRequestedAtUtc { get; set; }
 
+    public string? UnbanRequestReason { get; set; }
+
     public virtual ICollection<GroupPost> GroupPosts { get; set; } = new List<GroupPost>();
 
     public virtual StudyGroup StudyGroup { get; set; } = null!;

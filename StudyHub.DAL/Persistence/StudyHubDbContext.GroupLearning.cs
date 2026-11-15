@@ -16,6 +16,13 @@ public partial class StudyHubDbContext
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<ScheduleEvent>(e =>
+        {
+            e.HasIndex(x => new { x.UserId, x.GroupStudySessionId })
+                .IsUnique().HasFilter("[GroupStudySessionId] IS NOT NULL");
+            e.HasOne<GroupStudySession>().WithMany().HasForeignKey(x => x.GroupStudySessionId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
         modelBuilder.Entity<GroupStudySession>(e =>
         {
             e.ToTable("GroupStudySessions", t =>

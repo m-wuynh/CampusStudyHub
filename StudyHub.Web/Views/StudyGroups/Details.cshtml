@@ -27,18 +27,17 @@
       {
         <a asp-action="Edit" asp-route-groupId="@Model.Group.Id" class="btn-primary-sh"><i class="bi bi-pencil-square"></i>Chỉnh sửa nhóm</a>
         <form asp-action="Delete" asp-route-groupId="@Model.Group.Id" method="post"
-              onsubmit="return confirm('Bạn có chắc muốn xóa nhóm? Nhóm sẽ biến mất khỏi danh sách và tất cả thành viên sẽ không thể truy cập nhóm nữa.');">
+              data-confirm="Bạn có chắc muốn xóa nhóm? Nhóm sẽ biến mất khỏi danh sách và tất cả thành viên sẽ không thể truy cập nhóm nữa.">
           <button id="delete-group-btn" type="submit" class="btn-secondary-sh" style="color:var(--sh-rose-600);"><i class="bi bi-trash3"></i>Xóa nhóm</button>
         </form>
       }
       else if (Model.Group.IsMember)
       {
-        <form asp-action="Leave" asp-route-groupId="@Model.Group.Id" method="post"><button id="leave-group-btn" type="submit" class="btn-secondary-sh" style="color:var(--sh-rose-600);"><i class="bi bi-box-arrow-left"></i>Rời nhóm</button></form>
+        <form asp-action="Leave" asp-route-groupId="@Model.Group.Id" method="post"><button id="leave-group-btn" type="submit" class="btn-primary-sh group-leave-button"><i class="bi bi-box-arrow-left"></i>Rời nhóm</button></form>
       }
     </div>
   </div>
 
-  <partial name="_GroupFeedback" />
 
   <section class="group-hero sh-card overflow-hidden mb-4">
     <div class="p-4 p-md-5">
@@ -92,14 +91,21 @@
           {
             <i class="bi bi-slash-circle d-block mb-2" style="font-size:32px;color:var(--sh-rose-600);"></i>
             <h2 class="fw-bold" style="font-size:15px;">Bạn đã bị cấm khỏi nhóm</h2>
-            <p style="font-size:11px;color:var(--sh-slate-500);">Bạn cần được người đã cấm gỡ cấm trước khi có thể xin vào hoặc tham gia nhóm.</p>
+            <p style="font-size:11px;color:var(--sh-slate-500);">Khi yêu cầu gỡ cấm được duyệt, bạn sẽ tự động trở lại nhóm.</p>
             @if (Model.Group.HasPendingUnbanRequest)
             {
               <p class="mb-0" style="font-size:11px;">Yêu cầu gỡ cấm đang chờ xử lý.</p>
             }
             else
             {
-              <form asp-action="RequestUnban" asp-route-groupId="@Model.Group.Id" method="post"><button id="request-unban-btn" type="submit" class="btn-primary-sh w-100 justify-content-center">Xin gỡ cấm</button></form>
+              <form asp-action="RequestUnban" asp-route-groupId="@Model.Group.Id" method="post">
+                <div class="text-start mb-3">
+                  <label for="unban-request-reason" class="sh-label">Lý do xin gỡ cấm <span class="text-danger">*</span></label>
+                  <textarea id="unban-request-reason" name="Reason" class="sh-input" rows="4" maxlength="1000" required placeholder="Nhập lý do bạn muốn được gỡ cấm..." aria-describedby="unban-request-reason-help"></textarea>
+                  <small id="unban-request-reason-help" class="text-muted">Tối đa 1000 ký tự.</small>
+                </div>
+                <button id="request-unban-btn" type="submit" class="btn-primary-sh w-100 justify-content-center">Xin gỡ cấm</button>
+              </form>
             }
           }
           else if (Model.Group.JoinMode == "InviteOnly")
@@ -113,7 +119,7 @@
             <i class="bi bi-people d-block mb-2" style="font-size:32px;color:var(--sh-indigo-600);"></i>
             <h2 class="fw-bold" style="font-size:15px;">Tham gia không gian học tập</h2>
             <p style="font-size:11px;color:var(--sh-slate-500);">@(Model.Group.JoinMode == "Open" ? "Bạn sẽ vào nhóm ngay." : "Yêu cầu sẽ được gửi tới người quản lý nhóm.")</p>
-            <form asp-action="Join" asp-route-groupId="@Model.Group.Id" method="post"><button id="join-group-btn" type="submit" class="btn-primary-sh w-100 justify-content-center">@(Model.Group.JoinMode == "Open" ? "Tham gia ngay" : "Gửi yêu cầu")</button></form>
+            <form asp-action="Join" asp-route-groupId="@Model.Group.Id" method="post"><button id="join-group-btn" type="submit" class="btn-primary-sh @(Model.Group.JoinMode == "Open" ? "group-join-button" : "") w-100 justify-content-center">@(Model.Group.JoinMode == "Open" ? "Tham gia ngay" : "Gửi yêu cầu")</button></form>
           }
         </section>
       </div>
@@ -169,7 +175,16 @@
                   @if (!string.IsNullOrWhiteSpace(post.AuthorAvatarUrl)) { <img src="@post.AuthorAvatarUrl" alt="" referrerpolicy="no-referrer" /> }
                   else { <span class="group-avatar">@Initial(post.AuthorName)</span> }
                   <div><strong>@post.AuthorName</strong><time datetime="@post.SentAt.ToString("O")">@post.SentAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</time></div>
-                  @if (post.IsPinned) { <span class="badge text-bg-warning ms-auto"><i class="bi bi-pin-angle-fill"></i> Đã ghim</span> }
+                  <div class="ms-auto d-flex flex-wrap align-items-center justify-content-end gap-2">
+                    @if (post.IsPinned) { <span class="badge text-bg-warning"><i class="bi bi-pin-angle-fill"></i> Đã ghim</span> }
+                    @if (Model.Group.CanManage)
+                    {
+                      <form asp-action="SetAnnouncementPin" asp-route-groupId="@Model.Group.Id" asp-route-postId="@post.Id" method="post">
+                        <input type="hidden" name="IsPinned" value="@(post.IsPinned ? "false" : "true")" />
+                        <button type="submit" class="btn-secondary-sh" aria-label="@(post.IsPinned ? "Gỡ ghim thông báo" : "Ghim thông báo")"><i class="bi @(post.IsPinned ? "bi-pin-angle" : "bi-pin-angle-fill")" aria-hidden="true"></i>@(post.IsPinned ? "Gỡ ghim" : "Ghim")</button>
+                      </form>
+                    }
+                  </div>
                 </div>
                 <p>@post.Content</p>
               </article>
@@ -235,7 +250,13 @@
               <form asp-action="ManageMember" asp-route-groupId="@Model.Group.Id" asp-route-userId="@member.UserId" method="post" class="group-member-row" data-member-id="@member.UserId">
                 @if (!string.IsNullOrWhiteSpace(member.AvatarUrl)) { <img src="@member.AvatarUrl" alt="" referrerpolicy="no-referrer" /> }
                 else { <span class="group-avatar">@Initial(member.DisplayName)</span> }
-                <div class="flex-grow-1"><strong>@member.DisplayName</strong><span>@(member.Status == "Pending" ? "Đang chờ duyệt" : member.Status == "Banned" ? "Đang xin gỡ cấm" : member.Role)</span></div>
+                <div class="flex-grow-1" style="min-width:0;">
+                  <strong>@member.DisplayName</strong><span>@(member.Status == "Pending" ? "Đang chờ duyệt" : member.Status == "Banned" ? "Đang xin gỡ cấm" : member.Role)</span>
+                  @if (Model.Group.CanManage && member.Status == "Banned" && member.HasPendingUnbanRequest)
+                  {
+                    <p class="mb-0 mt-2" style="white-space:pre-wrap;overflow-wrap:anywhere;"><strong>Lý do xin gỡ cấm:</strong> @(member.UnbanRequestReason ?? "Yêu cầu cũ chưa có lý do.")</p>
+                  }
+                </div>
                 @if (Model.Group.CanManage && member.Status == "Pending")
                 {
                   <div class="d-flex gap-1"><button  class="member-action btn-primary-sh" name="memberAction" value="approve" type="submit">Duyệt</button><button  class="member-action btn-secondary-sh" name="memberAction" value="reject" type="submit">Từ chối</button></div>
@@ -243,7 +264,7 @@
                 else if (Model.Group.CanManage && member.Status == "Banned" && member.HasPendingUnbanRequest &&
                     (member.BannedByUserId == Model.Group.Members.FirstOrDefault(m => m.IsCurrentUser)?.UserId || member.BannedByUserId == null && Model.Group.IsOwner))
                 {
-                  <button  class="member-action btn-primary-sh" name="memberAction" value="unban" type="submit">Gỡ cấm</button>
+                  <button  class="member-action btn-primary-sh" name="memberAction" value="unban" type="submit">Gỡ cấm và nhận lại vào nhóm</button>
                 }
                 else if (Model.Group.CanManage && !member.IsCurrentUser && member.Role != "Owner" && (Model.Group.IsOwner || member.Role != "Moderator"))
                 {
