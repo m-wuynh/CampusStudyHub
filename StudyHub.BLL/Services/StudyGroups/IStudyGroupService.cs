@@ -1,3 +1,4 @@
+using StudyHub.BLL.DTOs.StudyGroups;
 using StudyHub.BLL.DTOs;
 
 namespace StudyHub.BLL.Services.StudyGroups;

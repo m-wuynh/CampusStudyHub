@@ -1,4 +1,4 @@
-namespace StudyHub.BLL.DTOs;
+namespace StudyHub.BLL.DTOs.StudyGroups;
 
 public sealed record GroupSummaryResponse(
     string Id,

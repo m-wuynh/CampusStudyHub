@@ -1,4 +1,4 @@
-namespace StudyHub.BLL.Services.StudyGroups.Models;
+namespace StudyHub.BLL.DTOs.StudyGroups;
 
 public sealed class StudyGroupData
 {
@@ -94,9 +94,4 @@ public sealed class UpdateStudyGroupData
     public required string Visibility { get; init; }
     public required string JoinMode { get; init; }
     public short? MaxMembers { get; init; }
-}
-
-public sealed class StudyGroupWorkflowException(string code, string message) : Exception(message)
-{
-    public string Code { get; } = code;
 }

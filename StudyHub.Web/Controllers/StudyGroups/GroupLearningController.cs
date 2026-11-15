@@ -1,3 +1,4 @@
+using StudyHub.BLL.DTOs.StudyGroups;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -11,11 +12,8 @@ namespace StudyHub.Web.Controllers.StudyGroups;
 public sealed class GroupLearningController(IGroupLearningService service) : Controller
 {
     [HttpPost]
-    public Task<IActionResult> CreateSession(long groupId, [FromForm] SaveGroupSessionRequest request, CancellationToken ct) =>
-        Change(groupId, () => service.SaveSessionAsync(groupId, 0, request, ct));
-    [HttpPost]
-    public Task<IActionResult> UpdateSession(long groupId, [FromForm, BindRequired] long id, [FromForm] SaveGroupSessionRequest request, CancellationToken ct) =>
-        Change(groupId, () => service.SaveSessionAsync(groupId, id, request, ct));
+    public Task<IActionResult> CreateSession(long groupId, [FromForm] CreateGroupSessionRequest request, CancellationToken ct) =>
+        Change(groupId, () => service.CreateSessionAsync(groupId, request, ct));
     [HttpPost]
     public Task<IActionResult> SessionStatus(long groupId, [FromForm, BindRequired] long id, [FromForm] ChangeGroupSessionRequest request, CancellationToken ct) =>
         Change(groupId, () => service.ChangeSessionAsync(groupId, id, request, ct));
@@ -23,8 +21,8 @@ public sealed class GroupLearningController(IGroupLearningService service) : Con
     public Task<IActionResult> Register(long groupId, [FromForm, BindRequired] long id, [FromForm] RegisterGroupSessionRequest request, CancellationToken ct) =>
         Change(groupId, () => service.RegisterAsync(groupId, id, request.Registered, ct));
     [HttpPost]
-    public Task<IActionResult> Attendance(long groupId, [FromForm, BindRequired] long id, [FromForm, BindRequired] long userId, [FromForm] MarkGroupAttendanceRequest request, CancellationToken ct) =>
-        Change(groupId, () => service.MarkAttendanceAsync(groupId, id, userId, request.Attended, ct));
+    public Task<IActionResult> Attendance(long groupId, [FromForm, BindRequired] long id, [FromForm] MarkGroupAttendanceRequest request, CancellationToken ct) =>
+        Change(groupId, () => service.MarkAttendanceAsync(groupId, id, request, ct));
     [HttpPost]
     public Task<IActionResult> CreateAssignment(long groupId, [FromForm] SaveGroupAssignmentRequest request, CancellationToken ct) =>
         Change(groupId, () => service.SaveAssignmentAsync(groupId, 0, request, ct));

@@ -3,7 +3,7 @@ using StudyHub.BLL.DTOs;
 using StudyHub.BLL.Services.Auth;
 using StudyHub.BLL.Services.Pdf.Sharing;
 using StudyHub.BLL.Services.Pdf;
-using StudyHub.BLL.Services.StudyGroups.Models;
+using StudyHub.BLL.DTOs.StudyGroups;
 using StudyHub.BLL.Services.StudyGroups;
 using StudyHub.DAL.Entities.Pdf;
 using StudyHub.DAL.Entities;
@@ -21,15 +21,15 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
         return Run(() => GetAsyncCore(groupId, currentUser.UserId, monday, ct));
     }
 
-    public Task SaveSessionAsync(long groupId, long id, SaveGroupSessionRequest r, CancellationToken ct)
+    public Task CreateSessionAsync(long groupId, CreateGroupSessionRequest r, CancellationToken ct)
     {
         if (r.EndsAtUtc <= r.StartsAtUtc || r.EndsAtUtc - r.StartsAtUtc > TimeSpan.FromHours(24))
             throw Invalid("Buổi học phải kết thúc sau lúc bắt đầu và không dài quá 24 giờ.");
-        return Run(() => SaveSessionAsyncCore(groupId, currentUser.UserId, new GroupStudySession
+        return Run(() => CreateSessionAsyncCore(groupId, currentUser.UserId, new GroupStudySession
         {
-            Id = id, Title = Text(r.Title, 200, true), Objective = Text(r.Objective, 1000, true),
+            Title = Text(r.Title, 200, true), Objective = Text(r.Objective, 1000, true),
             Preparation = Text(r.Preparation, 4000), Location = Text(r.Location, 300), MeetingUrl = WebUrl(r.MeetingUrl),
-            StartsAtUtc = r.StartsAtUtc.ToUniversalTime(), EndsAtUtc = r.EndsAtUtc.ToUniversalTime(), Revision = r.Revision
+            StartsAtUtc = r.StartsAtUtc.ToUniversalTime(), EndsAtUtc = r.EndsAtUtc.ToUniversalTime()
         }, ct));
     }
 
@@ -38,8 +38,15 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             Text(r.Summary, 4000, r.Status == "Completed"), r.Revision, ct));
     public Task RegisterAsync(long groupId, long id, bool registered, CancellationToken ct) =>
         Run(() => RegisterAsyncCore(groupId, currentUser.UserId, id, registered, ct));
-    public Task MarkAttendanceAsync(long groupId, long id, long targetUserId, bool attended, CancellationToken ct) =>
-        Run(() => MarkAttendanceAsyncCore(groupId, currentUser.UserId, id, targetUserId, attended, ct));
+    public Task MarkAttendanceAsync(long groupId, long id, MarkGroupAttendanceRequest request, CancellationToken ct)
+    {
+        var entries = request.Entries;
+        if (entries is null || entries.Count == 0 ||
+            entries.Any(entry => entry.UserId <= 0 || entry.Attended is null) ||
+            entries.Select(entry => entry.UserId).Distinct().Count() != entries.Count)
+            throw Invalid("Danh sách điểm danh không hợp lệ. Hãy chọn Có mặt hoặc Vắng mặt cho từng người.");
+        return Run(() => MarkAttendanceAsyncCore(groupId, currentUser.UserId, id, entries, ct));
+    }
 
     public Task SaveAssignmentAsync(long groupId, long id, SaveGroupAssignmentRequest r, CancellationToken ct)
     {
@@ -149,18 +156,16 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
         if (actual != expected) throw Conflict("Dữ liệu đã thay đổi. Hãy tải lại trước khi lưu.");
     }
 
-    private Task SaveSessionAsyncCore(long groupId, long userId, GroupStudySession input, CancellationToken ct) =>
+    private Task CreateSessionAsyncCore(long groupId, long userId, GroupStudySession input, CancellationToken ct) =>
         WriteAsync(groupId, userId, true, async _ =>
         {
-            var entity = input.Id == 0 ? new GroupStudySession { StudyGroupId = groupId, CreatedByUserId = userId }
-                : await data.Query<GroupStudySession>(false).SingleOrDefaultAsync(x => x.Id == input.Id && x.StudyGroupId == groupId, ct) ?? throw Missing();
-            if (input.Id != 0) CheckRevision(entity.Revision, input.Revision);
-            Require(entity.Status == "Scheduled", "Chỉ được sửa buổi học chưa kết thúc hoặc hủy.");
+            var entity = new GroupStudySession { StudyGroupId = groupId, CreatedByUserId = userId };
             Require(input.StartsAtUtc > DateTimeOffset.UtcNow, "Thời gian bắt đầu phải ở tương lai.");
             entity.Title = input.Title; entity.Objective = input.Objective; entity.Preparation = input.Preparation;
             entity.Location = input.Location; entity.MeetingUrl = input.MeetingUrl;
             entity.StartsAtUtc = input.StartsAtUtc; entity.EndsAtUtc = input.EndsAtUtc;
-            if (input.Id == 0) await data.AddAsync(entity); else entity.Revision++;
+            entity.Attendees.Add(new GroupSessionAttendance { UserId = userId });
+            await data.AddAsync(entity);
         }, ct);
 
     private Task ChangeSessionAsyncCore(long groupId, long userId, long sessionId, string status, string summary, int revision, CancellationToken ct) =>
@@ -169,8 +174,8 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             var session = await data.Query<GroupStudySession>(false).SingleOrDefaultAsync(x => x.Id == sessionId && x.StudyGroupId == groupId, ct) ?? throw Missing();
             CheckRevision(session.Revision, revision);
             Require(session.Status == "Scheduled", "Buổi học đã kết thúc hoặc bị hủy.");
-            Require(status is "Completed" or "Cancelled", "Trạng thái không hợp lệ.");
-            if (status == "Completed") Require(session.StartsAtUtc <= DateTimeOffset.UtcNow, "Buổi học chưa bắt đầu.");
+            Require(status == "Completed", "Không được hủy buổi học đã tạo.");
+            Require(session.StartsAtUtc <= DateTimeOffset.UtcNow, "Buổi học chưa bắt đầu.");
             session.Status = status; session.Summary = summary; session.Revision++;
         }, ct);
 
@@ -180,25 +185,27 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             var session = await data.Query<GroupStudySession>(false).Include(x => x.Attendees)
                 .SingleOrDefaultAsync(x => x.Id == sessionId && x.StudyGroupId == groupId, ct) ?? throw Missing();
             Require(session.Status == "Scheduled" && session.StartsAtUtc > DateTimeOffset.UtcNow, "Đã đóng đăng ký cho buổi học này.");
+            Require(session.CreatedByUserId != userId, "Người tạo đã tự động tham gia và không thể hủy đăng ký buổi học.");
             var attendee = session.Attendees.SingleOrDefault(x => x.UserId == userId);
             if (registered && attendee is null) session.Attendees.Add(new GroupSessionAttendance { UserId = userId });
             if (!registered && attendee is not null) data.Remove(attendee);
         }, ct);
 
-    private Task MarkAttendanceAsyncCore(long groupId, long userId, long sessionId, long targetUserId, bool attended, CancellationToken ct) =>
+    private Task MarkAttendanceAsyncCore(long groupId, long userId, long sessionId, IReadOnlyList<GroupAttendanceEntry> entries, CancellationToken ct) =>
         WriteAsync(groupId, userId, true, async _ =>
         {
             var session = await data.Query<GroupStudySession>(false).Include(x => x.Attendees)
                 .SingleOrDefaultAsync(x => x.Id == sessionId && x.StudyGroupId == groupId, ct) ?? throw Missing();
             Require(session.Status != "Cancelled" && session.StartsAtUtc <= DateTimeOffset.UtcNow, "Chỉ điểm danh buổi học đã bắt đầu và không bị hủy.");
-            var row = session.Attendees.SingleOrDefault(x => x.UserId == targetUserId);
-            if (row is null)
+            var roster = session.Attendees.Select(x => x.UserId).ToHashSet();
+            Require(roster.SetEquals(entries.Select(entry => entry.UserId)),
+                "Danh sách đăng ký đã thay đổi. Hãy tải lại trang trước khi lưu điểm danh.");
+            var attendanceByUser = session.Attendees.ToDictionary(x => x.UserId);
+            foreach (var entry in entries)
             {
-                Require(await data.Query<GroupMember>(false).AnyAsync(x => x.StudyGroupId == groupId && x.UserId == targetUserId && x.Status == "Active", ct), "Người được điểm danh phải là thành viên nhóm.");
-                row = new GroupSessionAttendance { UserId = targetUserId };
-                session.Attendees.Add(row);
+                var row = attendanceByUser[entry.UserId];
+                row.Attended = entry.Attended!.Value;
             }
-            row.Attended = attended;
         }, ct);
 
     private Task SaveAssignmentAsyncCore(long groupId, long userId, GroupAssignment input, IReadOnlyList<long> assignees, CancellationToken ct) =>
@@ -332,9 +339,10 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             weekAssignments.Count(x => x.Assignees.Count > 0 && x.Assignees.All(a => a.Submissions.OrderByDescending(s => s.Version).FirstOrDefault()?.Status == "Completed")),
             weekAssignments.Sum(x => x.Assignees.Count), latest.Count, latest.Count(x => x!.Status == "Completed"), progressMembers);
         return new GroupLearningData(userId, manage, members,
-            sessions.Select(x => new SessionData(x.Id, x.Title, x.Objective, x.Preparation, x.Location, x.MeetingUrl,
+            sessions.Select(x => new SessionData(x.Id, x.Title, x.Objective, x.Preparation, x.Location,
+                x.CreatedByUserId == userId || x.Attendees.Any(a => a.UserId == userId) ? x.MeetingUrl : null,
                 x.StartsAtUtc, x.EndsAtUtc, x.Status, x.Summary, x.Revision,
-                x.Attendees.Select(a => new AttendanceData(a.UserId, a.User.DisplayName, a.Attended)).ToList())).ToList(),
+                x.Attendees.Select(a => new AttendanceData(a.UserId, a.User.DisplayName, a.Attended)).ToList(), x.CreatedByUserId)).ToList(),
             assignments.Select(x => new AssignmentData(x.Id, x.Title, x.Description, x.SessionId, x.DueAtUtc,
                 x.AllowLateSubmission, x.Status, x.Revision,
                 x.Assignees.Select(a => new LearningMember(a.UserId, a.User.DisplayName)).ToList(),

@@ -71,16 +71,16 @@
     catch (error) { errorBox.textContent = error.message; errorBox.hidden = false; }
   });
 
-  function sessionForm(session) {
-    openForm(session ? 'Sửa buổi học' : 'Tạo buổi học nhóm',
-      input('title', 'Tên buổi học *', session?.title, 'text', 200, true) + area('objective', 'Mục tiêu đầu ra *', session?.objective, 1000, true) +
-      input('start', 'Bắt đầu (giờ Việt Nam) *', session ? localInput(session.startsAtUtc) : tomorrow(), 'datetime-local', 100, true) +
-      input('end', 'Kết thúc (giờ Việt Nam) *', session ? localInput(session.endsAtUtc) : localInput(Date.now() + 90000000), 'datetime-local', 100, true) +
-      input('location', 'Địa điểm', session?.location, 'text', 300) + input('url', 'Link họp (HTTP/HTTPS)', session?.meetingUrl, 'url', 2000) +
-      area('preparation', 'Nội dung và tài liệu cần chuẩn bị', session?.preparation),
-      data => submitForm(session ? 'UpdateSession' : 'CreateSession', { id: session?.id || 0,
+  function sessionForm() {
+    openForm('Tạo buổi học nhóm',
+      input('title', 'Tên buổi học *', '', 'text', 200, true) + area('objective', 'Mục tiêu đầu ra *', '', 1000, true) +
+      input('start', 'Bắt đầu (giờ Việt Nam) *', tomorrow(), 'datetime-local', 100, true) +
+      input('end', 'Kết thúc (giờ Việt Nam) *', localInput(Date.now() + 90000000), 'datetime-local', 100, true) +
+      input('location', 'Địa điểm', '', 'text', 300) + input('url', 'Link họp (HTTP/HTTPS)', '', 'url', 2000) +
+      area('preparation', 'Nội dung và tài liệu cần chuẩn bị'),
+      data => submitForm('CreateSession', {
         title: data.get('title'), objective: data.get('objective'), startsAtUtc: utc(data.get('start')), endsAtUtc: utc(data.get('end')),
-        location: data.get('location'), meetingUrl: data.get('url'), preparation: data.get('preparation'), revision: session?.revision || 0
+        location: data.get('location'), meetingUrl: data.get('url'), preparation: data.get('preparation')
       }));
   }
   function assignmentForm(assignment) {
@@ -132,19 +132,34 @@
     const question = state.questions.find(x => x.id === id);
     switch (action) {
       case 'session-new': return sessionForm();
-      case 'session-edit': return sessionForm(session);
       case 'session-register':
         submitForm('Register', { id, registered: b.dataset.registered === 'true' }); return;
-      case 'session-cancel': case 'session-complete':
-        return openForm(action === 'session-complete' ? 'Kết thúc buổi học' : 'Hủy buổi học',
-          area('summary', action === 'session-complete' ? 'Kết quả đã đạt được *' : 'Lý do hủy', '', 4000, action === 'session-complete'),
-          data => submitForm('SessionStatus', { id, status: action === 'session-complete' ? 'Completed' : 'Cancelled', summary: data.get('summary'), revision: session.revision }));
+      case 'session-complete':
+        return openForm('Kết thúc buổi học', area('summary', 'Kết quả đã đạt được *', '', 4000, true),
+          data => submitForm('SessionStatus', { id, status: 'Completed', summary: data.get('summary'), revision: session.revision }));
       case 'attendance': {
-        const people = [...state.members];
-        for (const a of session.attendees) if (!people.some(m => m.userId === a.userId)) people.push({ userId: a.userId, name: a.name });
-        return openForm('Điểm danh thành viên', select('user', 'Thành viên', people.map(m => option(m.userId, `${m.name}${session.attendees.find(a => a.userId === m.userId)?.attended ? ' — Đã có mặt' : ''}`)).join('')) +
-          select('attended', 'Kết quả điểm danh', option('true', 'Có mặt') + option('false', 'Vắng mặt')),
-          data => submitForm('Attendance', { id, userId: data.get('user'), attended: data.get('attended') === 'true' }));
+        const people = session.attendees;
+        if (!people.length) throw new Error('Chưa có thành viên để điểm danh.');
+        const rows = people.map((member, index) => {
+          const attended = session.attendees.find(a => a.userId === member.userId)?.attended === true;
+          return `<tr><td>${index + 1}</td><th scope="row">${esc(member.name)}</th><td>
+            <div class="gl-attendance-options" role="group" aria-label="Điểm danh ${esc(member.name)}">
+              <label><input type="radio" name="attendance-${index}" value="true" ${attended ? 'checked' : ''} required>Có mặt</label>
+              <label><input type="radio" name="attendance-${index}" value="false" ${attended ? '' : 'checked'} required>Vắng mặt</label>
+            </div></td></tr>`;
+        }).join('');
+        return openForm('Điểm danh thành viên',
+          `<div class="gl-table-scroll gl-attendance"><table class="gl-table"><thead><tr><th scope="col">STT</th><th scope="col">Tên thành viên</th><th scope="col">Điểm danh</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+          data => {
+            const values = { id };
+            people.forEach((member, index) => {
+              const attended = data.get(`attendance-${index}`);
+              if (attended !== 'true' && attended !== 'false') throw new Error('Hãy điểm danh đầy đủ danh sách.');
+              values[`Entries[${index}].UserId`] = member.userId;
+              values[`Entries[${index}].Attended`] = attended;
+            });
+            submitForm('Attendance', values);
+          }, 'Lưu điểm danh');
       }
       case 'assignment-new': return assignmentForm();
       case 'assignment-edit': return assignmentForm(assignment);

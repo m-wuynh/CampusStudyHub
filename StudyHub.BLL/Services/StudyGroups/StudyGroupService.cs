@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StudyHub.BLL.DTOs;
 using StudyHub.BLL.Services.Auth;
-using StudyHub.BLL.Services.StudyGroups.Models;
+using StudyHub.BLL.DTOs.StudyGroups;
 using StudyHub.DAL.Entities.Pdf;
 using StudyHub.DAL.Entities;
 using StudyHub.DAL.Repositories.Common;
@@ -1169,4 +1169,9 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
 
 
 
+}
+
+public sealed class StudyGroupWorkflowException(string code, string message) : Exception(message)
+{
+    public string Code { get; } = code;
 }
