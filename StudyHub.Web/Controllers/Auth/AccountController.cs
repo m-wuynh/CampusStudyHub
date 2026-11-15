@@ -111,10 +111,9 @@ public sealed class AccountController(
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return RedirectToAction("Index", "Dashboard");
+        return RedirectToAction(nameof(Login));
     }
 
-    [AllowAnonymous]
     [ValidateAntiForgeryToken]
     [HttpPost("Register")]
     public IActionResult Register() =>
