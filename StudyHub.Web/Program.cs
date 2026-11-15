@@ -12,7 +12,6 @@ using StudyHub.BLL.Services.StudyGroups;
 using StudyHub.DAL.Persistence;
 using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.Common;
-using StudyHub.DAL.Repositories.StudyGroups;
 using StudyHub.Web.Authentication;
 using StudyHub.Web.Configuration;
 using StudyHub.Web.Filters.Pdf;
@@ -61,6 +60,15 @@ authentication.AddCookie(options =>
     options.Cookie.Name = "StudyHub.Auth";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Events.OnValidatePrincipal = async context =>
+    {
+        if (context.Principal?.HasClaim("login_provider", "Development") == true)
+        {
+            context.RejectPrincipal();
+            await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
+                context.HttpContext, CookieAuthenticationDefaults.AuthenticationScheme);
+        }
+    };
 });
 
 var googleClientId =
@@ -113,20 +121,12 @@ builder.Services.AddDbContext<StudyHubDbContext>(options =>
 
 // DAL repositories
 builder.Services.AddScoped<
-    IStudyGroupRepository,
-    SqlStudyGroupRepository>();
-
-builder.Services.AddScoped<
     IGoogleAuthRepository,
     GoogleAuthRepository>();
 
 builder.Services.AddScoped<
     IRepository,
     EfRepository>();
-
-builder.Services.AddScoped<
-    IGroupLearningRepository,
-    SqlGroupLearningRepository>();
 
 // Authentication services
 builder.Services.AddScoped<
@@ -142,7 +142,7 @@ builder.Services.AddScoped<
     IStudyGroupService,
     StudyGroupService>();
 
-builder.Services.AddScoped<GroupLearningService>();
+builder.Services.AddScoped<IGroupLearningService, GroupLearningService>();
 
 // Flashcard services
 builder.Services.AddScoped<

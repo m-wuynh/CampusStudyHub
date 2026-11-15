@@ -8,7 +8,6 @@ using StudyHub.BLL.Services.Pdf.Documents;
 using StudyHub.DAL.Persistence;
 using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.Common;
-using StudyHub.DAL.Repositories.StudyGroups;
 
 namespace StudyHub.Pdf.Tests;
 
@@ -41,7 +40,7 @@ internal sealed class TestCurrentUser(long userId) : ICurrentUser
 internal sealed class TestRepository(StudyHubDbContext context) : IRepository
 {
     public IGoogleAuthRepository GoogleAuth => null!;
-    public IStudyGroupRepository StudyGroups => null!;
+    public Task<T> ExecuteAsync<T>(Func<Task<T>> operation) => operation();
     public bool HasActiveTransaction { get; set; }
     public int BeginTransactionCalls { get; private set; }
 

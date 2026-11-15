@@ -1,3 +1,4 @@
+using StudyHub.DAL.Repositories.Pdf;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -5,14 +6,12 @@ using StudyHub.BLL.Services.Auth;
 using StudyHub.DAL.Entities;
 using StudyHub.DAL.Entities.Pdf;
 using StudyHub.DAL.Repositories.Common;
-using StudyHub.DAL.Repositories.Pdf;
+using StudyHub.BLL.Services.Pdf.Sharing;
 
 namespace StudyHub.BLL.Services.Pdf.Sharing;
 
 /// <summary>
 /// Xử lý toàn bộ business logic của việc chia sẻ / gỡ chia sẻ PDF vào nhóm học.
-/// Implements IPdfSharingService (contract ở DAL) để SqlGroupLearningRepository
-/// có thể inject mà không tạo circular dependency DAL → BLL.
 /// </summary>
 public sealed class PdfSharingService(
     IRepository repository,

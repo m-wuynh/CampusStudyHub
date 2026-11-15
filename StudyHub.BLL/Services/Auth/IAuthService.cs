@@ -8,6 +8,4 @@ public interface IAuthService
         GoogleLoginDto login,
         CancellationToken cancellationToken = default);
 
-    Task<AuthResultDto> LoginForDevelopmentAsync(
-        CancellationToken cancellationToken = default);
 }

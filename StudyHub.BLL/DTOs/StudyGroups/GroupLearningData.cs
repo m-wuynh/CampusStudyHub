@@ -1,10 +1,10 @@
-namespace StudyHub.DAL.Repositories.StudyGroups.Models;
+namespace StudyHub.BLL.DTOs.StudyGroups;
 
 public sealed record LearningMember(long UserId, string Name);
 public sealed record AttendanceData(long UserId, string Name, bool Attended);
 public sealed record SessionData(long Id, string Title, string Objective, string Preparation, string Location,
     string? MeetingUrl, DateTimeOffset StartsAtUtc, DateTimeOffset EndsAtUtc, string Status, string Summary,
-    int Revision, IReadOnlyList<AttendanceData> Attendees);
+    int Revision, IReadOnlyList<AttendanceData> Attendees, long CreatedByUserId);
 public sealed record SubmissionData(long Id, long UserId, string Name, int Version, string Content,
     string? ResourceUrl, DateTimeOffset SubmittedAtUtc, bool IsLate, string Status, string Feedback);
 public sealed record AssignmentData(long Id, string Title, string Description, long? SessionId,

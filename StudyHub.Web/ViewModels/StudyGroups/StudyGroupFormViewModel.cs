@@ -1,3 +1,4 @@
+using StudyHub.BLL.DTOs.StudyGroups;
 using System.ComponentModel.DataAnnotations;
 using StudyHub.BLL.DTOs;
 namespace StudyHub.Web.ViewModels.StudyGroups;

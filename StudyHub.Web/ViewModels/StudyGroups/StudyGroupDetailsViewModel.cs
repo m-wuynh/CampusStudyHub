@@ -1,7 +1,6 @@
 using StudyHub.BLL.DTOs;
+using StudyHub.BLL.DTOs.StudyGroups;
 
 namespace StudyHub.Web.ViewModels.StudyGroups;
 
-public sealed record StudyGroupDetailsViewModel(GroupDetailsResponse Group);
-
-public sealed record StudyGroupInviteViewModel(GroupInviteResponse Invite, string? ErrorMessage = null);
+public sealed record StudyGroupDetailsViewModel(GroupDetailsResponse Group, GroupLearningData? Learning = null);
