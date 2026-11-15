@@ -22,7 +22,7 @@ public sealed class DashboardController(
     ICalendarService calendarService,
     IGradeService gradeService,
     IFlashcardDeckService flashcardDeckService,
-    IDashboardNotesService dashboardNotesService) : Controller
+    IDashboardPdfService dashboardPdfService) : Controller
 {
     private long CurrentUserId => currentUser.UserId > 0 ? currentUser.UserId : (long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 1);
 
@@ -203,8 +203,9 @@ public sealed class DashboardController(
 
         var flashcardSummary = new FlashcardSummaryDto(totalDecks, totalDecks, decks.Take(3).ToList());
 
-        // ── 6. Recent Notes (NotesV3) ─────────────────────────────────
-        var recentNotes = await dashboardNotesService.GetRecentNotesAsync(userId, 4, cancellationToken);
+        // ── 6. Recent PDFs ─────────────────────────────────────────────
+        var recentPdfs = await dashboardPdfService.GetRecentAsync(
+            userId, 4, cancellationToken);
 
         // Build ViewModel
         var model = new DashboardIndexViewModel(
@@ -223,8 +224,7 @@ public sealed class DashboardController(
             weeklyTotal,
             weeklyCompleted,
             weeklyMissed,
-            RecentNotes: recentNotes.Notes,
-            NotesAvailable: recentNotes.IsAvailable
+            RecentPdfs: recentPdfs
         );
 
         return View(model);

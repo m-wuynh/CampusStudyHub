@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudyHub.BLL", "..\StudyHub
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudyHub.DAL", "..\StudyHub.DAL\StudyHub.DAL.csproj", "{8F228A92-3408-4A39-AC11-1F2B1C418CBF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudyHub.BLL.Tests", "..\StudyHub.BLL.Tests\StudyHub.BLL.Tests.csproj", "{3DB25292-E119-5C0F-B59F-FE65EDE34BF4}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

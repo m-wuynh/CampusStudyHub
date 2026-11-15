@@ -19,7 +19,8 @@
     });
     if (name === 'chat') scrollChat();
   }
-  navButtons.forEach(button => button.addEventListener('click', () => showPanel(button.dataset.panel)));
+  navButtons.forEach(button =>
+    button.addEventListener('click', () => showPanel(button.dataset.panel)));
 
   function formatTime(value) {
     const date = new Date(value);

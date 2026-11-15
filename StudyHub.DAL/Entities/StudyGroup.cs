@@ -35,8 +35,6 @@ public partial class StudyGroup
 
     public byte[] RowVersion { get; set; } = null!;
 
-    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
-
     public virtual ICollection<FlashcardDeck> FlashcardDecks { get; set; } = new List<FlashcardDeck>();
 
     public virtual ICollection<GroupMember> GroupMembers { get; set; } = new List<GroupMember>();
@@ -44,8 +42,6 @@ public partial class StudyGroup
     public virtual ICollection<GroupInvite> GroupInvites { get; set; } = new List<GroupInvite>();
 
     public virtual ICollection<StudyGroupSubject> StudyGroupSubjects { get; set; } = new List<StudyGroupSubject>();
-
-    public virtual ICollection<Note> Notes { get; set; } = new List<Note>();
 
     public virtual User OwnerUser { get; set; } = null!;
 

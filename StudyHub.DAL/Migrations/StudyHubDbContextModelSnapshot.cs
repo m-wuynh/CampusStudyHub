@@ -13,7 +13,6 @@ namespace StudyHub.DAL.Migrations
     [DbContext(typeof(StudyHubDbContext))]
     partial class StudyHubDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
@@ -109,126 +108,6 @@ namespace StudyHub.DAL.Migrations
                     b.ToTable("ActivityEvents");
                 });
 
-            modelBuilder.Entity("StudyHub.DAL.Entities.AuditLog", b =>
-                {
-                    b.Property<long>("AuditLogId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AuditLogId"));
-
-                    b.Property<string>("ActionCode")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<long?>("ActorUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<string>("EntityKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("EntityType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<string>("Summary")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.HasKey("AuditLogId");
-
-                    b.HasIndex("ActorUserId");
-
-                    b.HasIndex(new[] { "CreatedAtUtc" }, "IX_AuditLogs_Date")
-                        .IsDescending();
-
-                    b.ToTable("AuditLogs");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.ContentReport", b =>
-                {
-                    b.Property<long>("ReportId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("ReportId"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<long?>("DeckId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("DocumentId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("GroupPostId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("NoteId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<long>("ReporterUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("ResolutionNote")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime?>("ResolvedAtUtc")
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)");
-
-                    b.Property<long?>("ResolvedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(15)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(15)")
-                        .HasDefaultValue("Open");
-
-                    b.HasKey("ReportId");
-
-                    b.HasIndex("DeckId");
-
-                    b.HasIndex("DocumentId");
-
-                    b.HasIndex("GroupPostId");
-
-                    b.HasIndex("NoteId");
-
-                    b.HasIndex("ReporterUserId");
-
-                    b.HasIndex("ResolvedByUserId");
-
-                    b.HasIndex(new[] { "Status", "CreatedAtUtc" }, "IX_ContentReports_Queue");
-
-                    b.ToTable("ContentReports");
-                });
-
             modelBuilder.Entity("StudyHub.DAL.Entities.Deadline", b =>
                 {
                     b.Property<long>("DeadlineId")
@@ -304,122 +183,6 @@ namespace StudyHub.DAL.Migrations
                         .IsUnique();
 
                     b.ToTable("Deadlines");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.Document", b =>
-                {
-                    b.Property<long>("DocumentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("DocumentId"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("ExternalUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
-
-                    b.Property<long?>("FileSizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("MimeType")
-                        .HasMaxLength(150)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(150)");
-
-                    b.Property<string>("OriginalFileName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<long>("OwnerUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("ResourceType")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("StorageKey")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
-                    b.Property<long?>("StudyGroupId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<long?>("UserSubjectId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Visibility")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)")
-                        .HasDefaultValue("Private");
-
-                    b.HasKey("DocumentId");
-
-                    b.HasIndex("UserSubjectId", "OwnerUserId");
-
-                    b.HasIndex(new[] { "StudyGroupId", "Visibility", "IsDeleted" }, "IX_Documents_Group");
-
-                    b.HasIndex(new[] { "OwnerUserId", "IsDeleted", "CreatedAtUtc" }, "IX_Documents_Owner")
-                        .IsDescending(false, false, true);
-
-                    b.HasIndex(new[] { "UserSubjectId", "Visibility", "IsDeleted" }, "IX_Documents_Subject");
-
-                    b.ToTable("Documents");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.DocumentBookmark", b =>
-                {
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("DocumentId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.HasKey("UserId", "DocumentId");
-
-                    b.HasIndex("DocumentId");
-
-                    b.ToTable("DocumentBookmarks");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.ExternalLogin", b =>
@@ -666,14 +429,31 @@ namespace StudyHub.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("GoalId"));
 
+                    b.Property<DateTime?>("AchievedAtUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<decimal?>("AchievedScore")
+                        .HasColumnType("decimal(5, 2)");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(3)
                         .HasColumnType("datetime2(3)")
                         .HasDefaultValueSql("(sysutcdatetime())");
 
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<DateOnly?>("EndDate")
                         .HasColumnType("date");
+
+                    b.Property<bool>("IsBaseGoal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("bit");
@@ -683,6 +463,13 @@ namespace StudyHub.DAL.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("ToDo");
 
                     b.Property<decimal>("TargetValue")
                         .HasColumnType("decimal(5, 2)");
@@ -715,6 +502,40 @@ namespace StudyHub.DAL.Migrations
                         .HasFilter("[IsCancelled] = 0");
 
                     b.ToTable("Goals");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GoalHistory", b =>
+                {
+                    b.Property<long>("GoalHistoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("GoalHistoryId"));
+
+                    b.Property<DateTime>("AchievedAtUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<decimal>("AchievedScore")
+                        .HasColumnType("decimal(5, 2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("(sysutcdatetime())");
+
+                    b.Property<long>("GoalId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("TargetValue")
+                        .HasColumnType("decimal(5, 2)");
+
+                    b.HasKey("GoalHistoryId");
+
+                    b.HasIndex("GoalId");
+
+                    b.ToTable("GoalHistories");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.GradeBook", b =>
@@ -1109,8 +930,9 @@ namespace StudyHub.DAL.Migrations
 
             modelBuilder.Entity("StudyHub.DAL.Entities.GroupQuestion", b =>
                 {
-                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("AcceptedAnswerId")
                         .HasColumnType("bigint");
@@ -1342,42 +1164,26 @@ namespace StudyHub.DAL.Migrations
                         });
                 });
 
-            modelBuilder.Entity("StudyHub.DAL.Entities.Note", b =>
+            modelBuilder.Entity("StudyHub.DAL.Entities.Pdf.PdfAnnotation", b =>
                 {
-                    b.Property<long>("NoteId")
+                    b.Property<long>("AnnotationId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("NoteId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AnnotationId"));
 
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("");
-
-                    b.Property<string>("BodyFormat")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)")
-                        .HasDefaultValue("Markdown");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsPinned")
-                        .HasColumnType("bit");
+                    b.Property<long>("DocumentId")
+                        .HasColumnType("bigint");
 
                     b.Property<long>("OwnerUserId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PhysicalPageNumber")
+                        .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -1385,8 +1191,67 @@ namespace StudyHub.DAL.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<long?>("StudyGroupId")
+                    b.HasKey("AnnotationId");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("OwnerUserId", "DocumentId", "PhysicalPageNumber");
+
+                    b.ToTable("PdfAnnotations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PdfAnnotations_PayloadJson", "ISJSON([PayloadJson]) = 1");
+
+                            t.HasCheckConstraint("CK_PdfAnnotations_PhysicalPage", "[PhysicalPageNumber] >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.Pdf.PdfDocument", b =>
+                {
+                    b.Property<long>("DocumentId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("DocumentId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("OriginalFileNameKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<long>("OwnerUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -1395,31 +1260,116 @@ namespace StudyHub.DAL.Migrations
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)")
-                        .HasDefaultValueSql("(sysutcdatetime())");
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<long?>("UserSubjectId")
+                    b.HasKey("DocumentId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerUserId", "OriginalFileNameKey")
+                        .IsUnique()
+                        .HasFilter("[OriginalFileNameKey] IS NOT NULL");
+
+                    b.HasIndex("OwnerUserId", "IsDeleted", "UpdatedAtUtc");
+
+                    b.ToTable("PdfDocuments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PdfDocuments_FileSizeBytes", "[FileSizeBytes] >= 0");
+
+                            t.HasCheckConstraint("CK_PdfDocuments_PageCount", "[PageCount] >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.Pdf.PdfDocumentPageNote", b =>
+                {
+                    b.Property<long>("PdfDocumentPageNoteId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    b.Property<string>("Visibility")
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PdfDocumentPageNoteId"));
+
+                    b.Property<string>("ContentText")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("DocumentId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("OwnerUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("PhysicalPageNumber")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("PdfDocumentPageNoteId");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("OwnerUserId", "DocumentId", "PhysicalPageNumber")
+                        .IsUnique();
+
+                    b.ToTable("PdfDocumentPageNotes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PdfDocumentPageNotes_PhysicalPage", "[PhysicalPageNumber] >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.Pdf.PdfDocumentShare", b =>
+                {
+                    b.Property<long>("PdfDocumentShareId")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)")
-                        .HasDefaultValue("Private");
+                        .HasColumnType("bigint");
 
-                    b.HasKey("NoteId");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PdfDocumentShareId"));
 
-                    b.HasIndex("UserSubjectId", "OwnerUserId");
+                    b.Property<long>("DocumentId")
+                        .HasColumnType("bigint");
 
-                    b.HasIndex(new[] { "StudyGroupId", "Visibility", "IsDeleted" }, "IX_Notes_Group");
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
-                    b.HasIndex(new[] { "OwnerUserId", "IsDeleted", "UpdatedAtUtc" }, "IX_Notes_Owner")
-                        .IsDescending(false, false, true);
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
-                    b.ToTable("Notes");
+                    b.Property<DateTime>("SharedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<long>("SharedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("StudyGroupId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UnsharedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PdfDocumentShareId");
+
+                    b.HasIndex("SharedByUserId");
+
+                    b.HasIndex("DocumentId", "StudyGroupId")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.HasIndex("StudyGroupId", "IsActive");
+
+                    b.ToTable("PdfDocumentShares", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PdfDocumentShares_State", "([IsActive] = 1 AND [UnsharedAtUtc] IS NULL)\nOR\n([IsActive] = 0 AND [UnsharedAtUtc] IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.Reminder", b =>
@@ -1519,8 +1469,13 @@ namespace StudyHub.DAL.Migrations
                         .HasColumnType("varchar(15)")
                         .HasDefaultValue("Class");
 
+                    b.Property<long?>("GoalId")
+                        .HasColumnType("bigint");
+
                     b.Property<bool>("IsCompleted")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -1575,6 +1530,8 @@ namespace StudyHub.DAL.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("ScheduleEventId");
+
+                    b.HasIndex("GoalId");
 
                     b.HasIndex("UserSubjectId", "UserId");
 
@@ -2062,11 +2019,11 @@ namespace StudyHub.DAL.Migrations
 
                     b.HasIndex("AcademicTermId", "UserId");
 
-                    b.HasIndex(new[] { "UserId", "AcademicTermId", "SubjectId" }, "UQ_UserSubjects_CatalogEnrollment")
+                    b.HasIndex(new[] { "UserId", "GradeBookId", "SubjectId" }, "UQ_UserSubjects_CatalogEnrollment")
                         .IsUnique()
                         .HasFilter("[SubjectId] IS NOT NULL AND [IsArchived] = 0");
 
-                    b.HasIndex(new[] { "UserId", "AcademicTermId", "CustomSubjectName" }, "UQ_UserSubjects_CustomEnrollment")
+                    b.HasIndex(new[] { "UserId", "GradeBookId", "CustomSubjectName" }, "UQ_UserSubjects_CustomEnrollment")
                         .IsUnique()
                         .HasFilter("[CustomSubjectName] IS NOT NULL AND [IsArchived] = 0");
 
@@ -2191,62 +2148,6 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("StudyHub.DAL.Entities.AuditLog", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.User", "ActorUser")
-                        .WithMany("AuditLogs")
-                        .HasForeignKey("ActorUserId")
-                        .HasConstraintName("FK_AuditLogs_Actor");
-
-                    b.Navigation("ActorUser");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.ContentReport", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.FlashcardDeck", "Deck")
-                        .WithMany("ContentReports")
-                        .HasForeignKey("DeckId")
-                        .HasConstraintName("FK_ContentReports_Deck");
-
-                    b.HasOne("StudyHub.DAL.Entities.Document", "Document")
-                        .WithMany("ContentReports")
-                        .HasForeignKey("DocumentId")
-                        .HasConstraintName("FK_ContentReports_Document");
-
-                    b.HasOne("StudyHub.DAL.Entities.GroupPost", "GroupPost")
-                        .WithMany("ContentReports")
-                        .HasForeignKey("GroupPostId")
-                        .HasConstraintName("FK_ContentReports_Post");
-
-                    b.HasOne("StudyHub.DAL.Entities.Note", "Note")
-                        .WithMany("ContentReports")
-                        .HasForeignKey("NoteId")
-                        .HasConstraintName("FK_ContentReports_Note");
-
-                    b.HasOne("StudyHub.DAL.Entities.User", "ReporterUser")
-                        .WithMany("ContentReportReporterUsers")
-                        .HasForeignKey("ReporterUserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_ContentReports_Reporter");
-
-                    b.HasOne("StudyHub.DAL.Entities.User", "ResolvedByUser")
-                        .WithMany("ContentReportResolvedByUsers")
-                        .HasForeignKey("ResolvedByUserId")
-                        .HasConstraintName("FK_ContentReports_Resolver");
-
-                    b.Navigation("Deck");
-
-                    b.Navigation("Document");
-
-                    b.Navigation("GroupPost");
-
-                    b.Navigation("Note");
-
-                    b.Navigation("ReporterUser");
-
-                    b.Navigation("ResolvedByUser");
-                });
-
             modelBuilder.Entity("StudyHub.DAL.Entities.Deadline", b =>
                 {
                     b.HasOne("StudyHub.DAL.Entities.User", "User")
@@ -2264,51 +2165,6 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("User");
 
                     b.Navigation("UserSubject");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.Document", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.User", "OwnerUser")
-                        .WithMany("Documents")
-                        .HasForeignKey("OwnerUserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_Documents_User");
-
-                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", "StudyGroup")
-                        .WithMany("Documents")
-                        .HasForeignKey("StudyGroupId")
-                        .HasConstraintName("FK_Documents_Group");
-
-                    b.HasOne("StudyHub.DAL.Entities.UserSubject", "UserSubject")
-                        .WithMany("Documents")
-                        .HasForeignKey("UserSubjectId", "OwnerUserId")
-                        .HasPrincipalKey("UserSubjectId", "UserId")
-                        .HasConstraintName("FK_Documents_SubjectOwner");
-
-                    b.Navigation("OwnerUser");
-
-                    b.Navigation("StudyGroup");
-
-                    b.Navigation("UserSubject");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.DocumentBookmark", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.Document", "Document")
-                        .WithMany("DocumentBookmarks")
-                        .HasForeignKey("DocumentId")
-                        .IsRequired()
-                        .HasConstraintName("FK_DocumentBookmarks_Document");
-
-                    b.HasOne("StudyHub.DAL.Entities.User", "User")
-                        .WithMany("DocumentBookmarks")
-                        .HasForeignKey("UserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_DocumentBookmarks_User");
-
-                    b.Navigation("Document");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.ExternalLogin", b =>
@@ -2408,6 +2264,18 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("User");
 
                     b.Navigation("UserSubject");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.GoalHistory", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.Goal", "Goal")
+                        .WithMany("GoalHistories")
+                        .HasForeignKey("GoalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_GoalHistories_Goal");
+
+                    b.Navigation("Goal");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.GradeBook", b =>
@@ -2640,30 +2508,64 @@ namespace StudyHub.DAL.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("StudyHub.DAL.Entities.Note", b =>
+            modelBuilder.Entity("StudyHub.DAL.Entities.Pdf.PdfAnnotation", b =>
                 {
-                    b.HasOne("StudyHub.DAL.Entities.User", "OwnerUser")
-                        .WithMany("Notes")
+                    b.HasOne("StudyHub.DAL.Entities.Pdf.PdfDocument", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.User", null)
+                        .WithMany()
                         .HasForeignKey("OwnerUserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_Notes_User");
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
 
-                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", "StudyGroup")
-                        .WithMany("Notes")
+            modelBuilder.Entity("StudyHub.DAL.Entities.Pdf.PdfDocument", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.Pdf.PdfDocumentPageNote", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.Pdf.PdfDocument", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.Pdf.PdfDocumentShare", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.Pdf.PdfDocument", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("SharedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", null)
+                        .WithMany()
                         .HasForeignKey("StudyGroupId")
-                        .HasConstraintName("FK_Notes_Group");
-
-                    b.HasOne("StudyHub.DAL.Entities.UserSubject", "UserSubject")
-                        .WithMany("Notes")
-                        .HasForeignKey("UserSubjectId", "OwnerUserId")
-                        .HasPrincipalKey("UserSubjectId", "UserId")
-                        .HasConstraintName("FK_Notes_SubjectOwner");
-
-                    b.Navigation("OwnerUser");
-
-                    b.Navigation("StudyGroup");
-
-                    b.Navigation("UserSubject");
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.Reminder", b =>
@@ -2695,6 +2597,12 @@ namespace StudyHub.DAL.Migrations
 
             modelBuilder.Entity("StudyHub.DAL.Entities.ScheduleEvent", b =>
                 {
+                    b.HasOne("StudyHub.DAL.Entities.Goal", "Goal")
+                        .WithMany("ScheduleEvents")
+                        .HasForeignKey("GoalId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_ScheduleEvents_Goal");
+
                     b.HasOne("StudyHub.DAL.Entities.User", "User")
                         .WithMany("ScheduleEvents")
                         .HasForeignKey("UserId")
@@ -2706,6 +2614,8 @@ namespace StudyHub.DAL.Migrations
                         .HasForeignKey("UserSubjectId", "UserId")
                         .HasPrincipalKey("UserSubjectId", "UserId")
                         .HasConstraintName("FK_ScheduleEvents_SubjectOwner");
+
+                    b.Navigation("Goal");
 
                     b.Navigation("User");
 
@@ -2844,13 +2754,6 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("Reminders");
                 });
 
-            modelBuilder.Entity("StudyHub.DAL.Entities.Document", b =>
-                {
-                    b.Navigation("ContentReports");
-
-                    b.Navigation("DocumentBookmarks");
-                });
-
             modelBuilder.Entity("StudyHub.DAL.Entities.Flashcard", b =>
                 {
                     b.Navigation("FlashcardProgresses");
@@ -2858,14 +2761,19 @@ namespace StudyHub.DAL.Migrations
 
             modelBuilder.Entity("StudyHub.DAL.Entities.FlashcardDeck", b =>
                 {
-                    b.Navigation("ContentReports");
-
                     b.Navigation("Flashcards");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.FlashcardProgress", b =>
                 {
                     b.Navigation("FlashcardReviews");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.Goal", b =>
+                {
+                    b.Navigation("GoalHistories");
+
+                    b.Navigation("ScheduleEvents");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.GradeBook", b =>
@@ -2895,11 +2803,6 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("GroupPosts");
                 });
 
-            modelBuilder.Entity("StudyHub.DAL.Entities.GroupPost", b =>
-                {
-                    b.Navigation("ContentReports");
-                });
-
             modelBuilder.Entity("StudyHub.DAL.Entities.GroupQuestion", b =>
                 {
                     b.Navigation("Answers");
@@ -2908,11 +2811,6 @@ namespace StudyHub.DAL.Migrations
             modelBuilder.Entity("StudyHub.DAL.Entities.GroupStudySession", b =>
                 {
                     b.Navigation("Attendees");
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.Note", b =>
-                {
-                    b.Navigation("ContentReports");
                 });
 
             modelBuilder.Entity("StudyHub.DAL.Entities.ScheduleEvent", b =>
@@ -2924,15 +2822,11 @@ namespace StudyHub.DAL.Migrations
 
             modelBuilder.Entity("StudyHub.DAL.Entities.StudyGroup", b =>
                 {
-                    b.Navigation("Documents");
-
                     b.Navigation("FlashcardDecks");
 
                     b.Navigation("GroupInvites");
 
                     b.Navigation("GroupMembers");
-
-                    b.Navigation("Notes");
 
                     b.Navigation("StudyGroupSubjects");
                 });
@@ -2952,17 +2846,7 @@ namespace StudyHub.DAL.Migrations
 
                     b.Navigation("AddedStudyGroupSubjects");
 
-                    b.Navigation("AuditLogs");
-
-                    b.Navigation("ContentReportReporterUsers");
-
-                    b.Navigation("ContentReportResolvedByUsers");
-
                     b.Navigation("Deadlines");
-
-                    b.Navigation("DocumentBookmarks");
-
-                    b.Navigation("Documents");
 
                     b.Navigation("ExternalLogins");
 
@@ -2973,8 +2857,6 @@ namespace StudyHub.DAL.Migrations
                     b.Navigation("Goals");
 
                     b.Navigation("GroupMembers");
-
-                    b.Navigation("Notes");
 
                     b.Navigation("Reminders");
 
@@ -2995,617 +2877,17 @@ namespace StudyHub.DAL.Migrations
                 {
                     b.Navigation("Deadlines");
 
-                    b.Navigation("Documents");
-
                     b.Navigation("FlashcardDecks");
 
                     b.Navigation("Goals");
 
                     b.Navigation("GradeEntries");
 
-                    b.Navigation("Notes");
-
                     b.Navigation("ScheduleEvents");
 
                     b.Navigation("StudySessions");
-                });
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Annotation", b =>
-                {
-                    b.Property<long>("AnnotationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AnnotationId"));
-
-                    b.Property<long>("DocumentVersionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("GroupDocumentShareId")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<long?>("OwnerUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("PayloadJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PhysicalPageNumber")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.HasKey("AnnotationId");
-
-                    b.HasIndex("DocumentVersionId");
-
-                    b.HasIndex("GroupDocumentShareId", "DocumentVersionId", "PhysicalPageNumber", "IsDeleted");
-
-                    b.HasIndex("OwnerUserId", "DocumentVersionId", "PhysicalPageNumber", "IsDeleted");
-
-                    b.ToTable("NotesV3Annotations", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_NotesV3Annotations_PayloadJson", "ISJSON([PayloadJson]) = 1");
-
-                            t.HasCheckConstraint("CK_NotesV3Annotations_PhysicalPage", "[PhysicalPageNumber] >= 1");
-
-                            t.HasCheckConstraint("CK_NotesV3Annotations_Scope", "([OwnerUserId] IS NOT NULL AND [GroupDocumentShareId] IS NULL)\r\nOR\r\n([OwnerUserId] IS NULL AND [GroupDocumentShareId] IS NOT NULL)");
-                        });
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3CollabUpdate", b =>
-                {
-                    b.Property<long>("UpdateId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("UpdateId"));
-
-                    b.Property<long>("ActorUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<Guid>("OperationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<long>("PageId")
-                        .HasColumnType("bigint");
-
-                    b.Property<byte[]>("UpdateBytes")
-                        .IsRequired()
-                        .HasColumnType("varbinary(max)");
-
-                    b.HasKey("UpdateId");
-
-                    b.HasIndex("ActorUserId");
-
-                    b.HasIndex("PageId", "OperationId")
-                        .IsUnique();
-
-                    b.HasIndex("PageId", "UpdateId");
-
-                    b.ToTable("NotesV3CollabUpdates", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_NotesV3CollabUpdates_Bytes", "DATALENGTH([UpdateBytes]) BETWEEN 1 AND 262144");
-
-                            t.HasCheckConstraint("CK_NotesV3CollabUpdates_Operation", "[OperationId] <> '00000000-0000-0000-0000-000000000000'");
-                        });
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Document", b =>
-                {
-                    b.Property<long>("DocumentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("DocumentId"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsArchived")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<long>("OwnerUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.HasKey("DocumentId");
-
-                    b.HasIndex("OwnerUserId", "IsDeleted", "IsArchived", "UpdatedAtUtc");
-
-                    b.ToTable("NotesV3Documents", (string)null);
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3DocumentShare", b =>
-                {
-                    b.Property<long>("GroupDocumentShareId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("GroupDocumentShareId"));
-
-                    b.Property<long>("DocumentId")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<DateTime>("SharedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<long>("SharedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("StudyGroupId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("UnsharedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("GroupDocumentShareId");
-
-                    b.HasIndex("SharedByUserId");
-
-                    b.HasIndex("DocumentId", "StudyGroupId")
-                        .IsUnique()
-                        .HasFilter("[IsActive] = 1");
-
-                    b.HasIndex("StudyGroupId", "IsActive");
-
-                    b.ToTable("NotesV3DocumentShares", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_NotesV3DocumentShares_State", "([IsActive] = 1 AND [UnsharedAtUtc] IS NULL)\r\nOR\r\n([IsActive] = 0 AND [UnsharedAtUtc] IS NOT NULL)");
-                        });
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3DocumentVersion", b =>
-                {
-                    b.Property<long>("DocumentVersionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("DocumentVersionId"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<long>("DocumentId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("FileSizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("OriginalFileName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int?>("PageCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Sha256")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
-
-                    b.Property<string>("StorageKey")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("DocumentVersionId");
-
-                    b.HasIndex("StorageKey")
-                        .IsUnique();
-
-                    b.HasIndex("DocumentId", "DocumentVersionId");
-
-                    b.ToTable("NotesV3DocumentVersions", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_NotesV3DocumentVersions_FileSize", "[FileSizeBytes] > 0 AND [FileSizeBytes] <= 26214400");
-
-                            t.HasCheckConstraint("CK_NotesV3DocumentVersions_PageCount", "[PageCount] IS NULL OR [PageCount] >= 1");
-                        });
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Notebook", b =>
-                {
-                    b.Property<long>("NotebookId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("NotebookId"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<long>("OwnerUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<long?>("StudyGroupId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("NotebookId");
-
-                    b.HasIndex("OwnerUserId", "IsDeleted", "SortOrder");
-
-                    b.HasIndex("StudyGroupId", "IsDeleted", "SortOrder");
-
-                    b.ToTable("NotesV3Notebooks", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_NotesV3Notebooks_SortOrder", "[SortOrder] >= 0");
-                        });
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Page", b =>
-                {
-                    b.Property<long>("PageId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PageId"));
-
-                    b.Property<string>("ContentDeltaJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<long?>("SectionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("PageId");
-
-                    b.HasIndex("SectionId", "IsDeleted", "SortOrder");
-
-                    b.ToTable("NotesV3Pages", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_NotesV3Pages_DeltaJson", "ISJSON([ContentDeltaJson]) = 1");
-
-                            t.HasCheckConstraint("CK_NotesV3Pages_SortOrder", "[SortOrder] >= 0");
-                        });
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3PdfPageLink", b =>
-                {
-                    b.Property<long>("PageId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("DocumentVersionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("GroupDocumentShareId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("OwnerUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("PhysicalPageNumber")
-                        .HasColumnType("int");
-
-                    b.HasKey("PageId");
-
-                    b.HasIndex("DocumentVersionId");
-
-                    b.HasIndex("GroupDocumentShareId", "DocumentVersionId", "PhysicalPageNumber")
-                        .IsUnique()
-                        .HasFilter("[GroupDocumentShareId] IS NOT NULL");
-
-                    b.HasIndex("OwnerUserId", "DocumentVersionId", "PhysicalPageNumber")
-                        .IsUnique()
-                        .HasFilter("[OwnerUserId] IS NOT NULL");
-
-                    b.ToTable("NotesV3PdfPageLinks", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_NotesV3PdfPageLinks_PhysicalPage", "[PhysicalPageNumber] >= 1");
-
-                            t.HasCheckConstraint("CK_NotesV3PdfPageLinks_Scope", "([OwnerUserId] IS NOT NULL AND [GroupDocumentShareId] IS NULL)\r\nOR\r\n([OwnerUserId] IS NULL AND [GroupDocumentShareId] IS NOT NULL)");
-                        });
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Reference", b =>
-                {
-                    b.Property<long>("ReferenceId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("ReferenceId"));
-
-                    b.Property<string>("AnchorJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CapturedText")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
-
-                    b.Property<long>("DocumentVersionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("GroupDocumentShareId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("PageId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("PhysicalPageNumber")
-                        .HasColumnType("int");
-
-                    b.HasKey("ReferenceId");
-
-                    b.HasIndex("DocumentVersionId");
-
-                    b.HasIndex("GroupDocumentShareId");
-
-                    b.HasIndex("PageId");
-
-                    b.ToTable("NotesV3References", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_NotesV3References_AnchorJson", "[AnchorJson] IS NULL OR ISJSON([AnchorJson]) = 1");
-
-                            t.HasCheckConstraint("CK_NotesV3References_PhysicalPage", "[PhysicalPageNumber] >= 1");
-                        });
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Section", b =>
-                {
-                    b.Property<long>("SectionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("SectionId"));
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<long>("NotebookId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("SectionId");
-
-                    b.HasIndex("NotebookId", "IsDeleted", "SortOrder");
-
-                    b.ToTable("NotesV3Sections", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_NotesV3Sections_SortOrder", "[SortOrder] >= 0");
-                        });
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Annotation", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3DocumentVersion", null)
-                        .WithMany()
-                        .HasForeignKey("DocumentVersionId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3DocumentShare", null)
-                        .WithMany()
-                        .HasForeignKey("GroupDocumentShareId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("StudyHub.DAL.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.NoAction);
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3CollabUpdate", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("ActorUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3Page", null)
-                        .WithMany()
-                        .HasForeignKey("PageId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Document", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3DocumentShare", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3Document", null)
-                        .WithMany()
-                        .HasForeignKey("DocumentId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("StudyHub.DAL.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("SharedByUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", null)
-                        .WithMany()
-                        .HasForeignKey("StudyGroupId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3DocumentVersion", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3Document", null)
-                        .WithMany()
-                        .HasForeignKey("DocumentId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Notebook", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("StudyHub.DAL.Entities.StudyGroup", null)
-                        .WithMany()
-                        .HasForeignKey("StudyGroupId")
-                        .OnDelete(DeleteBehavior.NoAction);
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Page", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3Section", null)
-                        .WithMany()
-                        .HasForeignKey("SectionId")
-                        .OnDelete(DeleteBehavior.NoAction);
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3PdfPageLink", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3DocumentVersion", null)
-                        .WithMany()
-                        .HasForeignKey("DocumentVersionId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3DocumentShare", null)
-                        .WithMany()
-                        .HasForeignKey("GroupDocumentShareId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("StudyHub.DAL.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3Page", null)
-                        .WithOne()
-                        .HasForeignKey("StudyHub.DAL.Entities.NotesV3.NotesV3PdfPageLink", "PageId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Reference", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3DocumentVersion", null)
-                        .WithMany()
-                        .HasForeignKey("DocumentVersionId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3DocumentShare", null)
-                        .WithMany()
-                        .HasForeignKey("GroupDocumentShareId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3Page", null)
-                        .WithMany()
-                        .HasForeignKey("PageId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("StudyHub.DAL.Entities.NotesV3.NotesV3Section", b =>
-                {
-                    b.HasOne("StudyHub.DAL.Entities.NotesV3.NotesV3Notebook", null)
-                        .WithMany()
-                        .HasForeignKey("NotebookId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
     }
 }
-

@@ -20,7 +20,7 @@ public sealed class GroupResourcesController(
         long id,
         CancellationToken ct)
     {
-        // Notes/PDF mới đi qua NotesV3Controller.
+        // Tài liệu PDF đi qua module PDF.
         if (kind != "Flashcard")
         {
             return NotFound();

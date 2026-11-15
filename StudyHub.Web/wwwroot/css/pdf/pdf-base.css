@@ -1,0 +1,63 @@
+.pdf {
+    --pdf-purple: var(--sh-indigo-600);
+    --pdf-purple-dark: var(--sh-indigo-700);
+    --pdf-ink: var(--sh-slate-900);
+    --pdf-muted: var(--sh-slate-500);
+    --pdf-border: var(--sh-slate-200);
+    max-width: 1400px;
+    color: var(--pdf-ink);
+}
+
+.pdf.container-fluid { max-width: none; }
+.pdf h1, .pdf h2, .pdf h3 {
+    font-weight: 700;
+    letter-spacing: -.03em;
+}
+.pdf .text-muted { color: var(--pdf-muted) !important; }
+.pdf .card {
+    border: 1px solid var(--pdf-border);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgb(32 34 58 / 5%);
+}
+.pdf .card-body { padding: 22px; }
+.pdf .btn { border-radius: 10px; font-weight: 600; }
+.pdf .btn-primary {
+    border-color: var(--pdf-purple);
+    background: var(--pdf-purple);
+}
+.pdf .btn-primary:hover {
+    border-color: var(--pdf-purple-dark);
+    background: var(--pdf-purple-dark);
+}
+.pdf .btn-outline-primary {
+    border-color: var(--sh-indigo-200);
+    color: var(--pdf-purple);
+}
+.pdf .btn-outline-primary:hover {
+    border-color: var(--pdf-purple);
+    background: var(--pdf-purple);
+    color: #fff;
+}
+.pdf .form-control, .pdf .form-select {
+    border-color: var(--pdf-border);
+    border-radius: 10px;
+}
+.pdf .form-control:focus, .pdf .form-select:focus {
+    border-color: var(--sh-indigo-500);
+    box-shadow: 0 0 0 3px var(--sh-indigo-100);
+}
+.pdf details { color: var(--pdf-muted); font-size: 14px; }
+.pdf summary { cursor: pointer; }
+.pdf details[open] { color: var(--pdf-ink); }
+
+.pdf textarea { line-height: 1.7; resize: vertical; }
+.pdf-reader .card-body.p-2 { padding: 8px !important; }
+.pdf-reader iframe {
+    display: block;
+    width: 100%;
+    height: 75vh;
+    border: 0;
+    border-radius: 12px;
+    background: #f5f5f8;
+}

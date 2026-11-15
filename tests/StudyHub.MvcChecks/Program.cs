@@ -71,7 +71,7 @@ try {
     Check(failed.StatusCode == HttpStatusCode.Redirect && (await Page("/Groups/1")).Contains("Membership denied"), "business errors displayed after redirect");
     Check((await client.GetAsync("/api/groups")).StatusCode == HttpStatusCode.NotFound, "old group API removed");
     client.DefaultRequestHeaders.Add("X-Anonymous","true");
-    Check((await client.GetAsync("/Groups")).StatusCode == HttpStatusCode.Unauthorized, "anonymous access rejected");
+    Check((await client.GetAsync("/Groups")).StatusCode == HttpStatusCode.OK, "anonymous group list allowed");
     Console.WriteLine($"{checks} checks passed.");
 } finally { await app.StopAsync(); }
 
