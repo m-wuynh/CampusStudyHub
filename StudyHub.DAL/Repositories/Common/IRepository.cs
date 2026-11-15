@@ -11,6 +11,7 @@ public interface IRepository
 {
     Task<T> ExecuteAsync<T>(Func<Task<T>> operation);
     IGoogleAuthRepository GoogleAuth { get; }
+    bool HasActiveTransaction { get; }
     
     IQueryable<TEntity> Query<TEntity>(bool asNoTracking = true) where TEntity : class;
     ValueTask<TEntity?> FindAsync<TEntity>(

@@ -31,6 +31,8 @@ public sealed class EfRepository(
     }
 
     public IGoogleAuthRepository GoogleAuth { get; } = googleAuth;
+    public bool HasActiveTransaction => context.Database.CurrentTransaction is not null;
+
     public IQueryable<TEntity> Query<TEntity>(bool asNoTracking = true) where TEntity : class
     {
         var query = context.Set<TEntity>().AsQueryable();

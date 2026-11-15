@@ -35,8 +35,14 @@ public sealed class PdfSharingService(
 
         try
         {
-            await using var tx = await repository.BeginTransactionAsync(
-                IsolationLevel.Serializable, cancellationToken);
+            // GroupLearningRepository already wraps membership checks and the
+            // resource write in a serializable transaction. Reuse it instead
+            // of starting a second transaction on the same SQL connection.
+            var ownsTransaction = !repository.HasActiveTransaction;
+            await using var transaction = ownsTransaction
+                ? await repository.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken)
+                : null;
 
             // Recheck inside transaction để tránh race condition.
             await RequireNoActiveShareInGroupAsync(
@@ -46,7 +52,10 @@ public sealed class PdfSharingService(
                 documentId, groupId, actorUserId, cancellationToken);
 
             await repository.SaveChangesAsync(cancellationToken);
-            await tx.CommitAsync(cancellationToken);
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
         }
         catch (Exception ex) when (IsDeadlock(ex))
         {

@@ -17,6 +17,8 @@ namespace StudyHub.DAL.Entities
         public DateTime StartedAtUtc { get; set; }
         public DateTime? CompletedAtUtc { get; set; }
 
+        public int? CompletedTotalCards { get; set; }
+
         public DateTime? InvalidatedAtUtc { get; set; }
 
         public long? CurrentCardId { get; set; }
