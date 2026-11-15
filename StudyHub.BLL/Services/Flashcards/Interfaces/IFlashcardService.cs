@@ -21,12 +21,14 @@ namespace StudyHub.BLL.Services.Flashcards.Interfaces
             CancellationToken cancellationToken = default);
 
         Task<bool> UpdateCardAsync(
+            long deckId,
             long cardId,
             long currentUserId,
             UpdateFlashcardRequestDto request,
             CancellationToken cancellationToken = default);
 
         Task<bool> DeleteCardAsync(
+            long deckId,
             long cardId,
             long currentUserId,
             CancellationToken cancellationToken = default);
@@ -42,7 +44,7 @@ namespace StudyHub.BLL.Services.Flashcards.Interfaces
             long? questionCardId = null,
             CancellationToken cancellationToken = default);
 
-        Task<FlashcardLearnAnswerResultDto?> SubmitLearnAnswerAsync(
+        Task<FlashcardLearnAnswerResultDto?> GradeLearnAnswerAsync(
             long deckId,
             long currentuserId,
             SubmitFlashcardLearnAnswerRequestDto request,
