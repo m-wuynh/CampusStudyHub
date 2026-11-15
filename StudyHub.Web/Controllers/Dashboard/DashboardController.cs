@@ -78,8 +78,10 @@ public sealed class DashboardController(
         }
 
         // ── 3. Schedule & Events Data ──────────────────────────────────
-        var todayEvents = await calendarService.GetEventsAsync(userId, today, today);
-        var upcomingEventsRaw = await calendarService.GetEventsAsync(userId, today, today.AddDays(7));
+        // Chỉ giữ sự kiện thực sự diễn ra trong khoảng ngày (tính cả lịch lặp),
+        // để "Lịch học hôm nay" không hiện lịch của các ngày cũ.
+        var todayEvents = OccurringBetween(await calendarService.GetEventsAsync(userId, today, today), today, today);
+        var upcomingEventsRaw = OccurringBetween(await calendarService.GetEventsAsync(userId, today, today.AddDays(7)), today, today.AddDays(7));
 
         // Sự kiện sắp diễn ra: mọi loại sự kiện chưa bắt đầu, trong 7 ngày tới.
         var upcomingSummary = new List<UpcomingEventSummaryDto>();
@@ -131,7 +133,7 @@ public sealed class DashboardController(
         var startOfWeek = today.AddDays(-1 * diff);
         var endOfWeek = startOfWeek.AddDays(6);
 
-        var weeklyEvents = await calendarService.GetEventsAsync(userId, startOfWeek, endOfWeek);
+        var weeklyEvents = OccurringBetween(await calendarService.GetEventsAsync(userId, startOfWeek, endOfWeek), startOfWeek, endOfWeek);
         int weeklyTotal = weeklyEvents.Count;
         int weeklyCompleted = weeklyEvents.Count(e => e.IsCompleted);
         int weeklyMissed = weeklyEvents.Count(e => !e.IsCompleted && e.EndAtLocal < now);
@@ -156,7 +158,7 @@ public sealed class DashboardController(
             nextEvent,
             currentAvg,
             goalSummary,
-            todayEvents.OrderBy(e => e.StartAtLocal).ToList(),
+            todayEvents.OrderBy(e => e.StartAtLocal.TimeOfDay).ToList(),
             upcomingSummary,
             flashcardSummary,
             weeklyTotal,
@@ -168,4 +170,7 @@ public sealed class DashboardController(
 
         return View(model);
     }
+
+    private static List<ScheduleEventDto> OccurringBetween(IEnumerable<ScheduleEventDto> events, DateOnly fromDate, DateOnly toDate)
+        => events.Where(e => ScheduleOccurrenceService.GetStarts(e, fromDate, toDate).Count > 0).ToList();
 }
