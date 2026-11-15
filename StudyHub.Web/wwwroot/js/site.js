@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   setupDropdown('topbar-quick-add-btn', 'quick-add-menu');
-  setupDropdown('topbar-notifications-btn', 'notifications-menu');
+  // topbar-notifications-btn is handled by Notification JS in _Layout.cshtml to dynamically load notifications
 
   // Close dropdowns on document click
   document.addEventListener('click', () => {
