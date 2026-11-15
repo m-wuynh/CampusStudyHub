@@ -581,3 +581,184 @@
         .notif-input-purple:focus {
             border-color: #7c3aed;
         }
+
+        /* ========================================================
+           Calendar Layout & Component Classes (Moved from inline styles)
+           ======================================================== */
+        .calendar-view-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .calendar-main-card {
+            background: #ffffff;
+            border: 1px solid #f1f3f4;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            position: relative;
+            min-height: 800px;
+        }
+
+        .calendar-grid-container {
+            height: 100%;
+        }
+
+        .calendar-search-max {
+            max-width: 680px;
+        }
+
+        .search-esc-badge {
+            font-size: 10px;
+        }
+
+        .hero-card-z2 {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Event Popover Card & Details */
+        .event-popover-card {
+            position: absolute;
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 8px;
+            width: 360px;
+            max-width: calc(100% - 20px);
+            max-height: calc(100% - 20px);
+            overflow-y: auto;
+            z-index: 1050;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: opacity 0.1s;
+        }
+
+        .btn-popover-complete {
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .btn-popover-icon {
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .popover-color-box {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        .popover-title-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #3c4043;
+        }
+
+        .popover-time-text {
+            font-size: 0.82rem;
+        }
+
+        .popover-body-details {
+            font-size: 0.88rem;
+        }
+
+        .popover-desc-text {
+            white-space: pre-wrap;
+            color: #3c4043;
+        }
+
+        .popover-text-dark {
+            color: #3c4043;
+        }
+
+        .popover-check-input {
+            cursor: pointer;
+        }
+
+        .popover-check-label {
+            cursor: pointer;
+            color: #3c4043;
+            user-select: none;
+        }
+
+        .popover-row-hidden {
+            display: none !important;
+        }
+
+        /* Calendar Form Pages (Create / Update) */
+        .calendar-form-container {
+            max-width: 680px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .calendar-hero-card-sm {
+            padding: 24px 28px;
+        }
+
+        .hero-watermark-star-sm {
+            width: 140px;
+            height: 140px;
+            right: 24px;
+        }
+
+        .hero-back-link {
+            font-size: 13px;
+            color: #ffffff;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0.75;
+            margin-bottom: 8px;
+            transition: opacity 0.15s ease;
+        }
+
+        .hero-back-link:hover {
+            opacity: 1;
+            color: #ffffff;
+        }
+
+        .hero-heading-title {
+            font-size: 22px;
+            color: #ffffff;
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hero-subtitle-text {
+            font-size: 13.5px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 0;
+        }
+
+        .calendar-field-error {
+            font-size: 12.5px;
+            font-weight: 500;
+        }
+
+        .notif-bell-icon {
+            color: #7c3aed;
+            font-size: 1.05rem;
+        }
+
+        .notif-remove-icon {
+            font-size: 1.1rem;
+        }
+
+        select.calendar-form-input {
+            cursor: pointer;
+        }
