@@ -86,7 +86,7 @@
       <a asp-controller="Flashcards" asp-action="Index" class="sidebar-nav-item" id="sidebar-nav-flashcards">
         <div class="d-flex align-items-center gap-3">
           <i class="bi bi-layers nav-icon"></i>
-          <span>Thẻ ghi nhớ (Flashcard)</span>
+          <span>Thẻ ghi nhớ</span>
         </div>
       </a>
 
@@ -178,49 +178,6 @@
 
         @if (isAuthenticated)
         {
-        <!-- Search Bar (md+) -->
-        <div class="topbar-search d-none d-md-block">
-          <i class="bi bi-search search-icon" style="font-size:13px;"></i>
-          <input id="topbar-search-input"
-                 type="text"
-                 placeholder="Tìm ghi chú, thẻ, sự kiện..." />
-        </div>
-
-        <!-- Quick Add Dropdown -->
-        <div class="position-relative">
-          <button id="topbar-quick-add-btn"
-                  class="btn-primary-sh"
-                  type="button">
-            <i class="bi bi-plus-lg"></i>
-            <span class="d-none d-sm-inline">Tạo mới</span>
-          </button>
-          <div id="quick-add-menu"
-               class="sh-dropdown position-absolute end-0 mt-2"
-               style="display:none; min-width:210px; z-index:1050;">
-            <div class="px-3 py-1"
-                 style="font-size:10px;font-weight:700;color:var(--sh-slate-400);text-transform:uppercase;letter-spacing:.06em;">
-              Thêm nhanh
-            </div>
-            <a asp-controller="Pdf" asp-action="Index" class="sh-dropdown-item">
-              <i class="bi bi-file-earmark-plus" style="color:var(--sh-indigo-600);"></i>
-              Thêm ghi chú mới
-            </a>
-            <a asp-controller="Flashcards" asp-action="Index" class="sh-dropdown-item">
-              <i class="bi bi-layers" style="color:var(--sh-emerald-600);"></i>
-              Tạo bộ Flashcard
-            </a>
-            <a asp-controller="Calendar" asp-action="Index" class="sh-dropdown-item">
-              <i class="bi bi-calendar-plus" style="color:var(--sh-amber-600);"></i>
-              Lên lịch học / Kiểm tra
-            </a>
-            <div style="height:1px;background:var(--sh-slate-100);margin:4px 0;"></div>
-            <a asp-controller="Grades" asp-action="Index" class="sh-dropdown-item">
-              <i class="bi bi-journal-plus" style="color:var(--sh-rose-600);"></i>
-              Nhập điểm bài thi
-            </a>
-          </div>
-        </div>
-
         <!-- Notifications -->
         <div class="position-relative">
           <button id="topbar-notifications-btn"
