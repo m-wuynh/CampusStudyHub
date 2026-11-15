@@ -90,6 +90,7 @@ public sealed record GroupInviteResponse(
 
 public sealed record SendGroupMessageRequest(string? Content);
 public sealed record CreateAnnouncementRequest(string? Content, bool IsPinned = false);
+public sealed record SetGroupAnnouncementPinRequest(bool IsPinned);
 public sealed record ManageGroupMemberRequest(string? Action);
 public sealed record RequestGroupUnbanRequest(string? Reason);
 public sealed record CreateGroupInviteRequest(int ExpiresInDays = 7, int MaxUses = 20);

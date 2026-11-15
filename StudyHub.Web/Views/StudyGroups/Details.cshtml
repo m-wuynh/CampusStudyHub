@@ -175,7 +175,16 @@
                   @if (!string.IsNullOrWhiteSpace(post.AuthorAvatarUrl)) { <img src="@post.AuthorAvatarUrl" alt="" referrerpolicy="no-referrer" /> }
                   else { <span class="group-avatar">@Initial(post.AuthorName)</span> }
                   <div><strong>@post.AuthorName</strong><time datetime="@post.SentAt.ToString("O")">@post.SentAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</time></div>
-                  @if (post.IsPinned) { <span class="badge text-bg-warning ms-auto"><i class="bi bi-pin-angle-fill"></i> Đã ghim</span> }
+                  <div class="ms-auto d-flex flex-wrap align-items-center justify-content-end gap-2">
+                    @if (post.IsPinned) { <span class="badge text-bg-warning"><i class="bi bi-pin-angle-fill"></i> Đã ghim</span> }
+                    @if (Model.Group.CanManage)
+                    {
+                      <form asp-action="SetAnnouncementPin" asp-route-groupId="@Model.Group.Id" asp-route-postId="@post.Id" method="post">
+                        <input type="hidden" name="IsPinned" value="@(post.IsPinned ? "false" : "true")" />
+                        <button type="submit" class="btn-secondary-sh" aria-label="@(post.IsPinned ? "Gỡ ghim thông báo" : "Ghim thông báo")"><i class="bi @(post.IsPinned ? "bi-pin-angle" : "bi-pin-angle-fill")" aria-hidden="true"></i>@(post.IsPinned ? "Gỡ ghim" : "Ghim")</button>
+                      </form>
+                    }
+                  </div>
                 </div>
                 <p>@post.Content</p>
               </article>

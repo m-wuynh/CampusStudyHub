@@ -163,6 +163,16 @@
       }
     });
 
+    container.addEventListener('click', event => {
+      const row = event.target.closest('.group-subject-option');
+      const checkbox = row?.querySelector('input[type="checkbox"]');
+      if (!checkbox || event.target === checkbox) return;
+      // Handle text and padding clicks once, without a second native label toggle.
+      event.preventDefault();
+      checkbox.focus({ preventScroll: true });
+      checkbox.click();
+    });
+
     container.addEventListener('change', event => {
       const checkbox = event.target.closest('input[type="checkbox"]');
       if (!checkbox) return;
@@ -179,10 +189,8 @@
     document.addEventListener('click', event => {
       if (!panel.hidden && !event.composedPath().includes(root)) setOpen(false);
     });
-    root.addEventListener('focusout', () => {
-      window.setTimeout(() => {
-        if (!root.contains(document.activeElement)) setOpen(false);
-      }, 0);
+    document.addEventListener('focusin', event => {
+      if (!panel.hidden && !root.contains(event.target)) setOpen(false);
     });
 
     render();

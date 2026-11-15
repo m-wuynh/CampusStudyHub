@@ -80,6 +80,11 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
         CancellationToken cancellationToken = default) =>
         AddPostAsync(groupId, content, "Announcement", isPinned, 4000, cancellationToken);
 
+    public Task SetAnnouncementPinnedAsync(string groupId, string postId, bool isPinned, CancellationToken cancellationToken = default) =>
+        ExecuteAsync(() => SetAnnouncementPinnedAsyncCore(
+            ParseId(groupId, "Mã nhóm không hợp lệ."), currentUser.UserId,
+            ParseId(postId, "Mã thông báo không hợp lệ."), isPinned, cancellationToken));
+
     public async Task<GroupDetailsResponse> CreateGroupAsync(
         CreateGroupRequest request,
         CancellationToken cancellationToken = default)
@@ -924,6 +929,27 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
 
 
 
+    private async Task SetAnnouncementPinnedAsyncCore(
+        long groupId, long userId, long postId, bool isPinned, CancellationToken cancellationToken)
+    {
+        await using var transaction = await data.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var membership = await data.Query<GroupMember>(false)
+            .Include(item => item.StudyGroup)
+            .SingleOrDefaultAsync(item => item.StudyGroupId == groupId && item.UserId == userId, cancellationToken);
+        if (membership?.Status != "Active" || membership.StudyGroup.IsArchived ||
+            (membership.StudyGroup.OwnerUserId != userId && membership.MemberRole != "Moderator"))
+            throw new StudyGroupWorkflowException("forbidden", "Chỉ trưởng nhóm hoặc điều phối viên được ghim hoặc gỡ ghim thông báo.");
+
+        var post = await data.Query<GroupPost>(false)
+            .SingleOrDefaultAsync(item => item.GroupPostId == postId && item.StudyGroupId == groupId &&
+                item.PostType == "Announcement" && !item.IsDeleted, cancellationToken)
+            ?? throw new StudyGroupWorkflowException("not_found", "Không tìm thấy thông báo.");
+        post.IsPinned = isPinned;
+        post.UpdatedAtUtc = DateTime.UtcNow;
+        await data.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
     private async Task<GroupPostData> AddPostAsyncCore(
         long groupId,
         long userId,
@@ -932,6 +958,7 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
         bool isPinned,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await data.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var membership = await data.Query<GroupMember>(false)
             .Include(item => item.User)
             .Include(item => item.StudyGroup)
@@ -942,13 +969,6 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
         var canManage = membership.StudyGroup.OwnerUserId == userId || membership.MemberRole == "Moderator";
         if (postType == "Announcement" && !canManage)
             throw new StudyGroupWorkflowException("forbidden", "Chỉ trưởng nhóm hoặc điều phối viên được đăng thông báo.");
-
-        if (postType == "Announcement" && isPinned)
-        {
-            await data.Query<GroupPost>(false)
-                .Where(item => item.StudyGroupId == groupId && item.PostType == "Announcement" && item.IsPinned)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsPinned, false), cancellationToken);
-        }
 
         var now = DateTime.UtcNow;
         var post = new GroupPost
@@ -964,6 +984,7 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
         };
         await data.AddAsync(post);
         await data.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return new GroupPostData
         {
             Id = post.GroupPostId.ToString(),

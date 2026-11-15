@@ -144,6 +144,14 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IGroup
             return "Đã đăng thông báo.";
         }, "announcements");
 
+    [HttpPost("{groupId:long}/Announcements/{postId:long}/Pin")]
+    public Task<IActionResult> SetAnnouncementPin(string groupId, string postId, [FromForm] SetGroupAnnouncementPinRequest request, CancellationToken cancellationToken) =>
+        Perform(groupId, async () =>
+        {
+            await studyGroups.SetAnnouncementPinnedAsync(groupId, postId, request.IsPinned, cancellationToken);
+            return request.IsPinned ? "Đã ghim thông báo." : "Đã gỡ ghim thông báo.";
+        }, "announcements");
+
     [HttpPost("{groupId:long}/Members/{userId:long}")]
     public Task<IActionResult> ManageMember(string groupId, string userId, string memberAction, CancellationToken cancellationToken) =>
         Perform(groupId, async () =>
