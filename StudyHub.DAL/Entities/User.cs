@@ -35,17 +35,7 @@ public partial class User
 
     public virtual ICollection<ActivityEvent> ActivityEvents { get; set; } = new List<ActivityEvent>();
 
-    public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
-
-    public virtual ICollection<ContentReport> ContentReportReporterUsers { get; set; } = new List<ContentReport>();
-
-    public virtual ICollection<ContentReport> ContentReportResolvedByUsers { get; set; } = new List<ContentReport>();
-
     public virtual ICollection<Deadline> Deadlines { get; set; } = new List<Deadline>();
-
-    public virtual ICollection<DocumentBookmark> DocumentBookmarks { get; set; } = new List<DocumentBookmark>();
-
-    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 
     public virtual ICollection<ExternalLogin> ExternalLogins { get; set; } = new List<ExternalLogin>();
 
@@ -56,8 +46,6 @@ public partial class User
     public virtual ICollection<Goal> Goals { get; set; } = new List<Goal>();
 
     public virtual ICollection<GroupMember> GroupMembers { get; set; } = new List<GroupMember>();
-
-    public virtual ICollection<Note> Notes { get; set; } = new List<Note>();
 
     public virtual ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
 

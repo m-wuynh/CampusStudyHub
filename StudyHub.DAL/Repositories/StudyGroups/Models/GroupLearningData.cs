@@ -13,7 +13,13 @@ public sealed record AssignmentData(long Id, string Title, string Description, l
 public sealed record AnswerData(long Id, long AuthorUserId, string AuthorName, string Body, DateTimeOffset CreatedAtUtc);
 public sealed record QuestionData(long Id, long AuthorUserId, string AuthorName, string Title, string Subject,
     string Body, DateTimeOffset CreatedAtUtc, long? AcceptedAnswerId, int Revision, IReadOnlyList<AnswerData> Answers);
-public sealed record SharedResourceData(long Id, string Kind, string Title, long OwnerUserId, string OwnerName);
+public sealed record SharedResourceData(
+    long Id,
+    string Kind,
+    string Title,
+    long OwnerUserId,
+    string OwnerName,
+    long? ShareId = null);
 public sealed record ResourceCardData(string Front, string Back);
 public sealed record SharedContentData(string Kind, string Title, string? Body, string? ExternalUrl,
     string? StorageKey, IReadOnlyList<ResourceCardData> Cards);

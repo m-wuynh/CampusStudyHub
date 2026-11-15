@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Data;
 using Microsoft.EntityFrameworkCore.Storage;
 using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.StudyGroups;
@@ -37,5 +38,8 @@ public interface IRepository
     int SaveChanges();
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+    Task<IDbContextTransaction> BeginTransactionAsync(
+        IsolationLevel isolationLevel,
+        CancellationToken cancellationToken = default);
 }
 

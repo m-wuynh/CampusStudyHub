@@ -116,24 +116,6 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             .OrderBy(post => post.CreatedAtUtc)
             .Select(ToPost));
 
-        // var documents = await context.Documents.AsNoTracking()
-        //     .Where(item => item.StudyGroupId == groupId && item.Visibility == "Group" && !item.IsDeleted)
-        //     .OrderByDescending(item => item.CreatedAtUtc)
-        //     .Take(20)
-        //     .Select(item => new GroupResourceData(
-        //         $"document-{item.DocumentId}", item.Title, "Document", $"/Groups/{groupId}/Resources/Document/{item.DocumentId}"))
-        //     .ToListAsync(cancellationToken);
-        // result.Resources.AddRange(documents);
-
-        // var notes = await context.Notes.AsNoTracking()
-        //     .Where(item => item.StudyGroupId == groupId && item.Visibility == "Group" && !item.IsDeleted)
-        //     .OrderByDescending(item => item.UpdatedAtUtc)
-        //     .Take(20)
-        //     .Select(item => new GroupResourceData(
-        //         $"note-{item.NoteId}", item.Title, "Note", $"/Groups/{groupId}/Resources/Note/{item.NoteId}"))
-        //     .ToListAsync(cancellationToken);
-        // result.Resources.AddRange(notes);
-
         var decks = await context.FlashcardDecks.AsNoTracking()
             .Where(item => item.StudyGroupId == groupId && item.Visibility == "Group" && !item.IsDeleted)
             .OrderByDescending(item => item.UpdatedAtUtc)
@@ -614,23 +596,6 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
             item => item.StudyGroupId == groupId && item.UserId == userId && item.Status == "Active" && !item.StudyGroup.IsArchived,
             cancellationToken);
 
-    // private async Task RestorePrivateResourcesAsync(long groupId, long userId, CancellationToken ct)
-    // {
-    //     await context.Notes.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
-    //         .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
-    //             .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
-    //     await context.Documents.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
-    //         .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
-    //             .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
-    //     await context.FlashcardDecks.Where(x => x.StudyGroupId == groupId && x.OwnerUserId == userId)
-    //         .ExecuteUpdateAsync(s => s.SetProperty(x => x.StudyGroupId, (long?)null)
-    //             .SetProperty(x => x.Visibility, "Private").SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow), ct);
-    //     // Registration for future sessions no longer applies after leaving; historical attendance is retained.
-    //     var now = DateTimeOffset.UtcNow;
-    //     await context.GroupSessionAttendances.Where(x => x.UserId == userId && x.Session.StudyGroupId == groupId &&
-    //         x.Session.Status == "Scheduled" && x.Session.StartsAtUtc > now).ExecuteDeleteAsync(ct);
-    // }
-
     private async Task RestorePrivateResourcesAsync(
     long groupId,
     long userId,
@@ -647,6 +612,45 @@ public sealed class SqlStudyGroupRepository(StudyHubDbContext context) : IStudyG
                 .SetProperty(x => x.Visibility, "Private")
                 .SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow),
             ct);
+
+    // Khi chủ sở hữu rời, bị kick hoặc bị ban, PDF chỉ bị thu hồi khỏi nhóm;
+    // file PDF cá nhân gốc vẫn thuộc về chủ sở hữu.
+    var unsharedAtUtc = DateTime.UtcNow;
+    var sharedDocumentIds = await context.PdfDocumentShares
+        .Where(share =>
+            share.StudyGroupId == groupId &&
+            share.IsActive)
+        .Join(
+            context.PdfDocuments.Where(document => document.OwnerUserId == userId),
+            share => share.DocumentId,
+            document => document.DocumentId,
+            (share, document) => document.DocumentId)
+        .Distinct()
+        .ToListAsync(ct);
+
+    await context.PdfDocumentShares
+        .Where(share =>
+            share.StudyGroupId == groupId &&
+            share.IsActive &&
+            context.PdfDocuments.Any(document =>
+                document.DocumentId == share.DocumentId &&
+                document.OwnerUserId == userId))
+        .ExecuteUpdateAsync(
+            setters => setters
+                .SetProperty(share => share.IsActive, false)
+                .SetProperty(share => share.UnsharedAtUtc, unsharedAtUtc),
+            ct);
+
+    if (sharedDocumentIds.Count > 0)
+    {
+        await context.PdfDocuments
+            .Where(document => sharedDocumentIds.Contains(document.DocumentId))
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(
+                    document => document.UpdatedAtUtc,
+                    unsharedAtUtc),
+                ct);
+    }
 
     // Giữ nguyên xử lý đăng ký buổi học tương lai.
     var now = DateTimeOffset.UtcNow;
