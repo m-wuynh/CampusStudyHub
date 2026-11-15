@@ -1,0 +1,60 @@
+@model FlashcardLearnViewModel
+
+@{
+    ViewData["Title"] = $"Thiết lập Learn - {Model.DeckTitle}";
+}
+
+<div class="container py-4">
+    <a asp-controller="Flashcards"
+       asp-action="Index"
+       asp-route-deckId="@Model.DeckId"
+       class="btn btn-outline-secondary mb-4">
+        Quay lại Deck
+    </a>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h3 class="mb-2">Thiết lập phiên học</h3>
+            <p class="text-muted">@Model.DeckTitle</p>
+
+            <form asp-controller="Flashcards"
+                  asp-action="StartLearn"
+                  asp-route-deckId="@Model.DeckId"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           name="shuffleEnabled"
+                           value="true"
+                           id="shuffleEnabled">
+
+                    <label class="form-check-label"
+                           for="shuffleEnabled">
+                        Trộn thứ tự thẻ (Shuffle)
+                    </label>
+                </div>
+
+                <p class="text-muted small">
+                    Mặc định tắt. Khi bật, thứ tự câu hỏi
+                    được trộn một lần và giữ nguyên
+                    trong suốt phiên học.
+                </p>
+
+                <p class="text-muted small">
+                    Nếu có phiên học đang dở,
+                    hệ thống sẽ tiếp tục phiên đó
+                    với thiết lập trước đây.
+                </p>
+
+                <button type="submit" class="btn btn-primary">
+                    Bắt đầu / Tiếp tục học
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+

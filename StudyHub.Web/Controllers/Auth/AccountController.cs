@@ -140,7 +140,7 @@ public sealed class AccountController(
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return RedirectToAction(nameof(Login));
+        return RedirectToAction("Index", "Dashboard");
     }
 
     [AllowAnonymous]

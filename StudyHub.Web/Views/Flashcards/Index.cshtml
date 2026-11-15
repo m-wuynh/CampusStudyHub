@@ -2,7 +2,7 @@
 @{
     ViewData["Title"]        = "Flashcards";
     ViewData["PageTitle"]    = "Thẻ ghi nhớ (Flashcards)";
-    ViewData["PageSubtitle"] = "Ôn tập kiến thức &amp; chia sẻ bộ thẻ";
+ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ ghi nhớ";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -30,7 +30,7 @@
       </h2>
             <p class="mb-0"
                style="font-size:12px; color:var(--sh-slate-500);">
-                @Model.Decks.Count bộ thẻ
+                Quản lý, xem và luyện tập các bộ thẻ ghi nhớ
             </p>
     </div>
     <div class="d-flex gap-2">
@@ -39,6 +39,100 @@
       </button>
     </div>
   </div>
+
+
+  
+    <!-- Mini Dashboard -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-12 col-sm-6 col-lg-4">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted small">Tổng bộ thẻ</span>
+                    <i class="bi bi-collection text-primary"></i>
+                </div>
+                <h3 class="fw-bold mb-1">@Model.TotalDecks</h3>
+                <p class="text-muted small mb-0">
+                    Bộ Flashcard của bạn
+                </p>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted small">Bộ mới tạo</span>
+                    <i class="bi bi-plus-circle text-success"></i>
+                </div>
+                <h3 class="fw-bold mb-1">
+                    @Model.NewDecksLast7Days
+                </h3>
+                <p class="text-muted small mb-0">
+                    Trong 7 ngày gần đây
+                </p>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted small">Bộ cập nhật gần đây</span>
+                    <i class="bi bi-clock-history text-warning"></i>
+                </div>
+                <h3 class="fw-bold mb-1">
+                    @Model.UpdatedDecksLast7Days
+                </h3>
+                <p class="text-muted small mb-0">
+                    Trong 7 ngày gần đây
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Danh sách và tìm kiếm -->
+    <div class="d-flex flex-column flex-md-row
+                justify-content-between align-items-md-center
+                gap-3 mb-3">
+
+        <div>
+            <h3 class="fw-bold mb-1" style="font-size:17px;">
+                Danh sách bộ thẻ
+            </h3>
+
+            <p class="text-muted small mb-0">
+                Hiển thị @Model.Decks.Count bộ thẻ
+            </p>
+        </div>
+
+        <form asp-controller="Flashcards"
+              asp-action="Index"
+              method="get"
+              class="d-flex gap-2">
+
+            <input type="search"
+                   name="searchText"
+                   value="@Model.SearchText"
+                   class="form-control"
+                   placeholder="Tìm bộ thẻ..."
+                   aria-label="Tìm bộ thẻ theo tên" />
+
+            <button type="submit"
+                    class="btn btn-primary"
+                    aria-label="Tìm kiếm">
+                <i class="bi bi-search"></i>
+            </button>
+
+            @if (!string.IsNullOrWhiteSpace(Model.SearchText))
+            {
+                <a asp-controller="Flashcards"
+                   asp-action="Index"
+                   class="btn btn-outline-secondary">
+                    Xóa lọc
+                </a>
+            }
+        </form>
+    </div>
 
   <!-- ── Flashcard Sets Grid ── -->
   <div class="row g-4" id="flashcard-sets-grid">
@@ -51,20 +145,27 @@
 
                     <h3 class="fw-bold mt-3 mb-2"
                         style="font-size:16px;">
-                        Chưa có bộ flashcard
+                        @(string.IsNullOrWhiteSpace(Model.SearchText)
+                            ? "Chưa có bộ flashcard"
+                            : "Không tìm thấy bộ thẻ phù hợp")
                     </h3>
 
                     <p class="mb-3"
                        style="font-size:12px; color:var(--sh-slate-500);">
-                        Hãy tạo bộ flashcard đầu tiên của bạn.
+                        @(string.IsNullOrWhiteSpace(Model.SearchText)
+                            ? "Hãy tạo bộ flashcard đầu tiên của bạn."
+                            : "Thử tìm kiếm bằng tên bộ thẻ khác.")
                     </p>
 
-                    <button class="btn-primary-sh"
-                            data-bs-toggle="modal"
-                            data-bs-target="#newSetModal">
-                        <i class="bi bi-plus-lg"></i>
-                        Tạo bộ thẻ
-                    </button>
+                    @if (string.IsNullOrWhiteSpace(Model.SearchText))
+                    {
+                        <button class="btn-primary-sh"
+                                data-bs-toggle="modal"
+                                data-bs-target="#newSetModal">
+                            <i class="bi bi-plus-lg"></i>
+                            Tạo bộ thẻ
+                        </button>
+                    }
                 </div>
             </div>
         }
@@ -162,10 +263,10 @@
                              style="font-size:11px;
                             color:var(--sh-slate-500);">
 
-                            <span class="d-flex align-items-center gap-1">
+                            @* <span class="d-flex align-items-center gap-1">
                                 <i class="bi bi-shield-lock"></i>
                                 @deck.Visibility
-                            </span>
+                            </span> *@
 
                             <span class="d-flex align-items-center gap-1">
                                 <i class="bi bi-clock"></i>
@@ -276,13 +377,6 @@
                                   rows="4"
                                   placeholder="Mô tả ngắn về bộ flashcard..."></textarea>
                         
-                    </div>
-
-                    <div class="alert alert-light border mb-0"
-                         style="font-size:12px;">
-                        Bộ thẻ mới đang được tạo ở chế độ
-                        <strong>Private</strong>.
-                        Chia sẻ Group/Public sẽ được tích hợp ở phase sau.
                     </div>
                 </div>
 

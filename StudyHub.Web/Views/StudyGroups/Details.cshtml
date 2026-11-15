@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="~/css/group-learning.css" asp-append-version="true" />
 <div id="group-details-page"
      data-group-id="@Model.Group.Id"
+     data-current-user-id="@Model.Group.Members.FirstOrDefault(member => member.IsCurrentUser)?.UserId"
      data-is-member="@Model.Group.IsMember.ToString().ToLowerInvariant()"
      data-is-owner="@Model.Group.IsOwner.ToString().ToLowerInvariant()"
      style="max-width:1240px;margin:0 auto;">
@@ -23,21 +24,16 @@
     <div class="d-flex gap-2">
       @if (Model.Group.IsOwner)
       {
-        <button type="button" class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#editGroupModal">
-          <i class="bi bi-pencil-square"></i>Chỉnh sửa nhóm
-        </button>
+        <a asp-action="Edit" asp-route-groupId="@Model.Group.Id" class="btn-primary-sh"><i class="bi bi-pencil-square"></i>Chỉnh sửa nhóm</a>
       }
       else if (Model.Group.IsMember)
       {
-        <button id="leave-group-btn" type="button" class="btn-secondary-sh" style="color:var(--sh-rose-600);"><i class="bi bi-box-arrow-left"></i>Rời nhóm</button>
+        <form asp-action="Leave" asp-route-groupId="@Model.Group.Id" method="post"><button id="leave-group-btn" type="submit" class="btn-secondary-sh" style="color:var(--sh-rose-600);"><i class="bi bi-box-arrow-left"></i>Rời nhóm</button></form>
       }
     </div>
   </div>
 
-  @if (TempData["GroupSuccess"] is string success)
-  {
-    <div class="alert alert-success py-2 px-3" role="alert" style="font-size:12px;">@success</div>
-  }
+  <partial name="_GroupFeedback" />
 
   <section class="group-hero sh-card overflow-hidden mb-4">
     <div class="p-4 p-md-5">
@@ -85,7 +81,7 @@
             <i class="bi bi-hourglass-split d-block mb-2" style="font-size:32px;color:var(--sh-amber-500);"></i>
             <h2 class="fw-bold" style="font-size:15px;">Đang chờ duyệt</h2>
             <p style="font-size:11px;color:var(--sh-slate-500);">Bạn sẽ truy cập được nội dung nhóm sau khi Owner hoặc Moderator chấp nhận.</p>
-            <button id="withdraw-request-btn" type="button" class="btn-secondary-sh w-100 justify-content-center">Rút yêu cầu</button>
+            <form asp-action="Leave" asp-route-groupId="@Model.Group.Id" method="post"><button id="withdraw-request-btn" type="submit" class="btn-secondary-sh w-100 justify-content-center">Rút yêu cầu</button></form>
           }
           else if (Model.Group.MembershipStatus == "Banned")
           {
@@ -98,7 +94,7 @@
             }
             else
             {
-              <button id="request-unban-btn" type="button" class="btn-primary-sh w-100 justify-content-center">Xin gỡ cấm</button>
+              <form asp-action="RequestUnban" asp-route-groupId="@Model.Group.Id" method="post"><button id="request-unban-btn" type="submit" class="btn-primary-sh w-100 justify-content-center">Xin gỡ cấm</button></form>
             }
           }
           else if (Model.Group.JoinMode == "InviteOnly")
@@ -112,7 +108,7 @@
             <i class="bi bi-people d-block mb-2" style="font-size:32px;color:var(--sh-indigo-600);"></i>
             <h2 class="fw-bold" style="font-size:15px;">Tham gia không gian học tập</h2>
             <p style="font-size:11px;color:var(--sh-slate-500);">@(Model.Group.JoinMode == "Open" ? "Bạn sẽ vào nhóm ngay." : "Yêu cầu sẽ được gửi tới người quản lý nhóm.")</p>
-            <button id="join-group-btn" type="button" class="btn-primary-sh w-100 justify-content-center">@(Model.Group.JoinMode == "Open" ? "Tham gia ngay" : "Gửi yêu cầu")</button>
+            <form asp-action="Join" asp-route-groupId="@Model.Group.Id" method="post"><button id="join-group-btn" type="submit" class="btn-primary-sh w-100 justify-content-center">@(Model.Group.JoinMode == "Open" ? "Tham gia ngay" : "Gửi yêu cầu")</button></form>
           }
         </section>
       </div>
@@ -152,10 +148,10 @@
           </div>
           @if (Model.Group.CanManage)
           {
-            <form id="announcement-form" class="group-compose mb-4">
-              <textarea id="announcement-content" maxlength="4000" rows="3" placeholder="Đăng lịch học, mục tiêu hoặc thông tin quan trọng..."></textarea>
+            <form asp-action="AddAnnouncement" asp-route-groupId="@Model.Group.Id" method="post" id="announcement-form" class="group-compose mb-4">
+              <textarea name="content" required id="announcement-content" maxlength="4000" rows="3" placeholder="Đăng lịch học, mục tiêu hoặc thông tin quan trọng..."></textarea>
               <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
-                <label style="font-size:11px;color:var(--sh-slate-600);"><input id="announcement-pinned" type="checkbox" class="form-check-input me-1" />Ghim thông báo</label>
+                <label style="font-size:11px;color:var(--sh-slate-600);"><input name="isPinned" value="true" id="announcement-pinned" type="checkbox" class="form-check-input me-1" />Ghim thông báo</label>
                 <button type="submit" class="btn-primary-sh"><i class="bi bi-send"></i>Đăng</button>
               </div>
             </form>
@@ -193,8 +189,8 @@
             }
             @if (Model.Group.Messages.Count == 0) { <div id="chat-empty-state" class="group-empty-state"><i class="bi bi-chat-dots"></i><p>Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện.</p></div> }
           </div>
-          <form id="group-chat-form" class="group-channel-compose">
-            <textarea id="group-chat-input" maxlength="1000" rows="1" placeholder="Nhắn vào #chat-nhom"></textarea>
+          <form asp-action="AddMessage" asp-route-groupId="@Model.Group.Id" method="post" id="group-chat-form" class="group-channel-compose">
+            <textarea name="content" required id="group-chat-input" maxlength="1000" rows="1" placeholder="Nhắn vào #chat-nhom"></textarea>
             <button type="submit" aria-label="Gửi"><i class="bi bi-send-fill"></i></button>
           </form>
         </section>
@@ -222,42 +218,41 @@
             <h2 class="group-section-title mb-0"><i class="bi bi-people"></i>Thành viên</h2>
             @if (Model.Group.CanManage)
             {
-              <button id="create-invite-btn" type="button" class="btn-primary-sh"><i class="bi bi-person-plus"></i>Tạo lời mời</button>
+              <form asp-action="CreateInvite" asp-route-groupId="@Model.Group.Id" method="post"><button id="create-invite-btn" type="submit" class="btn-primary-sh"><i class="bi bi-person-plus"></i>Tạo lời mời</button></form>
             }
           </div>
-          <div id="invite-result" class="alert alert-primary" hidden>
-            <label class="sh-label" for="invite-result-url">Liên kết mời</label>
-            <div class="input-group"><input id="invite-result-url" class="form-control" readonly /><button id="copy-invite-btn" class="btn btn-outline-primary" type="button">Sao chép</button></div>
-            <small id="invite-result-meta"></small>
-          </div>
+          @if (TempData["GroupInviteUrl"] is string inviteUrl)
+          {
+            <div class="alert alert-primary"><label for="invite-result-url">Liên kết mời</label><input id="invite-result-url" class="form-control" value="@($"{Context.Request.Scheme}://{Context.Request.Host}{inviteUrl}")" readonly /><button id="copy-invite-btn" type="button" class="btn btn-outline-primary">Sao chép</button><small>@TempData["GroupInviteMeta"]</small></div>
+          }
           <div class="group-member-list">
             @foreach (var member in Model.Group.Members.OrderBy(member => member.Status == "Pending"))
             {
-              <article class="group-member-row" data-member-id="@member.UserId">
+              <form asp-action="ManageMember" asp-route-groupId="@Model.Group.Id" asp-route-userId="@member.UserId" method="post" class="group-member-row" data-member-id="@member.UserId">
                 @if (!string.IsNullOrWhiteSpace(member.AvatarUrl)) { <img src="@member.AvatarUrl" alt="" referrerpolicy="no-referrer" /> }
                 else { <span class="group-avatar">@Initial(member.DisplayName)</span> }
                 <div class="flex-grow-1"><strong>@member.DisplayName</strong><span>@(member.Status == "Pending" ? "Đang chờ duyệt" : member.Status == "Banned" ? "Đang xin gỡ cấm" : member.Role)</span></div>
                 @if (Model.Group.CanManage && member.Status == "Pending")
                 {
-                  <div class="d-flex gap-1"><button type="button" class="member-action btn-primary-sh" data-action="approve">Duyệt</button><button type="button" class="member-action btn-secondary-sh" data-action="reject">Từ chối</button></div>
+                  <div class="d-flex gap-1"><button  class="member-action btn-primary-sh" name="memberAction" value="approve" type="submit">Duyệt</button><button  class="member-action btn-secondary-sh" name="memberAction" value="reject" type="submit">Từ chối</button></div>
                 }
                 else if (Model.Group.CanManage && member.Status == "Banned" && member.HasPendingUnbanRequest &&
                     (member.BannedByUserId == Model.Group.Members.FirstOrDefault(m => m.IsCurrentUser)?.UserId || member.BannedByUserId == null && Model.Group.IsOwner))
                 {
-                  <button type="button" class="member-action btn-primary-sh" data-action="unban">Gỡ cấm</button>
+                  <button  class="member-action btn-primary-sh" name="memberAction" value="unban" type="submit">Gỡ cấm</button>
                 }
                 else if (Model.Group.CanManage && !member.IsCurrentUser && member.Role != "Owner" && (Model.Group.IsOwner || member.Role != "Moderator"))
                 {
                   <div class="dropdown">
                     <button class="btn-icon-sh" type="button" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                      @if (Model.Group.IsOwner) { <li><button class="dropdown-item member-action" data-action="@(member.Role == "Moderator" ? "demote" : "promote")">@(member.Role == "Moderator" ? "Hạ xuống thành viên" : "Đặt làm Moderator")</button></li> }
-                      <li><button class="dropdown-item member-action" data-action="kick">Mời ra khỏi nhóm</button></li>
-                      <li><button class="dropdown-item member-action text-danger" data-action="ban">Cấm khỏi nhóm</button></li>
+                      @if (Model.Group.IsOwner) { <li><button class="dropdown-item member-action" name="memberAction" value="@(member.Role == "Moderator" ? "demote" : "promote")" type="submit">@(member.Role == "Moderator" ? "Hạ xuống thành viên" : "Đặt làm Moderator")</button></li> }
+                      <li><button class="dropdown-item member-action" name="memberAction" value="kick" type="submit">Mời ra khỏi nhóm</button></li>
+                      <li><button class="dropdown-item member-action text-danger" name="memberAction" value="ban" type="submit">Cấm khỏi nhóm</button></li>
                     </ul>
                   </div>
                 }
-              </article>
+              </form>
             }
           </div>
         </section>
@@ -266,104 +261,9 @@
   }
 </div>
 
-@if (Model.Group.IsOwner)
-{
-  <div class="modal fade" id="editGroupModal" tabindex="-1" aria-labelledby="editGroupModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-      <div class="modal-content border-0 shadow rounded-4">
-        <div class="modal-header px-4 py-3">
-          <div>
-            <h5 class="modal-title fw-bold" id="editGroupModalLabel">Chỉnh sửa nhóm học tập</h5>
-            <p class="mb-0" style="font-size:11px;color:var(--sh-slate-500);">Cập nhật thông tin, môn học và cách thành viên tham gia nhóm.</p>
-          </div>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
-        </div>
-        <div class="modal-body px-4 py-4">
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="sh-label" for="edit-group-name">Tên nhóm <span class="text-danger">*</span></label>
-              <input id="edit-group-name" class="sh-input" maxlength="150" value="@Model.Group.Name" />
-            </div>
-            <div class="col-12">
-              <label class="sh-label" for="edit-group-subject-toggle">Môn học <span class="text-danger">*</span></label>
-              <div id="edit-group-subject-select" class="subject-multiselect">
-                <button id="edit-group-subject-toggle" type="button" class="subject-multiselect-toggle"
-                        data-subject-toggle aria-expanded="false" aria-controls="edit-group-subject-panel">
-                  <span data-subject-summary>Chọn môn học</span>
-                  <i class="bi bi-chevron-down"></i>
-                </button>
-                <div id="edit-group-subject-panel" class="subject-multiselect-panel" data-subject-panel hidden>
-                  <div class="subject-multiselect-search">
-                    <i class="bi bi-search"></i>
-                    <input type="text" maxlength="150" data-subject-search
-                           placeholder="Tìm hoặc nhập môn học mới..." autocomplete="off" />
-                  </div>
-                  <div class="group-subject-picker" data-subject-options aria-live="polite">
-                    @foreach (var subject in Model.Group.Subjects)
-                    {
-                      <label class="group-subject-option" data-subject-initial data-subject-custom="@subject.IsCustom.ToString().ToLowerInvariant()">
-                        <input type="checkbox" value="@subject.Name" checked />
-                        <span>@subject.Name</span>
-                      </label>
-                    }
-                  </div>
-                  <p class="subject-multiselect-hint" data-subject-hint>Nhập tên môn rồi nhấn Enter để thêm môn mới.</p>
-                </div>
-              </div>
-              <p class="mb-0 mt-2" style="font-size:10px;color:var(--sh-slate-500);">Tích các môn có sẵn hoặc tìm và nhấn Enter để thêm môn mới. Tối đa 10 môn.</p>
-            </div>
-            <div class="col-12">
-              <label class="sh-label" for="edit-group-desc">Mô tả</label>
-              <textarea id="edit-group-desc" class="sh-input" rows="2" maxlength="2000">@Model.Group.Description</textarea>
-            </div>
-            <div class="col-12">
-              <label class="sh-label" for="edit-group-goal">Mục tiêu</label>
-              <input id="edit-group-goal" class="sh-input" maxlength="500" value="@Model.Group.Goal" />
-            </div>
-            <div class="col-md-4">
-              <label class="sh-label" for="edit-group-format">Hình thức</label>
-              <select id="edit-group-format" class="sh-input" data-current-value="@Model.Group.MeetingFormat">
-                <option value="Online">Online</option>
-                <option value="Offline">Offline</option>
-                <option value="Hybrid">Kết hợp</option>
-              </select>
-            </div>
-            <div class="col-md-5">
-              <label class="sh-label" for="edit-group-schedule">Lịch dự kiến</label>
-              <input id="edit-group-schedule" class="sh-input" maxlength="250" value="@Model.Group.MeetingSchedule" />
-            </div>
-            <div class="col-md-3">
-              <label class="sh-label" for="edit-group-max-members">Giới hạn người</label>
-              <input id="edit-group-max-members" class="sh-input" type="number" min="@(Math.Max(2, Model.Group.MemberCount))" max="500"
-                     value="@(Model.Group.MaxMembers?.ToString() ?? string.Empty)" placeholder="Không giới hạn" />
-              <small class="d-block mt-1" style="font-size:9px;color:var(--sh-slate-500);">Xóa giá trị để chuyển nhóm sang không giới hạn.</small>
-            </div>
-            <div class="col-12">
-              <label class="sh-label" for="edit-group-access">Cách tham gia</label>
-              <select id="edit-group-access" class="sh-input" data-current-value="@Model.Group.JoinMode">
-                <option value="Approval">Công khai · Cần duyệt</option>
-                <option value="Open">Công khai · Vào ngay</option>
-                <option value="InviteOnly">Riêng tư · Chỉ qua lời mời</option>
-              </select>
-            </div>
-            <div class="col-12">
-              <label class="sh-label" for="edit-group-rules">Nội quy nhóm</label>
-              <textarea id="edit-group-rules" class="sh-input" rows="3" maxlength="2000">@Model.Group.Rules</textarea>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer px-4 py-3">
-          <button type="button" class="btn-secondary-sh" data-bs-dismiss="modal">Hủy</button>
-          <button id="save-group-changes-btn" type="button" class="btn-primary-sh"><i class="bi bi-check-lg"></i>Lưu thay đổi</button>
-        </div>
-      </div>
-    </div>
-  </div>
-}
 
 @section Scripts {
   <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@9.0.6/dist/browser/signalr.min.js"></script>
-  <script src="~/js/subject-multiselect.js" asp-append-version="true"></script>
   <script src="~/js/group-details.js" asp-append-version="true"></script>
   <script src="~/js/group-learning.js" asp-append-version="true"></script>
 }

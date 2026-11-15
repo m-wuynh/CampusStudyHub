@@ -7,7 +7,7 @@
 <div class="container py-4">
 
     <a asp-controller="Flashcards"
-       asp-action="Details"
+       asp-action="Index"
        asp-route-deckId="@Model.DeckId"
        class="btn btn-outline-secondary mb-4">
         <i class="bi bi-arrow-left"></i>
@@ -60,27 +60,76 @@
             </div>
         </div>
 
+            @if (!Model.Session.IsCompleted)
+            {
+                <p class="text-muted small mb-3">
+                    Trộn thứ tự thẻ:
+                    <strong>
+                        @(Model.Session.ShuffleEnabled ? "ON" : "OFF")
+                    </strong>
+                </p>
+            }
+
         @if (Model.Session.IsCompleted)
         {
-            <div class="alert alert-success">
-                <h4 class="alert-heading">
-                    Hoàn thành phiên học!
-                </h4>
+            if (Model.Result is not null)
+            {
+                var result = Model.Result;
 
-                <p>
-                    Bạn đã học xong
-                    @Model.Session.LearnedCount /
-                    @Model.Session.TotalCards
-                    flashcards.
-                </p>
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h3 class="text-success mb-4">
+                            Hoàn thành phiên học!
+                        </h3>
 
-                <a asp-controller="Flashcards"
-                   asp-action="Learn"
-                   asp-route-deckId="@Model.DeckId"
-                   class="btn btn-primary">
-                    Học lại
-                </a>
-            </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <p>Tổng lượt trả lời:
+                                    <strong>@result.TotalAttempts</strong>
+                                </p>
+                                <p>Đúng:
+                                    <strong class="text-success">@result.Correct</strong>
+                                </p>
+                                <p>Sai:
+                                    <strong class="text-danger">@result.Incorrect</strong>
+                                </p>
+                            </div>
+
+                            <div class="col-md-6">
+                                <p>Độ chính xác:
+                                    <strong>@result.Accuracy.ToString("0.##")%</strong>
+                                </p>
+                                <p>Đã học:
+                                    <strong>@result.Learned / @result.TotalCards</strong>
+                                </p>
+                                <p>Còn lại:
+                                    <strong>@result.Remaining</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        <a asp-controller="Flashcards"
+                           asp-action="Learn"
+                           asp-route-deckId="@Model.DeckId"
+                           class="btn btn-primary">
+                            Học lại toàn bộ
+                        </a>
+
+                        <a asp-controller="Flashcards"
+                           asp-action="Details"
+                           asp-route-deckId="@Model.DeckId"
+                           class="btn btn-outline-secondary ms-2">
+                            Quay lại Deck
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    Không thể tải kết quả phiên học.
+                </div>
+            }
         }
         else if (Model.Question is not null)
         {

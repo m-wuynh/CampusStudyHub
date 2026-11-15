@@ -23,8 +23,8 @@ using StudyHub.DAL.Repositories.StudyGroups;
 using StudyHub.Web.Authentication;
 using StudyHub.Web.Hubs;
 using StudyHub.Web.Services.NotesV3;
-using StudyHub.BLL.Services.Flashcards.LearnSessions;
-using StudyHub.Web.Services.Flashcards;
+using StudyHub.BLL.Services.Flashcards;
+using StudyHub.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -166,13 +166,17 @@ builder.Services.AddScoped<
 // Flashcard Learn Session - HaiLt
 builder.Services.AddMemoryCache();
 
-builder.Services.AddSingleton<
-    ILearnSessionStore,
-    MemoryLearnSessionStore>();
+//builder.Services.AddSingleton<
+//    ILearnSessionStore,
+//    MemoryLearnSessionStore>();
+
+//builder.Services.AddScoped<
+//    ILearnSessionService,
+//    LearnSessionService>();
 
 builder.Services.AddScoped<
-    ILearnSessionService,
-    LearnSessionService>();
+    IDbLearnSessionService,
+    DbLearnSessionService>();
 
 // NotesV3: các màn hình MVC và nghiệp vụ tương ứng.
 builder.Services.AddScoped<INotesV3AccessService, NotesV3AccessService>();
