@@ -1,0 +1,128 @@
+@model StudyHub.Web.ViewModels.Grades.GradesOverviewViewModel
+@using System.Globalization
+@{
+    ViewData["Title"]        = "Tổng quan năm học";
+    ViewData["PageTitle"]    = "Điểm số & Mục tiêu học tập";
+    ViewData["PageSubtitle"] = "So sánh kết quả giữa các năm học";
+    Layout = "_GradesLayout";
+    ViewData["GradesNav"] = "overview";
+    ViewData["NavGradeBookId"] = null;
+
+    var data = Model.Data;
+    var books = data.Books;                       // năm mới nhất trước
+    var chronological = books.AsEnumerable().Reverse().ToList();
+    var priorities = data.LatestStatistics.Priorities.Take(3).ToList();
+    var latestBook = books.FirstOrDefault();
+    var inv = CultureInfo.InvariantCulture;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h3 class="sv-section-title mb-1">Tổng quan các năm học</h3>
+        <p class="sv-section-sub mb-0">Mỗi năm học là một sổ điểm. So sánh kết quả qua các năm rồi chọn một năm để xem chi tiết.</p>
+    </div>
+    <button type="button" class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#wizardGradeBookModal">
+        <i class="bi bi-calendar-plus me-1"></i> Tạo sổ điểm
+    </button>
+</div>
+
+@if (!books.Any()) {
+    <div class="sh-card text-center py-5 px-3">
+        <div style="font-size:48px; margin-bottom:12px;">📋</div>
+        <h4 class="fw-bold" style="font-size:16px; color:var(--sh-slate-800);">Chưa có sổ điểm nào</h4>
+        <p class="text-muted" style="font-size:13px;">Tạo sổ điểm cho năm học đầu tiên để bắt đầu theo dõi điểm và mục tiêu.</p>
+        <button type="button" class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#wizardGradeBookModal">
+            <i class="bi bi-journal-plus me-1"></i> Tạo sổ điểm
+        </button>
+    </div>
+} else {
+    <!-- Thẻ từng năm học -->
+    <div class="sv-year-grid mb-4">
+        @for (var i = 0; i < books.Count; i++) {
+            var book = books[i];
+            var previous = i + 1 < books.Count ? books[i + 1] : null;
+            decimal? delta = book.OverallAverage10.HasValue && previous?.OverallAverage10 != null
+                ? book.OverallAverage10.Value - previous.OverallAverage10.Value
+                : null;
+            var goalPct = book.GoalsTotal > 0 ? (int)Math.Floor(book.GoalsDone * 100m / book.GoalsTotal) : 0;
+            <article class="sv-card sv-year-card">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <h4 class="sv-card-title mb-0">@book.Name</h4>
+                    @if (i == 0) {
+                        <span class="sv-pill">Mới nhất</span>
+                    }
+                </div>
+                <div class="sv-year-avg">
+                    <span>@(book.OverallAverage10?.ToString("0.00", inv) ?? "—")</span>
+                    <small>ĐTB năm</small>
+                </div>
+                @if (delta.HasValue) {
+                    <div class="sv-year-delta @(delta >= 0 ? "is-up" : "is-down")">
+                        @(delta >= 0 ? "↑" : "↓") @(Math.Abs(delta.Value).ToString("0.00", inv)) so với @previous!.Name
+                    </div>
+                } else {
+                    <div class="sv-year-delta">@(previous == null ? "Năm đầu tiên" : "Chưa đủ dữ liệu để so sánh")</div>
+                }
+                <div class="sv-year-meta">@book.SubjectCount môn · @book.EntryCount điểm · @book.GoalsDone/@book.GoalsTotal mục tiêu đạt</div>
+                <div class="sv-progress mb-3"><span class="is-violet" style="width:@(goalPct)%;"></span></div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a asp-controller="Grades" asp-action="Index" asp-route-gradeBookId="@book.GradeBookId" class="btn-secondary-sh sv-btn-sm">Bảng điểm</a>
+                    <a asp-controller="Grades" asp-action="Goals" asp-route-gradeBookId="@book.GradeBookId" class="btn-secondary-sh sv-btn-sm">Mục tiêu</a>
+                    <a asp-controller="Grades" asp-action="Statistics" asp-route-gradeBookId="@book.GradeBookId" class="btn-secondary-sh sv-btn-sm">Phân tích</a>
+                </div>
+            </article>
+        }
+    </div>
+
+    <div class="sv-detail-grid">
+        <!-- ĐTB qua các năm -->
+        <section class="sv-card">
+            <h4 class="sv-card-title">ĐTB qua các năm</h4>
+            <div class="sv-bars" role="img"
+                 aria-label="ĐTB qua các năm: @(string.Join(", ", chronological.Select(b => $"{b.Name} {(b.OverallAverage10?.ToString("0.00", inv) ?? "chưa có")}")))">
+                @foreach (var book in chronological) {
+                    var height = book.OverallAverage10.HasValue ? (int)Math.Round(book.OverallAverage10.Value / 10m * 160m) : 4;
+                    <div class="sv-bar-col">
+                        <strong>@(book.OverallAverage10?.ToString("0.00", inv) ?? "—")</strong>
+                        <div class="sv-bar" style="height:@(height)px;"></div>
+                        <span>@book.FromYear–@book.ToYear</span>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Cần chú ý ở năm mới nhất -->
+        <section class="sv-card">
+            <h4 class="sv-card-title">Cần chú ý · @(latestBook?.Name)</h4>
+            @if (!priorities.Any()) {
+                <p class="mb-0" style="font-size:13px; color:var(--sh-slate-600);">Không có môn nào đang dưới mục tiêu. Tiếp tục giữ phong độ!</p>
+            } else {
+                <div class="d-flex flex-column gap-2">
+                    @foreach (var p in priorities) {
+                        <a asp-controller="Grades" asp-action="Subject" asp-route-id="@p.UserSubjectId" class="sv-attention @(p.IsOverdue ? "is-late" : "")">
+                            <div>
+                                <div class="fw-semibold">@p.SubjectName</div>
+                                <div class="sv-attention-sub">
+                                    ĐTB @(p.Average10.ToString("0.0", inv)) · mục tiêu @(p.TargetValue.ToString("0.0", inv))
+                                    @if (p.RequiredScore.HasValue) { <span> · cần ≥ @(p.RequiredScore.Value.ToString("0.0", inv)) ở cột còn trống</span> }
+                                </div>
+                            </div>
+                            @if (p.IsOverdue) {
+                                <span class="sv-pill is-rose">Quá hạn</span>
+                            } else {
+                                <span class="sv-pill is-amber">@(p.ProgressPercent?.ToString() ?? "—")%</span>
+                            }
+                        </a>
+                    }
+                </div>
+                <a asp-controller="Grades" asp-action="Statistics" class="d-inline-block mt-3" style="font-size:13px; font-weight:600;">Xem phân tích chi tiết →</a>
+            }
+        </section>
+    </div>
+}
+
+<!-- ═══ MODALS (wizard tạo sổ) ═══ -->
+<partial name="Partials/_GradeModals" model="data.LatestPage" />
+
+<!-- ═══ JSON SERVER STATE ═══ -->
+<partial name="Partials/_GradesJsonStatePartial" model="data.LatestPage" />

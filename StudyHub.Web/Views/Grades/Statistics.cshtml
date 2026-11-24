@@ -1,0 +1,179 @@
+@model StudyHub.Web.ViewModels.Grades.GradesStatisticsViewModel
+@using System.Globalization
+@using StudyHub.BLL.Services.Grades
+@{
+    ViewData["Title"]        = "Phân tích học tập";
+    ViewData["PageTitle"]    = "Điểm số & Mục tiêu học tập";
+    ViewData["PageSubtitle"] = "Số liệu tổng hợp từ điểm, mục tiêu và hoạt động tự học";
+
+    var pageData = Model.Data.Page;
+    Layout = "_GradesLayout";
+    ViewData["GradesNav"] = "statistics";
+    ViewData["NavGradeBookId"] = pageData.SelectedGradeBookId;
+    ViewData["GradesBookPicker"] = pageData;
+    var stats = Model.Data.Statistics;
+    var inv = CultureInfo.InvariantCulture;
+    var goalPct = stats.GoalsTotal > 0 ? (int)Math.Floor(stats.GoalsDone * 100m / stats.GoalsTotal) : 0;
+    var maxBucket = Math.Max(1, stats.Distribution.Max(b => b.Count));
+    var withChange = stats.Subjects.Where(s => s.AverageChange.HasValue).ToList();
+    var best = withChange.OrderByDescending(s => s.AverageChange).FirstOrDefault();
+    var worst = withChange.OrderBy(s => s.AverageChange).FirstOrDefault();
+    string Signed(decimal v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.Abs(v).ToString("0.0", inv);
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h3 class="sv-section-title mb-1">Phân tích học tập @(pageData.GradeBook != null ? "· " + pageData.GradeBook.Name : "")</h3>
+        <p class="sv-section-sub mb-0">Chỉ đọc dữ liệu sẵn có: điểm, mục tiêu, hành trình và hoạt động tự học.</p>
+    </div>
+</div>
+
+@if (pageData.GradeBook == null) {
+    <div class="sh-card text-center py-5 px-3">
+        <div style="font-size:48px; margin-bottom:12px;">📊</div>
+        <h4 class="fw-bold" style="font-size:16px; color:var(--sh-slate-800);">Chưa có dữ liệu để phân tích</h4>
+        <p class="text-muted" style="font-size:13px;">Tạo sổ điểm và nhập điểm để xem phân tích.</p>
+        <a asp-controller="Grades" asp-action="Overview" class="btn-primary-sh">Đến Tổng quan năm học</a>
+    </div>
+} else {
+    <!-- KPI -->
+    <div class="sv-kpi-grid mb-4">
+        <div class="sv-card">
+            <div class="sv-kpi-label">Tỉ lệ mục tiêu đạt</div>
+            <div class="sv-kpi-value">@stats.GoalsDone/@stats.GoalsTotal · @(goalPct)%</div>
+        </div>
+        <div class="sv-card">
+            <div class="sv-kpi-label">Giờ tự học đã hoàn thành</div>
+            <div class="sv-kpi-value">@(stats.CompletedStudyHours.ToString("0.#", inv)) giờ</div>
+            <div class="sv-kpi-sub">@stats.CompletedSessions buổi xong · @stats.MissedSessions buổi bị lỡ</div>
+        </div>
+        <div class="sv-card">
+            <div class="sv-kpi-label">Tiến bộ nhất</div>
+            @if (best != null && best.AverageChange > 0) {
+                <div class="sv-kpi-value" style="color:var(--sh-emerald-700);">@(Signed(best.AverageChange!.Value))</div>
+                <div class="sv-kpi-sub">@best.SubjectName</div>
+            } else {
+                <div class="sv-kpi-value">—</div>
+                <div class="sv-kpi-sub">Chưa có môn tăng điểm</div>
+            }
+        </div>
+        <div class="sv-card">
+            <div class="sv-kpi-label">Sa sút nhất</div>
+            @if (worst != null && worst.AverageChange < 0) {
+                <div class="sv-kpi-value" style="color:var(--sh-rose-700);">@(Signed(worst.AverageChange!.Value))</div>
+                <div class="sv-kpi-sub">@worst.SubjectName</div>
+            } else {
+                <div class="sv-kpi-value">—</div>
+                <div class="sv-kpi-sub">Chưa có môn giảm điểm</div>
+            }
+        </div>
+    </div>
+
+    <div class="sv-detail-grid mb-4">
+        <!-- ĐTB từng môn so với mục tiêu -->
+        <section class="sv-card">
+            <h4 class="sv-card-title">ĐTB từng môn so với mục tiêu</h4>
+            <div class="d-flex flex-column gap-3">
+                @foreach (var s in stats.Subjects) {
+                    var avg = s.Average10;
+                    var width = avg.HasValue ? (int)Math.Round(avg.Value * 10m) : 0;
+                    var reached = avg.HasValue && s.FocusTarget.HasValue && GradeCalculator.RoundForDisplay(avg) >= s.FocusTarget.Value;
+                    <div>
+                        <div class="d-flex justify-content-between" style="font-size:13px;">
+                            <a asp-controller="Grades" asp-action="Subject" asp-route-id="@s.UserSubjectId" class="sv-subject-link">@s.SubjectName</a>
+                            <strong>@(avg?.ToString("0.00", inv) ?? "Chưa có điểm")</strong>
+                        </div>
+                        <div class="sv-track mt-1" role="img"
+                             aria-label="@s.SubjectName: ĐTB @(avg?.ToString("0.00", inv) ?? "chưa có")@(s.FocusTarget.HasValue ? ", mục tiêu " + s.FocusTarget.Value.ToString("0.0", inv) : "")">
+                            <div class="sv-track-fill @(reached ? "is-emerald" : s.FocusTarget.HasValue ? "is-amber" : "")" style="width:@(width)%;"></div>
+                            @if (s.FocusTarget.HasValue) {
+                                <div class="sv-track-mark" style="left:@((int)Math.Round(s.FocusTarget.Value * 10m))%;"></div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="sv-source">Vạch đen là mục tiêu đang theo đuổi · thang 0–10</div>
+        </section>
+
+        <!-- Phân bố điểm -->
+        <section class="sv-card">
+            <h4 class="sv-card-title">Phân bố điểm</h4>
+            <div class="sv-bars" role="img"
+                 aria-label="Phân bố @stats.EntryCount điểm: @(string.Join(", ", stats.Distribution.Select(b => $"{b.Label}: {b.Count}")))">
+                @foreach (var b in stats.Distribution) {
+                    var height = b.Count == 0 ? 2 : (int)Math.Round(b.Count * 160m / maxBucket);
+                    <div class="sv-bar-col">
+                        <strong>@b.Count</strong>
+                        <div class="sv-bar" style="height:@(height)px;"></div>
+                        <span>@b.Label</span>
+                    </div>
+                }
+            </div>
+            <div class="sv-source">@stats.EntryCount điểm đã nhập trong sổ</div>
+        </section>
+    </div>
+
+    <div class="sv-detail-grid mb-4">
+        <!-- Nên ưu tiên ôn môn nào -->
+        <section class="sv-card">
+            <h4 class="sv-card-title">Nên ưu tiên ôn môn nào?</h4>
+            @if (!stats.Priorities.Any()) {
+                <p class="mb-0" style="font-size:13px; color:var(--sh-slate-600);">Không có môn nào đang dưới mục tiêu đang theo đuổi.</p>
+            } else {
+                <div class="d-flex flex-column gap-2">
+                    @for (var i = 0; i < stats.Priorities.Count; i++) {
+                        var p = stats.Priorities[i];
+                        <a asp-controller="Grades" asp-action="Subject" asp-route-id="@p.UserSubjectId" class="sv-attention @(p.IsOverdue ? "is-late" : "")">
+                            <div>
+                                <div class="fw-semibold">@(i + 1). @p.SubjectName</div>
+                                <div class="sv-attention-sub">
+                                    Thiếu @(p.Gap.ToString("0.0", inv)) so với mục tiêu @(p.TargetValue.ToString("0.0", inv)) ·
+                                    @if (!p.HasEmptyColumns) {
+                                        <span>đã đủ các cột điểm</span>
+                                    } else if (p.RequiredScore.HasValue) {
+                                        <span>cần ≥ @(p.RequiredScore.Value.ToString("0.0", inv)) ở cột còn trống</span>
+                                    } else {
+                                        <span>không thể đạt dù 10 điểm ở cột còn trống</span>
+                                    }
+                                </div>
+                            </div>
+                            @if (p.IsOverdue) {
+                                <span class="sv-pill is-rose">Quá hạn</span>
+                            } else {
+                                <span class="sv-pill is-amber">@(p.ProgressPercent?.ToString() ?? "—")%</span>
+                            }
+                        </a>
+                    }
+                </div>
+            }
+            <div class="sv-source">Xếp mục tiêu quá hạn lên trước, sau đó theo khoảng cách tới mục tiêu.</div>
+        </section>
+
+        <!-- Tự học theo môn -->
+        <section class="sv-card">
+            <h4 class="sv-card-title">Tự học và tiến bộ theo môn</h4>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 sv-detail-table">
+                    <thead>
+                        <tr><th scope="col">Môn</th><th scope="col">Đã tự học</th><th scope="col" class="text-end">ĐTB thay đổi</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in stats.Subjects) {
+                            <tr>
+                                <td>@s.SubjectName</td>
+                                <td>@(s.StudyHours.ToString("0.#", inv)) giờ</td>
+                                @if (s.AverageChange.HasValue) {
+                                    <td class="text-end fw-semibold" style="color:@(s.AverageChange > 0 ? "var(--sh-emerald-700)" : s.AverageChange < 0 ? "var(--sh-rose-700)" : "var(--sh-slate-600)");">@(Signed(s.AverageChange.Value))</td>
+                                } else {
+                                    <td class="text-end text-muted">—</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="sv-source">Giờ tự học: các hoạt động của mục tiêu đã hoàn thành. ĐTB thay đổi: từ mốc đầu tiên trong hành trình đến nay.</div>
+        </section>
+    </div>
+}

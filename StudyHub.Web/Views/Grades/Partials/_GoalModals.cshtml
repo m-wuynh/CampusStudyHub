@@ -1,6 +1,8 @@
 @model StudyHub.BLL.DTOs.GradesPageDto
 @{
     var data = Model;
+    // Lưu xong quay lại đúng màn đang mở (Mục tiêu, Chi tiết môn...).
+    var returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
 }
 
 <!-- ── Add Goal Modal ── -->
@@ -8,6 +10,7 @@
   <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
     <form asp-action="AddGoal" method="post" class="modal-content">
       <input type="hidden" name="currentGradeBookId" id="addGoalCurrentGradeBookId" value="@data.SelectedGradeBookId" />
+      <input type="hidden" name="returnUrl" value="@returnUrl" />
       <div class="modal-header border-0 pb-0">
         <h5 class="modal-title fw-bold" style="font-size:15px;"><i class="bi bi-trophy me-2 text-primary"></i><span id="addGoalModalTitle">Đặt mục tiêu học tập</span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -84,6 +87,7 @@
     <form asp-action="UpdateGoal" method="post" class="modal-content">
       <input type="hidden" name="Id" id="editGoalId" />
       <input type="hidden" name="currentGradeBookId" value="@data.SelectedGradeBookId" />
+      <input type="hidden" name="returnUrl" value="@returnUrl" />
       <div class="modal-header border-0 pb-0">
         <h5 class="modal-title fw-bold" style="font-size:15px;"><i class="bi bi-pencil-square me-2 text-primary"></i>Sửa mục tiêu</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

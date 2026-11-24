@@ -1,8 +1,8 @@
 /**
- * Điểm số & Mục tiêu – Tab "Bảng điểm" (grades-table.js)
+ * Điểm số & Mục tiêu – màn "Bảng điểm" (grades-table.js). Các màn khác của module dùng chung GradesState và escapeHtml ở đây.
  * Gộp từ 4 file cũ, giữ nguyên thứ tự nạp: core → wizard → table → modal-entry.
  * Mục lục:
- *   1. CORE – trạng thái, chuyển tab, chuyển chế độ (xem / nhập / cấu trúc), đổi tên sổ
+ *   1. CORE – trạng thái, chuyển chế độ (xem / nhập / cấu trúc), đổi tên sổ
  *   2. WIZARD – tạo sổ điểm 2 bước
  *   3. TABLE – sửa/xóa điểm tại ô, sắp xếp cột và môn, mở modal sửa cột/môn
  *   4. MODAL NHẬP ĐIỂM – tách ";", kiểm tra 0–10, gọi SaveSubjectGrades
@@ -10,7 +10,7 @@
 
 
 // ══════════════════════════════════════════════════════════════════════
-// 1. CORE – trạng thái, chuyển tab, chuyển chế độ (xem / nhập / cấu trúc), đổi tên sổ
+// 1. CORE – trạng thái, chuyển chế độ (xem / nhập / cấu trúc), đổi tên sổ
 // (trước đây: grades-core.js)
 // ══════════════════════════════════════════════════════════════════════
 
@@ -38,30 +38,6 @@ window.GradesState = (function () {
 
 // Anti Forgery Token for AJAX
 const csrfToken = window.GradesState.getCsrfToken();
-
-// ── Tab switching ──────────────────────────────────────────
-function gradeTab(btn, tabId) {
-    // Giao diện tab do CSS (.sv-tabs trong violet-theme.css) đảm nhận; JS chỉ bật/tắt class active.
-    document.querySelectorAll('#grades-tabs .nav-link').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    const gradesTabEl = document.getElementById('grades-tab');
-    const goalsTabEl = document.getElementById('goals-tab');
-    if (gradesTabEl) gradesTabEl.style.display = tabId === 'grades-tab' ? 'block' : 'none';
-    if (goalsTabEl) goalsTabEl.style.display = tabId === 'goals-tab' ? 'block' : 'none';
-
-    try {
-        localStorage.setItem('activeGradeTab', tabId);
-        if (tabId === 'goals-tab') {
-            if (!window.location.hash.includes('goals')) {
-                history.replaceState(null, '', window.location.pathname + window.location.search + '#goals');
-            }
-        } else {
-            if (window.location.hash.includes('goals')) {
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-            }
-        }
-    } catch(e) {}
-}
 
 // ── Mode Switching ─────────────────────────────────────────
 function setUiMode(mode) {
@@ -162,11 +138,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setUiMode('structure');
     } else if (editMode === 'score' || editMode === 'true') {
         setUiMode('score');
-    }
-
-    if (!editMode && (window.location.hash === '#goals' || localStorage.getItem('activeGradeTab') === 'goals-tab')) {
-        const goalsBtn = document.getElementById('tab-btn-goals');
-        if (goalsBtn) gradeTab(goalsBtn, 'goals-tab');
     }
 
     const wizardModal = document.getElementById('wizardGradeBookModal');
