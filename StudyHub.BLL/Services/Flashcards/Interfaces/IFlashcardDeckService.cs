@@ -33,5 +33,9 @@ namespace StudyHub.BLL.Services.Flashcards.Interfaces
             long deckId,
             long currentUserId,
             CancellationToken cancellationToken = default);
+
+        Task<IReadOnlyList<FlashcardSubjectOptionDto>> GetSubjectOptionsAsync(
+            long currentUserId,
+            CancellationToken cancellationToken = default);
     }
 }

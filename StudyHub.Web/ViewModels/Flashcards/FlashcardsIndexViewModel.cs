@@ -15,6 +15,8 @@ public sealed class FlashcardsIndexViewModel
     public string? SearchText { get; set; }
 
     public FlashcardDeckFormViewModel CreateDeck { get; init; } = new();
+
+    public IReadOnlyList<FlashcardSubjectOptionDto> SubjectOptions { get; init; } = [];
 }
 
 public sealed class FlashcardDeckFormViewModel
@@ -27,5 +29,7 @@ public sealed class FlashcardDeckFormViewModel
 
     [StringLength(2000, ErrorMessage = "Mô tả không được vượt quá 2000 ký tự")]
     public string? Description { get; set; }
+
+    public long? UserSubjectId { get; set; }
 }
 

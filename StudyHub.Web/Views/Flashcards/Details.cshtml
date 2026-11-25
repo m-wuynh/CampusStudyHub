@@ -40,15 +40,23 @@
             </div>
         }
 
-        <button class="btn btn-primary"
-                data-bs-toggle="modal"
-                data-bs-target="#createCardModal">
-            <i class="bi bi-plus-lg"></i>
-            Thêm thẻ
-        </button>
+        @if (Model.Deck.HasActiveSubject)
+        {
+            <button type="button"
+                    class="btn btn-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#createCardModal">
+                <i class="bi bi-plus-lg"></i>
+                Thêm thẻ
+            </button>
+        }
 
     </div>
 
+    @if (!Model.Deck.HasActiveSubject)
+    {
+        <p class="text-muted mt-3">Bộ thẻ cần gắn với môn học đang hoạt động để thêm thẻ mới.</p>
+    }
 
 
 
@@ -67,9 +75,10 @@
         <div class="border rounded-4
             p-5 text-center bg-white">
             <h5>Deck này chưa có flashcard</h5>
-            <p class="text-muted">
-                Hãy thêm thẻ đầu tiên.
-            </p>
+            @if (Model.Deck.HasActiveSubject)
+            {
+                <p class="text-muted">Hãy thêm thẻ đầu tiên.</p>
+            }
         </div>
     }
     else
@@ -170,7 +179,7 @@
                 </div>
 
                 <div class="modal-body">
-
+                    <p class="mb-3"><strong>Môn học</strong> @Model.Deck.SubjectName</p>
                     <div class="mb-3">
                         <label class="form-label">
                             Thuật ngữ

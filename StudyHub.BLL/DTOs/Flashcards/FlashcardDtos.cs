@@ -4,13 +4,19 @@ public sealed record FlashcardDto(long Id, string FrontText, string BackText, in
 public sealed record ReviewFlashcardRequestDto(Guid RequestId, long FlashcardId, byte Rating, int? ResponseMilliseconds);
 public sealed record FlashcardScheduleDto(DateTime NextReviewAtUtc, int RepetitionCount, int IntervalDays, decimal EaseFactor);
 
+public sealed record FlashcardSubjectOptionDto(
+    long UserSubjectId,
+    string Name);
+
 public sealed record FlashcardDeckSummaryDto(
     long DeckId,
     string Title,
     string? Description,
     string Visibility,
     DateTime CreatedAtUtc,
-    DateTime UpdatedAtUtc);
+    DateTime UpdatedAtUtc,
+    long? UserSubjectId,
+    string? SubjectName);
 
 public sealed record FlashcardDeckDetailDto(
     long DeckId,
@@ -20,17 +26,19 @@ public sealed record FlashcardDeckDetailDto(
     string? Description,
     string Visibility,
     DateTime CreatedAtUtc,
-    DateTime UpdatedAtUtc);
+    DateTime UpdatedAtUtc,
+    string? SubjectName,
+    bool HasActiveSubject);
 
 public sealed record CreateFlashcardDeckRequestDto(
     string? Title,
-    string? Description
+    string? Description,
+    long? UserSubjectId
     );
 
 public sealed record UpdateFlashcardDeckRequestDto(
     string? Title,
-    string? Description
-    );
+    string? Description);
 
 //không sử dụng OwnerUserId cho Dto vì browser có thể gửi id rồi tạo deck cho người khác
 

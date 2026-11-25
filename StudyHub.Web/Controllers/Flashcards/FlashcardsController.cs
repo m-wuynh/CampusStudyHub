@@ -43,6 +43,8 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         var model = new FlashcardsIndexViewModel
         {
             Decks = decks,
+            SubjectOptions = await flashcardDeckService.GetSubjectOptionsAsync(
+                currentUser.UserId, cancellationToken),
             SearchText = searchText,
             TotalDecks = allDecks.Count,
             NewDecksLast7Days = allDecks.Count(
@@ -75,7 +77,8 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
                 currentUser.UserId,
                 new CreateFlashcardDeckRequestDto(
                     model.Title,
-                    model.Description),
+                    model.Description,
+                    model.UserSubjectId),
                 cancellationToken
                 );
 
@@ -109,9 +112,7 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
             var updated = await flashcardDeckService.UpdateDeckAsync(
                 deckId,
                 currentUser.UserId,
-                new UpdateFlashcardDeckRequestDto(
-                    model.Title,
-                    model.Description),
+                new UpdateFlashcardDeckRequestDto(model.Title, model.Description),
                 cancellationToken);
 
             if (!updated)

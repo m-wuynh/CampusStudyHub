@@ -2,6 +2,7 @@
   <Project Path="StudyHub.BLL/StudyHub.BLL.csproj" />
   <Project Path="StudyHub.DAL/StudyHub.DAL.csproj" />
   <Project Path="StudyHub.Web/StudyHub.Web.csproj" />
+  <Project Path="StudyHub.Flashcards.Tests/StudyHub.Flashcards.Tests.csproj" />
   <Project Path="tests/StudyHub.Pdf.Tests/StudyHub.Pdf.Tests.csproj" />
   <Project Path="tests/StudyHub.Auth.Tests/StudyHub.Auth.Tests.csproj" />
 </Solution>
