@@ -190,6 +190,9 @@ builder.Services.AddScoped<
     StudyHub.BLL.Services.Calendar.ICalendarService,
     StudyHub.BLL.Services.Calendar.CalendarService>();
 builder.Services.AddScoped<
+    StudyHub.BLL.Services.Calendar.ICalendarStatisticsService,
+    StudyHub.BLL.Services.Calendar.CalendarStatisticsService>();
+builder.Services.AddScoped<
     StudyHub.BLL.Services.Dashboard.IDashboardPdfService,
     StudyHub.BLL.Services.Dashboard.DashboardPdfService>();
 

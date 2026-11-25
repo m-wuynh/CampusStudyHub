@@ -106,5 +106,6 @@ public partial class StudyHubDbContext
             e.HasOne<StudyGroup>().WithMany().HasForeignKey(x => x.StudyGroupId).OnDelete(DeleteBehavior.NoAction);
         });
         ConfigurePdf(modelBuilder);
+        ConfigureCalendar(modelBuilder);
     }
 }

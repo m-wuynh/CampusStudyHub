@@ -1,0 +1,155 @@
+/* ========================================================
+   Calendar Module: Màn Quản lý Loại sự kiện (Categories)
+   Chứa toàn bộ CSS cho danh sách loại & form Thêm/Sửa loại
+   ======================================================== */
+
+.calendar-page-container {
+    padding-bottom: 40px;
+}
+
+.category-page-back-link {
+    font-size: 13.5px;
+    color: #64748b;
+    font-weight: 500;
+    transition: color 0.15s ease;
+}
+
+.category-page-back-link:hover {
+    color: #7c3aed;
+}
+
+.category-page-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 2px;
+}
+
+.category-page-subtitle {
+    font-size: 14px;
+    color: #64748b;
+}
+
+.category-form-container {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.category-form-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+}
+
+.category-icon-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background-color: #f3e8ff;
+    color: #7c3aed;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.calendar-form-label {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.calendar-form-input {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 14px;
+    color: #1f2937;
+    background-color: #ffffff;
+    transition: all 0.15s ease;
+}
+
+.calendar-form-input:focus {
+    border-color: #7c3aed;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.category-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.category-table th {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 12px 14px;
+}
+
+.category-table td {
+    padding: 14px;
+    border-color: #f1f5f9;
+}
+
+.category-col-name {
+    width: 30%;
+}
+
+.category-col-desc {
+    width: 40%;
+}
+
+.category-col-count {
+    width: 15%;
+}
+
+.category-col-actions {
+    width: 15%;
+}
+
+.category-item-title {
+    font-size: 14px;
+}
+
+/* ========================================================
+   Validation Styling
+   ======================================================== */
+.category-field-error {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #ef4444;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    animation: fadeInDown 0.2s ease;
+}
+
+.calendar-form-input.is-invalid {
+    border-color: #ef4444 !important;
+    background-color: #fffbfb;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
+.calendar-form-input.is-valid {
+    border-color: #10b981 !important;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

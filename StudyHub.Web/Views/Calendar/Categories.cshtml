@@ -1,0 +1,115 @@
+@model List<StudyHub.BLL.DTOs.CalendarCategoryDto>
+@{
+    ViewData["Title"] = "Quản lý Loại sự kiện - Study Hub";
+}
+
+<link rel="stylesheet" href="~/css/violet-theme.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/calendar/categories.css" asp-append-version="true" />
+
+<div class="calendar-page-container">
+    <!-- Header Navigation & Title -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+            <a href="/Calendar" class="category-page-back-link mb-2 text-decoration-none d-inline-flex align-items-center gap-1.5">
+                <i class="bi bi-arrow-left"></i>
+                <span>Quay lại Lịch học</span>
+            </a>
+            <h2 class="category-page-title d-flex align-items-center gap-2">
+                <i class="bi bi-tags text-primary"></i>
+                <span>Quản lý Loại sự kiện</span>
+            </h2>
+            <p class="category-page-subtitle">
+                Danh sách các loại sự kiện dùng để phân loại ca học, lọc lịch và quản lý thời gian biểu.
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="/Calendar" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-2 rounded-3">
+                <i class="bi bi-calendar3"></i>
+                <span>Xem trên Lịch</span>
+            </a>
+            <a href="/Calendar/Categories/Create" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-2 rounded-3 fw-semibold">
+                <i class="bi bi-plus-lg"></i>
+                <span>Thêm loại sự kiện</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content: Full-width Categories Table Card -->
+    <div class="sh-card p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <h5 class="fw-bold mb-0 text-dark">Danh sách loại sự kiện</h5>
+                <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1" id="category-count-badge">
+                    @Model.Count loại
+                </span>
+            </div>
+
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 category-table">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" class="category-col-name">Tên loại sự kiện</th>
+                        <th scope="col" class="category-col-desc">Mô tả</th>
+                        <th scope="col" class="text-center category-col-count">Ca học gắn kèm</th>
+                        <th scope="col" class="text-end category-col-actions">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="category-table-body">
+                    @if (Model.Count == 0)
+                    {
+                        <tr id="category-empty-row">
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <i class="bi bi-tag fs-2 d-block mb-2 text-secondary"></i>
+                                <span>Chưa có loại sự kiện nào. Hãy bấm nút <strong>Thêm loại sự kiện</strong> ở trên để tạo mới.</span>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var cat in Model)
+                        {
+                            <tr data-category-id="@cat.Id" data-category-name="@cat.Name">
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-semibold text-dark category-item-title">@cat.Name</span>
+                                    </div>
+                                </td>
+                                <td class="text-muted small">
+                                    @(string.IsNullOrWhiteSpace(cat.Description) ? "—" : cat.Description)
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border px-2.5 py-1 fw-semibold">
+                                        @cat.EventCount ca
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="/Calendar/Categories/Edit/@cat.Id"
+                                           class="btn btn-outline-secondary"
+                                           title="Chỉnh sửa loại sự kiện">
+                                            <i class="bi bi-pencil"></i> Sửa
+                                        </a>
+                                        <button type="button"
+                                                class="btn btn-outline-danger btn-delete-category"
+                                                data-id="@cat.Id"
+                                                data-name="@cat.Name"
+                                                data-count="@cat.EventCount"
+                                                title="Xóa loại sự kiện">
+                                            <i class="bi bi-trash"></i> Xóa
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/calendar/categories.js" asp-append-version="true"></script>
+}

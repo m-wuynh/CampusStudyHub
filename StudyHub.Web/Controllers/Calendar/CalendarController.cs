@@ -10,7 +10,7 @@ namespace StudyHub.Web.Controllers.Calendar;
 
 [Authorize]
 [Route("Calendar")]
-public sealed class CalendarController(ICalendarService calendarService) : Controller
+public sealed class CalendarController(ICalendarService calendarService, ICalendarStatisticsService statisticsService) : Controller
 {
     private long CurrentUserId => long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 
@@ -23,8 +23,17 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
         
         // Fetch events for the month (and slightly before/after for the grid view if needed, but here we just get a wide range for simplicity, e.g., the whole month)
         var events = await calendarService.GetEventsAsync(CurrentUserId, firstDayOfMonth.AddDays(-7), lastDayOfMonth.AddDays(7));
+        var weeklyProgress = await statisticsService.GetWeeklyProgressAsync(CurrentUserId, selectedDate);
         
-        return View(new CalendarIndexViewModel(selectedDate, events));
+        return View(new CalendarIndexViewModel(selectedDate, events, weeklyProgress));
+    }
+
+    [HttpGet("GetWeeklyProgress")]
+    public async Task<IActionResult> GetWeeklyProgress([FromQuery] DateOnly? date, [FromQuery] string? category = null)
+    {
+        var targetDate = date ?? DateOnly.FromDateTime(DateTime.Today);
+        var progress = await statisticsService.GetWeeklyProgressAsync(CurrentUserId, targetDate, category);
+        return Json(progress);
     }
 
     [HttpGet("GetEvents")]
@@ -241,24 +250,24 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
 
                 string icon = e.EventType switch
                 {
-                    "Exam"      => "bi-alarm",
-                    "Class"     => "bi-people",
-                    "Other"     => "bi-journal-check",
-                    _           => "bi-book"
+                    "Kiểm tra / Thi"    => "bi-alarm",
+                    "Học nhóm"          => "bi-people",
+                    "Bài tập / Nộp bài" => "bi-journal-check",
+                    _                   => "bi-book"
                 };
                 string iconBg = e.EventType switch
                 {
-                    "Exam"  => "var(--sh-rose-50)",
-                    "Class" => "var(--sh-indigo-50)",
-                    "Other" => "var(--sh-amber-50)",
-                    _       => "var(--sh-emerald-50)"
+                    "Kiểm tra / Thi"    => "var(--sh-rose-50)",
+                    "Học nhóm"          => "var(--sh-indigo-50)",
+                    "Bài tập / Nộp bài" => "var(--sh-amber-50)",
+                    _                   => "var(--sh-emerald-50)"
                 };
                 string iconColor = e.EventType switch
                 {
-                    "Exam"  => "var(--sh-rose-600)",
-                    "Class" => "var(--sh-indigo-600)",
-                    "Other" => "var(--sh-amber-600)",
-                    _       => "var(--sh-emerald-600)"
+                    "Kiểm tra / Thi"    => "var(--sh-rose-600)",
+                    "Học nhóm"          => "var(--sh-indigo-600)",
+                    "Bài tập / Nộp bài" => "var(--sh-amber-600)",
+                    _                   => "var(--sh-emerald-600)"
                 };
                 bool isUrgent = diff.TotalHours < 24 && diff.TotalMinutes > 0;
 
@@ -294,5 +303,105 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
         }
     }
 
-    // Duplicate GetEvents method removed (kept the first implementation)
+    [HttpGet("Categories")]
+    public async Task<IActionResult> Categories()
+    {
+        var categories = await calendarService.GetCategoriesAsync(CurrentUserId);
+        return View(categories);
+    }
+
+    [HttpGet("Categories/Create")]
+    public IActionResult CreateCategory()
+    {
+        return View();
+    }
+
+    [HttpGet("Categories/Edit/{id}")]
+    public async Task<IActionResult> EditCategory(long id)
+    {
+        var categories = await calendarService.GetCategoriesAsync(CurrentUserId);
+        var cat = categories.FirstOrDefault(c => c.Id == id);
+        if (cat == null)
+        {
+            TempData["ErrorMessage"] = "Không tìm thấy loại sự kiện cần chỉnh sửa.";
+            return RedirectToAction(nameof(Categories));
+        }
+        return View(cat);
+    }
+
+    [HttpGet("GetCategories")]
+    public async Task<IActionResult> GetCategories()
+    {
+        var categories = await calendarService.GetCategoriesAsync(CurrentUserId);
+        return Json(categories);
+    }
+
+    [HttpPost("Categories/Create")]
+    public async Task<IActionResult> CreateCategory([FromBody] SaveCalendarCategoryDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            var firstError = ModelState.Values.SelectMany(v => v.Errors).FirstOrDefault()?.ErrorMessage 
+                             ?? "Dữ liệu không hợp lệ.";
+            return BadRequest(new { error = firstError });
+        }
+        try
+        {
+            var created = await calendarService.CreateCategoryAsync(CurrentUserId, request);
+            return Ok(created);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPut("Categories/Update/{id}")]
+    [HttpPost("Categories/Update/{id}")]
+    public async Task<IActionResult> UpdateCategory(long id, [FromBody] SaveCalendarCategoryDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            var firstError = ModelState.Values.SelectMany(v => v.Errors).FirstOrDefault()?.ErrorMessage 
+                             ?? "Dữ liệu không hợp lệ.";
+            return BadRequest(new { error = firstError });
+        }
+        try
+        {
+            await calendarService.UpdateCategoryAsync(CurrentUserId, id, request);
+            return Ok(new { ok = true });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpDelete("Categories/Delete/{id}")]
+    public async Task<IActionResult> DeleteCategory(long id)
+    {
+        try
+        {
+            await calendarService.DeleteCategoryAsync(CurrentUserId, id);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("Reports")]
+    public async Task<IActionResult> Reports([FromQuery] string range = "this-week")
+    {
+        var reportsDto = await statisticsService.GetReportsAsync(CurrentUserId, range);
+        return View(new CalendarReportsViewModel(reportsDto));
+    }
+
+    [HttpGet("GetReportsData")]
+    public async Task<IActionResult> GetReportsData([FromQuery] string range = "this-week")
+    {
+        var reportsDto = await statisticsService.GetReportsAsync(CurrentUserId, range);
+        return Json(reportsDto);
+    }
 }

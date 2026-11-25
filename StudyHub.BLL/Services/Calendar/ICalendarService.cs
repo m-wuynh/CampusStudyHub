@@ -15,4 +15,8 @@ public interface ICalendarService
     Task ToggleEventCompletionAsync(long userId, long eventId, bool isCompleted);
     Task<bool> ToggleEventCompletionAsync(long userId, long id);
     Task<List<ScheduleEventDto>> SearchEventsAsync(long userId, string keyword, int maxResults = 20);
+    Task<List<CalendarCategoryDto>> GetCategoriesAsync(long userId);
+    Task<CalendarCategoryDto> CreateCategoryAsync(long userId, SaveCalendarCategoryDto request);
+    Task UpdateCategoryAsync(long userId, long categoryId, SaveCalendarCategoryDto request);
+    Task DeleteCategoryAsync(long userId, long categoryId);
 }

@@ -636,9 +636,8 @@ public partial class StudyHubDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.EndAtLocal).HasPrecision(0);
             entity.Property(e => e.EventType)
-                .HasMaxLength(15)
-                .IsUnicode(false)
-                .HasDefaultValue("Class");
+                .HasMaxLength(100)
+                .HasDefaultValue("Tự học");
             entity.Property(e => e.Location).HasMaxLength(250);
             entity.Property(e => e.RepeatMode)
                 .HasMaxLength(10)

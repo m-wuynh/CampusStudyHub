@@ -24,7 +24,7 @@
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/calendar.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/calendar/create.css" asp-append-version="true" />
 }
 
 <div class="calendar-form-container">
@@ -92,10 +92,10 @@
                     <i class="bi bi-tag"></i><span>Loại sự kiện <span class="text-danger">*</span></span>
                 </label>
                 <select id="event-category" class="calendar-form-input">
-                    <option value="SelfStudy">📘 Tự học</option>
-                    <option value="Other">📝 Bài tập / Nộp bài</option>
-                    <option value="Exam">⏰ Kiểm tra / Thi</option>
-                    <option value="Class">👥 Học nhóm</option>
+                    <option value="Tự học">Tự học</option>
+                    <option value="Bài tập / Nộp bài">Bài tập / Nộp bài</option>
+                    <option value="Kiểm tra / Thi">Kiểm tra / Thi</option>
+                    <option value="Học nhóm">Học nhóm</option>
                 </select>
             </div>
             <div class="col-md-6">
@@ -139,137 +139,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        function addNotification() {
-            const container = document.getElementById('notifications-container');
-            const row = document.createElement('div');
-            row.className = 'notif-row-purple d-flex align-items-center gap-2 flex-wrap';
-            row.innerHTML = `
-                <i class="bi bi-bell-fill notif-bell-icon"></i>
-                <select class="notif-select-purple">
-                    <option value="notification">Thông báo hệ thống</option>
-                    <option value="email">Email</option>
-                </select>
-                <span class="text-muted small">Trước:</span>
-                <input type="number" min="0" class="notif-input-purple" value="10">
-                <select class="notif-select-purple">
-                    <option value="minutes">phút</option>
-                    <option value="hours">giờ</option>
-                    <option value="days">ngày</option>
-                    <option value="weeks">tuần</option>
-                </select>
-                <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-auto" title="Xóa thông báo" onclick="this.closest('.notif-row-purple').remove()">
-                    <i class="bi bi-x-circle-fill notif-remove-icon"></i>
-                </button>
-            `;
-            container.appendChild(row);
-        }
-
-        // Tự động ẩn lỗi khi người dùng bắt đầu gõ tên sự kiện
-        document.addEventListener('DOMContentLoaded', () => {
-            const titleInput = document.getElementById('event-title');
-            if (titleInput) {
-                titleInput.addEventListener('input', function() {
-                    const titleError = document.getElementById('event-title-error');
-                    if (this.value.trim().length > 0) {
-                        if (titleError) titleError.classList.add('d-none');
-                        this.classList.remove('border-danger');
-                    }
-                });
-            }
-        });
-
-        async function submitEvent() {
-            const titleInput = document.getElementById('event-title');
-            const titleError = document.getElementById('event-title-error');
-            const title = titleInput ? titleInput.value : '';
-            const date = document.getElementById('event-date').value;
-            let start = document.getElementById('event-start').value;
-            let end = document.getElementById('event-end').value;
-            const category = document.getElementById('event-category').value;
-            const loc = document.getElementById('event-location').value;
-            const desc = document.getElementById('event-description').value;
-
-            // Kiểm tra riêng trường Tên sự kiện
-            if (!title || !title.trim()) {
-                if (titleError) titleError.classList.remove('d-none');
-                if (titleInput) {
-                    titleInput.classList.add('border-danger');
-                    titleInput.focus();
-                }
-                return;
-            } else {
-                if (titleError) titleError.classList.add('d-none');
-                if (titleInput) titleInput.classList.remove('border-danger');
-            }
-
-            if (!date || !start || !end || !category) {
-                showToast('Vui lòng điền đủ thông tin thời gian và loại sự kiện', 'error');
-                return;
-            }
-
-            if (end <= start) {
-                showToast(`Giờ kết thúc (${end}) phải sau giờ bắt đầu (${start}) trong cùng ngày. Lưu ý: 12h đêm là SA, 12h trưa là CH.`, 'error');
-                return;
-            }
-
-            const selectedStart = new Date(`${date}T${start}`);
-            if (selectedStart < new Date(Date.now() - 60000)) {
-                showToast('Thời gian bắt đầu không thể ở trong quá khứ', 'error');
-                return;
-            }
-
-            if (start.length === 5) start += ":00";
-            if (end.length === 5) end += ":00";
-
-            // Extract reminders
-            const reminders = [];
-            document.querySelectorAll('#notifications-container .d-flex').forEach(row => {
-                const inputs = row.querySelectorAll('input, select');
-                if (inputs.length >= 3) {
-                    const channel = inputs[0].value;
-                    let val = parseInt(inputs[1].value);
-                    const unit = inputs[2].value;
-                    if (!isNaN(val) && val >= 0) {
-                        if (val > 0) {
-                            if (unit === 'hours') val *= 60;
-                            else if (unit === 'days') val *= 1440;
-                            else if (unit === 'weeks') val *= 10080;
-                        }
-                        reminders.push({ Channel: channel, Minutes: val });
-                    }
-                }
-            });
-
-            const data = {
-                Title: title.trim(),
-                Date: date,
-                StartTime: start,
-                EndTime: end,
-                EventType: category,
-                Location: loc,
-                Description: desc,
-                Reminders: reminders
-            };
-
-            try {
-                const res = await fetch('/Calendar/CreateEvent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (res.ok) {
-                    showToast('Đã thêm sự kiện vào lịch!', 'success');
-                    setTimeout(() => window.location.href = '/Calendar', 1000);
-                } else {
-                    const errData = await res.json().catch(() => null);
-                    const msg = (errData && errData.error) ? errData.error : 'Lỗi khi thêm sự kiện';
-                    showToast(msg, 'error');
-                }
-            } catch (err) {
-                console.error('Lỗi mạng:', err);
-                showToast('Lỗi mạng', 'error');
-            }
-        }
-    </script>
+    <script src="~/js/calendar/create.js" asp-append-version="true"></script>
 }

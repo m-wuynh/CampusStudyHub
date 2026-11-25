@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace StudyHub.BLL.DTOs;
 
 public sealed record ScheduleEventDto(
@@ -36,4 +38,47 @@ public sealed class UpdateEventDto
     public string? Location { get; set; }
     public string? Description { get; set; }
     public List<ReminderInputDto>? Reminders { get; set; }
+}
+
+public sealed record CalendarCategoryDto(long Id, string Name, string? Description, bool IsDefault, int EventCount);
+
+public sealed record SaveCalendarCategoryDto(string Name, string? Description = null);
+
+public sealed record WeeklyProgressDto(
+    int TotalEvents,
+    int CompletedEvents,
+    int MissedEvents,
+    int UpcomingEvents,
+    int CompletionPct
+);
+
+public sealed class CategoryStatItemDto
+{
+    public string CategoryName { get; set; } = string.Empty;
+    public int TotalEvents { get; set; }
+    public double PercentageOfTotal { get; set; }
+    public int CompletedEvents { get; set; }
+    public int CompletionPct { get; set; }
+    public int MissedEvents { get; set; }
+    public string StatusBadge { get; set; } = "Bình thường";
+    public string StatusBadgeType { get; set; } = "primary";
+}
+
+public class CalendarReportsDto
+{
+    public string Range { get; set; } = "this-week";
+    public string RangeLabel { get; set; } = "Tuần này";
+    public string DateRangeText { get; set; } = string.Empty;
+    public int TotalEvents { get; set; }
+    public double AvgPerDay { get; set; }
+    public int CompletedEvents { get; set; }
+    public int CompletionPct { get; set; }
+    public int MissedEvents { get; set; }
+    public int UpcomingEvents { get; set; }
+    public List<CategoryStatItemDto> CategoryStats { get; set; } = new();
+    public string InsightTitle { get; set; } = string.Empty;
+    public string InsightMessage { get; set; } = string.Empty;
+    public string InsightBadge { get; set; } = string.Empty;
+    public string InsightBadgeType { get; set; } = "success";
+    public string InsightRecommendation { get; set; } = string.Empty;
 }

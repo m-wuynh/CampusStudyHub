@@ -10,7 +10,7 @@
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/calendar.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/calendar/update.css" asp-append-version="true" />
 }
 
 <div class="calendar-form-container">
@@ -37,6 +37,7 @@
 
     <!-- ROW 2: Form Card -->
     <div class="calendar-form-card p-4">
+        <input type="hidden" id="event-id" value="@Model.Id" />
         
         <!-- Tên sự kiện -->
         <div class="mb-3">
@@ -77,26 +78,26 @@
                 <label class="calendar-form-label" for="event-category">
                     <i class="bi bi-tag"></i><span>Loại sự kiện <span class="text-danger">*</span></span>
                 </label>
-                <select id="event-category" class="calendar-form-input">
-                    @if (Model.EventType == "SelfStudy") {
-                        <option value="SelfStudy" selected>📘 Tự học</option>
+                <select id="event-category" class="calendar-form-input" data-initial-type="@Model.EventType">
+                    @if (Model.EventType == "Tự học") {
+                        <option value="Tự học" selected>Tự học</option>
                     } else {
-                        <option value="SelfStudy">📘 Tự học</option>
+                        <option value="Tự học">Tự học</option>
                     }
-                    @if (Model.EventType == "Other") {
-                        <option value="Other" selected>📝 Bài tập / Nộp bài</option>
+                    @if (Model.EventType == "Bài tập / Nộp bài") {
+                        <option value="Bài tập / Nộp bài" selected>Bài tập / Nộp bài</option>
                     } else {
-                        <option value="Other">📝 Bài tập / Nộp bài</option>
+                        <option value="Bài tập / Nộp bài">Bài tập / Nộp bài</option>
                     }
-                    @if (Model.EventType == "Exam") {
-                        <option value="Exam" selected>⏰ Kiểm tra / Thi</option>
+                    @if (Model.EventType == "Kiểm tra / Thi") {
+                        <option value="Kiểm tra / Thi" selected>Kiểm tra / Thi</option>
                     } else {
-                        <option value="Exam">⏰ Kiểm tra / Thi</option>
+                        <option value="Kiểm tra / Thi">Kiểm tra / Thi</option>
                     }
-                    @if (Model.EventType == "Class") {
-                        <option value="Class" selected>👥 Học nhóm</option>
+                    @if (Model.EventType == "Học nhóm") {
+                        <option value="Học nhóm" selected>Học nhóm</option>
                     } else {
-                        <option value="Class">👥 Học nhóm</option>
+                        <option value="Học nhóm">Học nhóm</option>
                     }
                 </select>
             </div>
@@ -141,189 +142,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        function addNotification(val = 10, unit = 'minutes', channel = 'notification') {
-            const container = document.getElementById('notifications-container');
-            const row = document.createElement('div');
-            row.className = 'notif-row-purple d-flex align-items-center gap-2 flex-wrap';
-            row.innerHTML = `
-                <i class="bi bi-bell-fill notif-bell-icon"></i>
-                <select class="notif-select-purple">
-                    <option value="notification" ${channel === 'notification' ? 'selected' : ''}>Thông báo hệ thống</option>
-                    <option value="email" ${channel === 'email' ? 'selected' : ''}>Email</option>
-                </select>
-                <span class="text-muted small">Trước:</span>
-                <input type="number" min="0" class="notif-input-purple" value="${val}">
-                <select class="notif-select-purple">
-                    <option value="minutes" ${unit === 'minutes' ? 'selected' : ''}>phút</option>
-                    <option value="hours" ${unit === 'hours' ? 'selected' : ''}>giờ</option>
-                    <option value="days" ${unit === 'days' ? 'selected' : ''}>ngày</option>
-                    <option value="weeks" ${unit === 'weeks' ? 'selected' : ''}>tuần</option>
-                </select>
-                <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-auto" title="Xóa thông báo" onclick="this.closest('.notif-row-purple').remove()">
-                    <i class="bi bi-x-circle-fill notif-remove-icon"></i>
-                </button>
-            `;
-            container.appendChild(row);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            @if (Model.Reminders != null && Model.Reminders.Any())
-            {
-                foreach (var rem in Model.Reminders)
-                {
-                    <text>
-                    {
-                        let totalMinutes = @rem.Minutes;
-                        let ch = '@(string.Equals(rem.Channel, "Email", StringComparison.OrdinalIgnoreCase) || string.Equals(rem.Channel, "gmail", StringComparison.OrdinalIgnoreCase) ? "email" : "notification")';
-                        let val = totalMinutes;
-                        let unit = 'minutes';
-                        if (val === 0) {
-                            unit = 'minutes';
-                        } else if (val % 10080 === 0) { val /= 10080; unit = 'weeks'; }
-                        else if (val % 1440 === 0) { val /= 1440; unit = 'days'; }
-                        else if (val % 60 === 0) { val /= 60; unit = 'hours'; }
-                        addNotification(val, unit, ch);
-                    }
-                    </text>
-                }
-            }
-            else if (Model.ReminderMinutes != null && Model.ReminderMinutes.Any())
-            {
-                foreach (var min in Model.ReminderMinutes)
-                {
-                    <text>
-                    {
-                        let totalMinutes = @min;
-                        let val = totalMinutes;
-                        let unit = 'minutes';
-                        if (val === 0) {
-                            unit = 'minutes';
-                        } else if (val % 10080 === 0) { val /= 10080; unit = 'weeks'; }
-                        else if (val % 1440 === 0) { val /= 1440; unit = 'days'; }
-                        else if (val % 60 === 0) { val /= 60; unit = 'hours'; }
-                        addNotification(val, unit);
-                    }
-                    </text>
-                }
-            }
-
-            const titleInput = document.getElementById('event-title');
-            const titleError = document.getElementById('event-title-error');
-            if (titleInput) {
-                titleInput.addEventListener('input', function() {
-                    if (this.value && this.value.trim()) {
-                        if (titleError) titleError.classList.add('d-none');
-                        this.classList.remove('border-danger');
-                    }
-                });
-            }
-        });
-
-        async function submitEvent() {
-            const titleInput = document.getElementById('event-title');
-            const titleError = document.getElementById('event-title-error');
-            const title = titleInput ? titleInput.value : '';
-            const date = document.getElementById('event-date').value;
-            let start = document.getElementById('event-start').value;
-            let end = document.getElementById('event-end').value;
-            const category = document.getElementById('event-category').value;
-            const loc = document.getElementById('event-location').value;
-            const desc = document.getElementById('event-description').value;
-
-            // Kiểm tra riêng trường Tên sự kiện: hiện chữ đỏ ngay bên dưới và focus
-            if (!title || !title.trim()) {
-                if (titleError) titleError.classList.remove('d-none');
-                if (titleInput) {
-                    titleInput.classList.add('border-danger');
-                    titleInput.focus();
-                }
-                return;
-            } else {
-                if (titleError) titleError.classList.add('d-none');
-                if (titleInput) titleInput.classList.remove('border-danger');
-            }
-
-            if (!date || !start || !end || !category) {
-                showToast('Vui lòng điền đủ thông tin thời gian và loại sự kiện', 'error');
-                return;
-            }
-
-            if (end <= start) {
-                showToast(`Giờ kết thúc (${end}) phải sau giờ bắt đầu (${start}) trong cùng ngày. `, 'error');
-                return;
-            }
-
-            const selectedEnd = new Date(`${date}T${end}`);
-            if (selectedEnd < new Date(Date.now() - 60000)) {
-                showToast('Thời gian kết thúc ca học không thể ở trong quá khứ', 'error');
-                return;
-            }
-
-            if (start.length === 5) start += ":00";
-            if (end.length === 5) end += ":00";
-
-            // Extract reminders
-            const reminders = [];
-            document.querySelectorAll('#notifications-container .d-flex').forEach(row => {
-                const inputs = row.querySelectorAll('input, select');
-                if (inputs.length >= 3) {
-                    const channel = inputs[0].value;
-                    let val = parseInt(inputs[1].value);
-                    const unit = inputs[2].value;
-                    if (!isNaN(val) && val >= 0) {
-                        if (val > 0) {
-                            if (unit === 'hours') val *= 60;
-                            else if (unit === 'days') val *= 1440;
-                            else if (unit === 'weeks') val *= 10080;
-                        }
-                        reminders.push({ Channel: channel, Minutes: val });
-                    }
-                }
-            });
-
-            const data = {
-                Title: title.trim(),
-                Date: date,
-                StartTime: start,
-                EndTime: end,
-                EventType: category,
-                Location: loc,
-                Description: desc,
-                Reminders: reminders
-            };
-
-            try {
-                const res = await fetch('/Calendar/Update/@Model.Id', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (res.ok) {
-                    showToast('Đã cập nhật sự kiện!', 'success');
-                    
-                    // Xóa ID sự kiện này khỏi bộ nhớ thông báo đã đọc/đã nổ để lịch mới được thông báo lại
-                    try {
-                        let toasted = JSON.parse(localStorage.getItem('sh_notif_toasted') || '[]');
-                        toasted = toasted.filter(id => id != @Model.Id && !String(id).startsWith('@Model.Id' + '_'));
-                        localStorage.setItem('sh_notif_toasted', JSON.stringify(toasted));
-
-                        let reads = JSON.parse(localStorage.getItem('sh_notif_read') || '[]');
-                        reads = reads.filter(id => id != @Model.Id && !String(id).startsWith('@Model.Id' + '_'));
-                        localStorage.setItem('sh_notif_read', JSON.stringify(reads));
-                    } catch(e) {}
-
-                    // Navigate back to calendar view
-                    setTimeout(() => window.location.href = '/Calendar', 1000);
-                } else {
-                    const errData = await res.json().catch(() => null);
-                    const msg = (errData && errData.error) ? errData.error : 'Lỗi khi cập nhật sự kiện';
-                    showToast(msg, 'error');
-                }
-            } catch (err) {
-                console.error('Lỗi mạng:', err);
-                showToast('Lỗi mạng', 'error');
-            }
-        }
-    </script>
+    <script src="~/js/calendar/update.js" asp-append-version="true"></script>
 }

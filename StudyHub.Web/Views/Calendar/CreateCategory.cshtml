@@ -1,0 +1,78 @@
+@{
+    ViewData["Title"] = "Thêm loại sự kiện - Study Hub";
+}
+
+<link rel="stylesheet" href="~/css/violet-theme.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/calendar/categories.css" asp-append-version="true" />
+
+<div class="calendar-page-container">
+    <div class="category-form-container">
+        <!-- Header Navigation & Title -->
+        <div class="mb-4">
+            <a href="/Calendar/Categories" class="category-page-back-link mb-2 text-decoration-none d-inline-flex align-items-center gap-1.5">
+                <i class="bi bi-arrow-left"></i>
+                <span>Quay lại Danh sách Loại sự kiện</span>
+            </a>
+            <h2 class="category-page-title d-flex align-items-center gap-2">
+                <i class="bi bi-plus-circle text-primary"></i>
+                <span>Thêm loại sự kiện mới</span>
+            </h2>
+            <p class="category-page-subtitle">
+                Tạo loại sự kiện để phân loại các ca học trên thời khóa biểu và phục vụ bộ lọc.
+            </p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="sh-card p-4 category-form-card shadow-sm">
+            <form id="form-create-category">
+                <div class="mb-3">
+                    <label class="calendar-form-label" for="category-name">
+                        <span>Tên loại sự kiện <span class="text-danger">*</span></span>
+                    </label>
+                    <input type="text"
+                           id="category-name"
+                           class="calendar-form-input"
+                           placeholder="Ví dụ: Học thêm Toán, Ngoại khóa..."
+                           required
+                           autofocus
+                           autocomplete="off" />
+                    <div id="category-name-error" class="category-field-error text-danger d-none">
+                        <i class="bi bi-exclamation-circle"></i>
+                        <span class="category-error-text"></span>
+                    </div>
+                    <div class="form-text small text-muted mt-1">
+                        Tên ngắn gọn, dễ nhớ để hiển thị trên bộ lọc và thời khóa biểu.
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="calendar-form-label" for="category-desc">
+                        <span>Mô tả (tùy chọn)</span>
+                    </label>
+                    <textarea id="category-desc"
+                              class="calendar-form-input category-textarea"
+                              rows="3"
+                              placeholder="Ghi chú chi tiết về loại sự kiện này..."></textarea>
+                    <div id="category-desc-error" class="category-field-error text-danger d-none">
+                        <i class="bi bi-exclamation-circle"></i>
+                        <span class="category-error-text"></span>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-end gap-2 pt-2 border-top">
+                    <a href="/Calendar/Categories" class="btn btn-light btn-sm px-3 py-2 rounded-3 text-secondary text-decoration-none fw-medium">
+                        Hủy
+                    </a>
+                    <button type="submit" id="btn-save-category" class="btn btn-primary btn-sm px-4 py-2 rounded-3 fw-semibold d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Tạo loại sự kiện</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/calendar/categories.js" asp-append-version="true"></script>
+}
