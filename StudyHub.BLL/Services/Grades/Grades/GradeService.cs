@@ -468,6 +468,75 @@ public sealed class GradeService(
 
     // ── Private helpers ──────────────────────────────────────────
 
+    // ═══════════════════════════════════════════════════════════
+    // CÁC MÀN CHỈ ĐỌC: Tổng quan năm học, Chi tiết môn, Phân tích
+    // Dùng lại GetGradePageAsync nên mọi con số khớp với bảng điểm.
+    // ═══════════════════════════════════════════════════════════
+
+    public async Task<GradesOverviewDto> GetGradesOverviewAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var latest = await GetGradePageAsync(userId, null, cancellationToken);
+        var books = new List<GradeBookOverviewDto>();
+
+        foreach (var gradeBook in latest.GradeBooks)
+        {
+            var page = gradeBook.GradeBookId == latest.SelectedGradeBookId
+                ? latest
+                : await GetGradePageAsync(userId, gradeBook.GradeBookId, cancellationToken, includeSubjectOptions: false);
+
+            var goals = page.GoalLadders.Where(l => !l.IsDetached).SelectMany(l => l.Goals).ToList();
+            books.Add(new GradeBookOverviewDto(
+                gradeBook.GradeBookId,
+                gradeBook.Name,
+                gradeBook.FromYear,
+                gradeBook.ToYear,
+                page.SubjectDetails.Count,
+                page.SubjectDetails.Sum(s => s.Entries.Count),
+                page.Summary.CurrentAverage10,
+                goals.Count(g => g.GoalLifecycleStatus == GradeConstants.GoalLifecycle.Done),
+                goals.Count));
+        }
+
+        var latestStatistics = GradeStatisticsCalculator.Build(latest, GradeClock.ToLocal(DateTime.UtcNow));
+        return new GradesOverviewDto(books, latest, latestStatistics);
+    }
+
+    public async Task<SubjectDetailPageDto?> GetSubjectDetailAsync(long userId, long userSubjectId, CancellationToken cancellationToken = default)
+    {
+        var owner = await repository.Query<UserSubject>()
+            .Where(us => us.UserSubjectId == userSubjectId && us.UserId == userId && !us.IsArchived)
+            .Select(us => new { us.GradeBookId })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (owner is null) return null;
+
+        var page = await GetGradePageAsync(userId, owner.GradeBookId, cancellationToken);
+        var subject = owner.GradeBookId is null
+            ? null
+            : page.SubjectDetails.FirstOrDefault(s => s.UserSubjectId == userSubjectId);
+        var ladder = page.GoalLadders.FirstOrDefault(l => l.UserSubjectId == userSubjectId);
+
+        decimal knownSum = 0m, knownWeight = 0m, remainingWeight = 0m;
+        if (subject != null)
+        {
+            var weights = page.Columns.ToDictionary(c => c.GradeColumnId, c => c.Weight);
+            (knownSum, knownWeight, remainingWeight) = GradeCalculator.SubjectWeights(
+                subject.Entries.Select(e => (e.GradeColumnId, e.Score)), weights);
+        }
+
+        var focus = ladder is null ? null : GoalOverviewCalculator.FocusGoal(ladder);
+        decimal? required = focus is null || focus.GoalLifecycleStatus == GradeConstants.GoalLifecycle.Done
+            ? null
+            : GradeCalculator.ComputeRequiredScore(knownSum, knownWeight, remainingWeight, focus.TargetValue);
+
+        return new SubjectDetailPageDto(page, subject, ladder, knownSum, knownWeight, remainingWeight, focus, required);
+    }
+
+    public async Task<GradeStatisticsPageDto> GetStatisticsAsync(long userId, long? gradeBookId, CancellationToken cancellationToken = default)
+    {
+        var page = await GetGradePageAsync(userId, gradeBookId, cancellationToken, includeSubjectOptions: false);
+        return new GradeStatisticsPageDto(page, GradeStatisticsCalculator.Build(page, GradeClock.ToLocal(DateTime.UtcNow)));
+    }
+
     private sealed record GoalSubjectSource(long UserSubjectId, string SubjectName, decimal? CurrentAverage10, long? GradeBookId = null, string? AcademicYearName = null);
 
     /// <summary>Một ladder cho mỗi môn có mục tiêu, theo đúng UserSubjectId (không gộp môn theo tên).</summary>

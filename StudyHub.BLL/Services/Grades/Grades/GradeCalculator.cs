@@ -78,4 +78,47 @@ public static class GradeCalculator
         var pct = currentValue.Value / targetValue * 100m;
         return (int)Math.Min(100m, Math.Floor(pct));
     }
+
+    /// <summary>
+    /// Điểm tối thiểu (bước 0.1) cần đạt ở MỖI cột còn trống để ĐTB hiển thị ≥ <paramref name="target"/>.
+    /// Dùng đúng công thức và cách làm tròn ở trên. 0 → chắc chắn đạt; null → không còn cột trống hoặc kể cả 10 điểm cũng không đạt.
+    /// </summary>
+    public static decimal? ComputeRequiredScore(decimal knownWeightedSum, decimal knownWeight, decimal remainingWeight, decimal target)
+    {
+        if (remainingWeight <= 0) return null;
+
+        for (var tenths = 0; tenths <= 100; tenths++)
+        {
+            var score = tenths / 10m;
+            var average = Math.Round(
+                (knownWeightedSum + score * remainingWeight) / (knownWeight + remainingWeight),
+                GradeConstants.AverageDecimals,
+                MidpointRounding.AwayFromZero);
+            if (RoundForDisplay(average) >= target) return score;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Tách dữ liệu của một môn: Σ(điểm × hệ số), Σ hệ số của các điểm đã có, và tổng hệ số các cột chưa có điểm nào.
+    /// </summary>
+    public static (decimal KnownWeightedSum, decimal KnownWeight, decimal RemainingWeight) SubjectWeights(
+        IEnumerable<(long ColumnId, decimal Score)> scores,
+        IReadOnlyDictionary<long, decimal> columnWeights)
+    {
+        decimal weightedSum = 0m;
+        decimal knownWeight = 0m;
+        var usedColumns = new HashSet<long>();
+
+        foreach (var (columnId, score) in scores)
+        {
+            if (!columnWeights.TryGetValue(columnId, out var weight)) continue;
+            weightedSum += score * weight;
+            knownWeight += weight;
+            usedColumns.Add(columnId);
+        }
+
+        var remainingWeight = columnWeights.Where(c => !usedColumns.Contains(c.Key)).Sum(c => c.Value);
+        return (weightedSum, knownWeight, remainingWeight);
+    }
 }

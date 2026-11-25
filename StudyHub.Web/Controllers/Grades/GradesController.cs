@@ -71,6 +71,62 @@ public sealed class GradesController : Controller
         return View(new GradesIndexViewModel(data));
     }
 
+    // ── Các màn chỉ đọc (GET) ────────────────────────────────────
+
+    /// <summary>Màn "Tổng quan năm học": so sánh các sổ điểm, tạo/xóa sổ.</summary>
+    [HttpGet("Overview")]
+    public async Task<IActionResult> Overview(CancellationToken cancellationToken)
+    {
+        var data = await gradeService.GetGradesOverviewAsync(currentUser.UserId, cancellationToken);
+        return View(new GradesOverviewViewModel(data));
+    }
+
+    /// <summary>Màn "Mục tiêu học tập": thang mục tiêu các môn của một sổ, có bộ lọc trạng thái.</summary>
+    [HttpGet("Goals")]
+    public async Task<IActionResult> Goals(long? gradeBookId, CancellationToken cancellationToken)
+    {
+        var data = await gradeService.GetGradePageAsync(currentUser.UserId, gradeBookId, cancellationToken);
+        return View(new GradesIndexViewModel(data));
+    }
+
+    /// <summary>Màn "Phân tích học tập": số liệu tổng hợp của một sổ.</summary>
+    [HttpGet("Statistics")]
+    public async Task<IActionResult> Statistics(long? gradeBookId, CancellationToken cancellationToken)
+    {
+        var data = await gradeService.GetStatisticsAsync(currentUser.UserId, gradeBookId, cancellationToken);
+        return View(new GradesStatisticsViewModel(data));
+    }
+
+    /// <summary>Màn "Chi tiết môn": điểm theo cột, tính điểm cần đạt, mục tiêu và hoạt động của một môn.</summary>
+    [HttpGet("Subject/{id:long}")]
+    public async Task<IActionResult> Subject(long id, CancellationToken cancellationToken)
+    {
+        var data = await gradeService.GetSubjectDetailAsync(currentUser.UserId, id, cancellationToken);
+        if (data is null || (data.Subject is null && data.Ladder is null))
+        {
+            TempData["ErrorMessage"] = "Không tìm thấy môn học.";
+            return RedirectToAction(nameof(Index));
+        }
+        return View(new GradesSubjectViewModel(data));
+    }
+
+    /// <summary>Màn "Hành trình mục tiêu" của một môn.</summary>
+    [HttpGet("Journey/{id:long}")]
+    public async Task<IActionResult> Journey(long id, CancellationToken cancellationToken)
+    {
+        var data = await gradeService.GetSubjectDetailAsync(currentUser.UserId, id, cancellationToken);
+        if (data?.Ladder is null)
+        {
+            TempData["ErrorMessage"] = data is null ? "Không tìm thấy môn học." : "Môn học này chưa có mục tiêu nên chưa có hành trình.";
+            return RedirectToAction(nameof(Goals));
+        }
+        return View(new GradesSubjectViewModel(data));
+    }
+
+    /// <summary>Quay lại đúng màn đã gửi form (chỉ nhận đường dẫn nội bộ để tránh open redirect).</summary>
+    private IActionResult? LocalReturn(string? returnUrl) =>
+        !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl) : null;
+
     // ── GradeBook ────────────────────────────────────────────────
 
     [HttpPost("UpdateGradeBook")]
@@ -253,7 +309,7 @@ public sealed class GradesController : Controller
 
     [HttpPost("AddGoal")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddGoal(CreateGoalDto dto, [FromForm] long? currentGradeBookId, CancellationToken cancellationToken)
+    public async Task<IActionResult> AddGoal(CreateGoalDto dto, [FromForm] long? currentGradeBookId, [FromForm] string? returnUrl, CancellationToken cancellationToken)
     {
         try
         {
@@ -264,12 +320,13 @@ public sealed class GradesController : Controller
         {
             TempData["ErrorMessage"] = ToUserMessage(ex);
         }
-        return RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
+        return LocalReturn(returnUrl)
+            ?? RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
     }
 
     [HttpPost("UpdateGoal")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateGoal(UpdateGoalDto dto, [FromForm] long? currentGradeBookId, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateGoal(UpdateGoalDto dto, [FromForm] long? currentGradeBookId, [FromForm] string? returnUrl, CancellationToken cancellationToken)
     {
         try
         {
@@ -280,7 +337,8 @@ public sealed class GradesController : Controller
         {
             TempData["ErrorMessage"] = ToUserMessage(ex);
         }
-        return RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
+        return LocalReturn(returnUrl)
+            ?? RedirectToAction("Index", currentGradeBookId.HasValue && currentGradeBookId.Value > 0 ? new { gradeBookId = currentGradeBookId.Value } : null);
     }
 
     [HttpPost("DeleteGoal")]
@@ -381,7 +439,7 @@ public sealed class GradesController : Controller
 
     [HttpPost("DeleteUserSubject")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteUserSubject(long id, [FromForm] long? currentGradeBookId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteUserSubject(long id, [FromForm] long? currentGradeBookId, [FromForm] string? returnUrl, CancellationToken cancellationToken)
     {
         try
         {
@@ -392,7 +450,8 @@ public sealed class GradesController : Controller
         {
             TempData["ErrorMessage"] = ToUserMessage(ex);
         }
-        return RedirectToAction("Index", new { gradeBookId = currentGradeBookId, editMode = "structure" });
+        return LocalReturn(returnUrl)
+            ?? RedirectToAction("Index", new { gradeBookId = currentGradeBookId, editMode = "structure" });
     }
 
     [HttpPost("ReorderSubjects")]

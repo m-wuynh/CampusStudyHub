@@ -1,11 +1,19 @@
-﻿@model StudyHub.BLL.DTOs.GoalLadderDto
+@model StudyHub.Web.ViewModels.Grades.GradesSubjectViewModel
 @using System.Globalization
 @using StudyHub.BLL.DTOs
 @using StudyHub.BLL.Constants
 @using StudyHub.BLL.Services.Grades
 @{
+    var data = Model.Data;
+    var ladder = data.Ladder!;
+    ViewData["Title"]        = $"Hành trình · {ladder.SubjectName}";
+    ViewData["PageTitle"]    = "Điểm số & Mục tiêu học tập";
+    ViewData["PageSubtitle"] = "Hành trình mục tiêu: mọi lần ĐTB đổi, mục tiêu được tạo hoặc chuyển trạng thái";
+    Layout = "_GradesLayout";
+    ViewData["GradesNav"] = "goals";
+    ViewData["NavGradeBookId"] = data.Page.SelectedGradeBookId;
+
     // Hành trình mục tiêu của một môn: chỉ hiển thị dữ liệu đã ghi trong GoalProgressLogs (không tính lại).
-    var ladder = Model;
     var panelId = $"journey-{ladder.UserSubjectId}";
     var journey = ladder.Journey ?? new GoalJourneyDto(new List<GoalJourneyEventDto>(), new List<GoalJourneyPointDto>());
     var events = journey.Events;
@@ -60,21 +68,30 @@
     string N(double v) => v.ToString("0.##", inv);
 }
 
-<div class="offcanvas offcanvas-end sv-journey" tabindex="-1" id="@panelId" aria-labelledby="@(panelId)-title">
-  <div class="offcanvas-header sv-journey-head">
-    <div class="overflow-hidden">
-      <div class="sv-journey-eyebrow">
-        Môn @ladder.SubjectName
-        @if (!string.IsNullOrWhiteSpace(ladder.AcademicYearName)) {
-          <span> · @ladder.AcademicYearName</span>
-        }
-      </div>
-      <h5 class="offcanvas-title sv-journey-title" id="@(panelId)-title">Hành trình mục tiêu</h5>
+<nav aria-label="breadcrumb" class="sv-breadcrumb mb-2">
+    <a asp-controller="Grades" asp-action="Goals" asp-route-gradeBookId="@data.Page.SelectedGradeBookId">Mục tiêu học tập</a>
+    <span aria-hidden="true">/</span>
+    <a asp-controller="Grades" asp-action="Subject" asp-route-id="@ladder.UserSubjectId">@ladder.SubjectName</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">Hành trình</span>
+</nav>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h3 class="sv-section-title mb-1">Hành trình mục tiêu · @ladder.SubjectName</h3>
+        <p class="sv-section-sub mb-0">
+            @if (!string.IsNullOrWhiteSpace(ladder.AcademicYearName)) { <span>@ladder.AcademicYearName · </span> }
+            Hệ thống tự ghi mốc khi ĐTB hoặc trạng thái mục tiêu thay đổi.
+        </p>
     </div>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Đóng"></button>
-  </div>
+    <a asp-controller="Grades" asp-action="Subject" asp-route-id="@ladder.UserSubjectId" class="btn-secondary-sh">
+        <i class="bi bi-journal-text me-1"></i> Chi tiết môn
+    </a>
+</div>
 
-  <div class="offcanvas-body">
+@* Hành trình hiển thị thành trang riêng (màn "Hành trình mục tiêu"); id giữ nguyên để bộ lọc mốc (filterJourney) hoạt động. *@
+<div class="sv-journey sv-journey-page" id="@panelId">
+  <div class="sv-journey-page-grid">
+    <div class="sv-journey-col">
     <!-- Tóm tắt hiện tại -->
     <div class="sv-journey-card mb-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -142,6 +159,9 @@
       </div>
     }
 
+    </div>
+
+    <div class="sv-journey-col">
     <!-- Danh sách mốc -->
     <h6 class="sv-journey-section"><i class="bi bi-clock-history me-1"></i> Lịch sử hành trình (@events.Count mốc)</h6>
     @if (events.Any()) {
@@ -207,10 +227,6 @@
         <p class="mb-0">Hành trình được ghi tự động khi bạn tạo mục tiêu và khi ĐTB môn thay đổi.</p>
       </div>
     }
-  </div>
-
-  <div class="sv-journey-foot">
-    <span>Hệ thống tự ghi mốc khi ĐTB hoặc trạng thái mục tiêu thay đổi.</span>
-    <button type="button" class="btn-secondary-sh" data-bs-dismiss="offcanvas">Đóng</button>
+    </div>
   </div>
 </div>
