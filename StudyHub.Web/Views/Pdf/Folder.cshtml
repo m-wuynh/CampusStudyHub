@@ -1,0 +1,38 @@
+@model PdfFolderDetailsDto
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<partial name="~/Views/Pdf/_PdfNav.cshtml" />
+
+<header class="pdf-head">
+    <div class="pdf-head-copy">
+        <span class="pdf-head-icon" style="--pdf-primary:@Model.ColorHex"><i class="bi bi-folder2-open"></i></span>
+        <div>
+            <p class="pdf-eyebrow">Thư mục môn học</p>
+            <h1>@Model.Name</h1>
+            <p>@Model.Documents.Count tài liệu trong thư mục.</p>
+        </div>
+    </div>
+
+    <a class="pdf-primary-action"
+       asp-action="Upload"
+       asp-route-subjectId="@Model.UserSubjectId">
+        <i class="bi bi-cloud-arrow-up"></i> Tải PDF
+    </a>
+</header>
+
+<div class="pdf-list">
+    @foreach (var document in Model.Documents)
+    {
+        <partial name="~/Views/Pdf/_PdfDocumentRow.cshtml" model="document" />
+    }
+
+    @if (Model.Documents.Count == 0)
+    {
+        <div class="pdf-empty-state">
+            <div><i class="bi bi-folder-plus"></i><strong>Thư mục đang trống</strong><span>Tải PDF để bắt đầu xây dựng tài liệu môn học.</span></div>
+        </div>
+    }
+</div>

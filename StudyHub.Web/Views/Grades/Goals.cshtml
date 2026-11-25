@@ -1,0 +1,92 @@
+@model StudyHub.Web.ViewModels.Grades.GradesIndexViewModel
+@using StudyHub.BLL.DTOs
+@using StudyHub.BLL.Constants
+@{
+    ViewData["Title"]        = "Mục tiêu học tập";
+    ViewData["PageTitle"]    = "Điểm số & Mục tiêu học tập";
+    ViewData["PageSubtitle"] = "Thang mục tiêu của từng môn, lọc theo trạng thái";
+    Layout = "_GradesLayout";
+    ViewData["GradesNav"] = "goals";
+    ViewData["NavGradeBookId"] = Model.Data.SelectedGradeBookId;
+    ViewData["GradesBookPicker"] = Model.Data;
+
+    var data = Model.Data;
+    // Đếm theo trạng thái để hiện trên bộ lọc (trạng thái do BLL tính sẵn trong GoalDto).
+    var allGoals = data.GoalLadders.SelectMany(l => l.Goals).ToList();
+    var countDone = allGoals.Count(g => g.GoalLifecycleStatus == GradeConstants.GoalLifecycle.Done);
+    var countInProgress = allGoals.Count(g => g.GoalLifecycleStatus == GradeConstants.GoalLifecycle.InProgress);
+    var countTodo = allGoals.Count(g => g.GoalLifecycleStatus == GradeConstants.GoalLifecycle.ToDo);
+    var countOverdue = allGoals.Count(g => g.IsOverdue);
+}
+
+<!-- ═══ MÀN MỤC TIÊU HỌC TẬP ═══ -->
+<div id="goals-tab">
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+    <div>
+      <h3 class="sv-section-title">Mục tiêu học tập – Goal Ladder</h3>
+      <p class="sv-section-sub">Thiết lập mục tiêu học tập cố định và theo dõi tiến độ thực hiện theo từng môn học.</p>
+    </div>
+    @if(data.SubjectDetails.Any() || data.GoalLadders.Any() || (data.AllSubjects != null && data.AllSubjects.Any())) {
+      <div class="d-flex gap-2 flex-wrap">
+        @if (data.GoalLadders.Any(l => !l.IsDetached && l.HasBaseGoal)) {
+          <button type="button" class="btn-secondary-sh" data-bs-toggle="modal" data-bs-target="#addGoalModal" onclick="resetAddGoalModal('rung')">
+            <i class="bi bi-bar-chart-steps me-1"></i> Thêm bậc
+          </button>
+        }
+        <button type="button" class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#addGoalModal" onclick="resetAddGoalModal('base')">
+          <i class="bi bi-plus-lg me-1"></i> Đặt mục tiêu mới
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (allGoals.Any()) {
+    <div class="sv-goal-filters mb-4" role="group" aria-label="Lọc mục tiêu theo trạng thái">
+      <button type="button" class="sv-goal-filter active" data-filter="all" onclick="filterGoals(this)">Tất cả <span>@allGoals.Count</span></button>
+      <button type="button" class="sv-goal-filter" data-filter="inprogress" onclick="filterGoals(this)">Đang thực hiện <span>@countInProgress</span></button>
+      <button type="button" class="sv-goal-filter" data-filter="done" onclick="filterGoals(this)">Đã đạt <span>@countDone</span></button>
+      <button type="button" class="sv-goal-filter" data-filter="overdue" onclick="filterGoals(this)">Quá hạn <span>@countOverdue</span></button>
+      <button type="button" class="sv-goal-filter" data-filter="todo" onclick="filterGoals(this)">Chưa có điểm <span>@countTodo</span></button>
+    </div>
+    <div class="sh-card text-center py-4 px-3 mb-4" id="goal-filter-empty" style="display:none; font-size:13px; color:var(--sh-slate-500);">
+      Không có mục tiêu nào thuộc nhóm này.
+    </div>
+  }
+
+  @if (!data.GoalLadders.Any()) {
+    <div class="sh-card text-center py-5 px-3">
+      <div style="font-size:48px; margin-bottom:12px;">🎯</div>
+      <h4 class="fw-bold" style="font-size:16px; color:var(--sh-slate-800);">Chưa có mục tiêu nào</h4>
+      <p class="text-muted" style="font-size:13px;">Hãy đặt mục tiêu gốc điểm số đầu tiên để bắt đầu hành trình cải thiện kết quả học tập!</p>
+      @if(data.SubjectDetails.Any() || (data.AllSubjects != null && data.AllSubjects.Any())) {
+        <button type="button" class="btn-primary-sh" data-bs-toggle="modal" data-bs-target="#addGoalModal" onclick="resetAddGoalModal('base')">
+          <i class="bi bi-trophy me-1"></i> Đặt mục tiêu đầu tiên
+        </button>
+      }
+    </div>
+  } else {
+    ViewData["CurrentGradeBookId"] = data.SelectedGradeBookId;
+    @foreach (var ladder in data.GoalLadders.Where(l => !l.IsDetached))
+    {
+      <partial name="Partials/_GoalLadderPartial" model="ladder" />
+    }
+
+    var detachedLadders = data.GoalLadders.Where(l => l.IsDetached).ToList();
+    @if (detachedLadders.Any()) {
+      <div class="mt-4 mb-2">
+        <h4 class="fw-bold mb-1" style="font-size:15px; color:var(--sh-slate-700);">Môn không thuộc sổ (dữ liệu cũ)</h4>
+        <p class="text-muted mb-3" style="font-size:12px;">Các môn này không thuộc sổ điểm nào nên không thể thêm điểm hoặc mục tiêu mới. Bạn vẫn có thể sửa, xóa nấc hoặc xóa vĩnh viễn môn.</p>
+      </div>
+      @foreach (var ladder in detachedLadders)
+      {
+        <partial name="Partials/_GoalLadderPartial" model="ladder" />
+      }
+    }
+  }
+</div>
+
+<!-- ═══ MODALS ═══ -->
+<partial name="Partials/_GoalModals" model="data" />
+
+<!-- ═══ JSON SERVER STATE ═══ -->
+<partial name="Partials/_GradesJsonStatePartial" model="data" />

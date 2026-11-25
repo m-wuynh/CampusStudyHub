@@ -214,3 +214,73 @@ public sealed record CreateGradeBookWithColumnsDto(
 public sealed record ReorderColumnDto(long GradeColumnId, int NewDisplayOrder);
 public sealed record ReorderSubjectDto(long UserSubjectId, int NewDisplayOrder);
 
+
+// ── Màn "Tổng quan năm học" ─────────────────────────────────
+/// <summary>Tóm tắt một sổ điểm (một năm học) để so sánh giữa các năm.</summary>
+public sealed record GradeBookOverviewDto(
+    long GradeBookId,
+    string Name,
+    int FromYear,
+    int ToYear,
+    int SubjectCount,
+    int EntryCount,
+    decimal? OverallAverage10,
+    int GoalsDone,
+    int GoalsTotal);
+
+/// <summary>Books: năm mới nhất trước. LatestPage: dữ liệu sổ mới nhất (dùng cho mục "cần chú ý" và các popup).</summary>
+public sealed record GradesOverviewDto(List<GradeBookOverviewDto> Books, GradesPageDto LatestPage, GradeStatisticsDto LatestStatistics);
+
+// ── Màn "Chi tiết môn" và "Hành trình mục tiêu" ─────────────
+/// <summary>
+/// Subject: null khi môn không thuộc sổ nào (môn tự do). Ladder: null khi môn chưa có mục tiêu.
+/// KnownWeightedSum / KnownWeight: Σ(điểm × hệ số) và Σ hệ số của các điểm đã có.
+/// RemainingWeight: tổng hệ số các cột chưa có điểm nào. FocusRequiredScore: điểm tối thiểu ở các cột còn trống
+/// để đạt mục tiêu đang theo đuổi (null nếu không còn cột trống, không có mục tiêu, hoặc không thể đạt).
+/// </summary>
+public sealed record SubjectDetailPageDto(
+    GradesPageDto Page,
+    SubjectGradeDetailDto? Subject,
+    GoalLadderDto? Ladder,
+    decimal KnownWeightedSum,
+    decimal KnownWeight,
+    decimal RemainingWeight,
+    GoalDto? FocusGoal,
+    decimal? FocusRequiredScore);
+
+// ── Màn "Phân tích học tập" ─────────────────────────────────
+public sealed record ScoreBucketDto(string Label, int Count);
+
+public sealed record SubjectStatDto(
+    long UserSubjectId,
+    string SubjectName,
+    string ColorHex,
+    decimal? Average10,
+    decimal? FocusTarget,
+    decimal? AverageChange,
+    decimal StudyHours);
+
+/// <summary>Môn nên ưu tiên: mục tiêu đang theo đuổi chưa đạt. RequiredScore: điểm tối thiểu ở các cột còn trống (null: không còn cột trống hoặc không thể đạt).</summary>
+public sealed record StudyPriorityDto(
+    long UserSubjectId,
+    string SubjectName,
+    decimal Average10,
+    decimal TargetValue,
+    decimal Gap,
+    bool IsOverdue,
+    int? ProgressPercent,
+    bool HasEmptyColumns,
+    decimal? RequiredScore);
+
+public sealed record GradeStatisticsDto(
+    int GoalsDone,
+    int GoalsTotal,
+    decimal CompletedStudyHours,
+    int CompletedSessions,
+    int MissedSessions,
+    int EntryCount,
+    List<ScoreBucketDto> Distribution,
+    List<SubjectStatDto> Subjects,
+    List<StudyPriorityDto> Priorities);
+
+public sealed record GradeStatisticsPageDto(GradesPageDto Page, GradeStatisticsDto Statistics);

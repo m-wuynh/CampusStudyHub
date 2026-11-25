@@ -1,12 +1,6 @@
-using StudyHub.DAL.Repositories.Pdf;
 using StudyHub.BLL.Services.Pdf;
-using StudyHub.BLL.Services.Pdf.Access;
-using StudyHub.BLL.Services.Pdf.Annotations;
-using StudyHub.BLL.Services.Pdf.Notes;
+using StudyHub.BLL.Services.Pdf.Ai;
 using StudyHub.BLL.Services.Pdf.Documents;
-using StudyHub.BLL.Services.Pdf.Sharing;
-using StudyHub.BLL.Services.Pdf.Trash;
-using StudyHub.Web.BackgroundServices;
 using StudyHub.Web.Filters.Pdf;
 using StudyHub.Web.Services.Pdf;
 
@@ -17,18 +11,16 @@ public static class PdfServiceCollectionExtensions
     public static IServiceCollection AddPdfModule(
         this IServiceCollection services)
     {
-        services.AddPdfRateLimits();
-        services.AddScoped<PdfAccessService>();
-        services.AddScoped<PdfShareStore>();
-        services.AddScoped<IPdfSharingService, PdfSharingService>();
         services.AddScoped<PdfLibraryService>();
-        services.AddScoped<PdfService>();
-        services.AddScoped<PdfPageNotesService>();
-        services.AddScoped<PdfMarksService>();
-        services.AddScoped<PdfTrashPurgeService>();
+        services.AddScoped<PdfDocumentService>();
+        services.AddScoped<PdfAiService>();
+
         services.AddScoped<IPdfFileStorage, LocalPdfFileStorage>();
+        services.AddHttpClient<IPdfAiClient, GeminiPdfAiClient>();
+
         services.AddScoped<PdfExceptionFilter>();
-        services.AddHostedService<PdfTrashBackgroundService>();
+        services.AddHostedService<
+            StudyHub.Web.BackgroundServices.PdfTrashBackgroundService>();
 
         return services;
     }

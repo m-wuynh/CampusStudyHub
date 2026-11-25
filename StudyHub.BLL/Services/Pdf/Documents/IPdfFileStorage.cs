@@ -16,13 +16,7 @@ public interface IPdfFileStorage
         string storageKey,
         CancellationToken cancellationToken = default);
 
-    // Dùng để dọn file nếu lưu metadata SQL thất bại.
     Task DeleteAsync(
         string storageKey,
-        CancellationToken cancellationToken = default);
-
-    Task<int> DeleteOrphansAsync(
-        IReadOnlyCollection<string> retainedStorageKeys,
-        DateTime olderThanUtc,
         CancellationToken cancellationToken = default);
 }

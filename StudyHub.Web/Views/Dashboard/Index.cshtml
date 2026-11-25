@@ -131,7 +131,7 @@
     <div class="col-12 col-lg-6 d-flex flex-column">
       <div class="sv-section-head">
         <h3 class="sv-section-title">Mục tiêu học tập</h3>
-        <a asp-controller="Grades" asp-action="Index" class="sv-link">Xem chi tiết</a>
+        <a asp-controller="Grades" asp-action="Goals" class="sv-link">Xem chi tiết</a>
       </div>
       <div class="sh-card p-4 flex-grow-1 d-flex flex-column">
         @if (Model.ActiveGoalSummary != null)
@@ -174,7 +174,7 @@
             </div>
           }
 
-          <a asp-controller="Grades" asp-action="Index" class="btn-secondary-sh w-100 justify-content-center mt-4">
+          <a asp-controller="Grades" asp-action="Goals" class="btn-secondary-sh w-100 justify-content-center mt-4">
             Quản lý điểm &amp; mục tiêu
           </a>
         }
@@ -184,7 +184,7 @@
             <div style="font-size:42px; margin-bottom:12px;">🎯</div>
             <h4 class="fw-bold" style="font-size:14px; color:var(--sh-slate-700);">Hiện tại bạn chưa có mục tiêu học tập.</h4>
             <p class="text-muted mb-3" style="font-size:12px;">Đặt mục tiêu để theo dõi tiến độ học tập của bạn.</p>
-            <a asp-controller="Grades" asp-action="Index" class="btn-primary-sh d-inline-flex justify-content-center">
+            <a asp-controller="Grades" asp-action="Goals" class="btn-primary-sh d-inline-flex justify-content-center">
               Đặt mục tiêu
             </a>
           </div>

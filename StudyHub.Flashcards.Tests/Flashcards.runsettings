@@ -1,0 +1,11 @@
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Include>[StudyHub.BLL]StudyHub.BLL.Services.Flashcards.*,[StudyHub.Web]StudyHub.Web.Controllers.Flashcards.FlashcardsController*</Include>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

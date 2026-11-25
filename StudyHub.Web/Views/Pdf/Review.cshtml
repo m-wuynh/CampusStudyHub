@@ -1,0 +1,106 @@
+@model PdfAnalysisDto
+
+@{
+    ViewData["Title"] = "Duyệt kết quả AI";
+}
+
+<partial name="~/Views/Pdf/_PdfNav.cshtml" />
+
+<header class="pdf-head">
+    <div class="pdf-head-copy">
+        <span class="pdf-head-icon"><i class="bi bi-stars"></i></span>
+        <div>
+            <p class="pdf-eyebrow">Kiểm soát nội dung AI</p>
+            <h1>Duyệt kết quả AI</h1>
+            <p>@Model.DocumentTitle · trang @Model.FromPage–@Model.ToPage · @Model.InputTokens input + @Model.OutputTokens output token</p>
+        </div>
+    </div>
+</header>
+
+@if (!Model.IsDraft)
+{
+    <div class="alert alert-info">
+        Kết quả này đang ở trạng thái @Model.Status.
+    </div>
+}
+
+<form class="pdf-review"
+      asp-action="Accept"
+      asp-route-id="@Model.AnalysisId"
+      method="post">
+    <section class="pdf-panel">
+        <div class="pdf-panel-title"><i class="bi bi-card-text"></i><h2>Tóm tắt</h2></div>
+        <textarea name="Summary"
+                  rows="8"
+                  maxlength="@PdfPolicy.MaxAiSummaryLength"
+                  required>@Model.Result.Summary</textarea>
+    </section>
+
+    <section class="pdf-panel">
+        <div class="pdf-panel-title"><i class="bi bi-list-check"></i><h2>Ý chính</h2></div>
+
+        @foreach (var keyPoint in Model.Result.KeyPoints)
+        {
+            <input name="KeyPoints"
+                   value="@keyPoint"
+                   maxlength="@PdfPolicy.MaxAiKeyPointLength" />
+        }
+    </section>
+
+    @for (var index = 0; index < Model.Result.Concepts.Count; index++)
+    {
+        var concept = Model.Result.Concepts[index];
+
+        <section class="pdf-panel">
+            <div class="pdf-panel-title"><i class="bi bi-bezier2"></i><h2>Khái niệm @(index + 1)</h2></div>
+
+            <label>
+                Tên
+                <input name="ConceptTitles"
+                       value="@concept.Title"
+                       maxlength="@PdfPolicy.MaxAiConceptTitleLength"
+                       required />
+            </label>
+
+            <label>
+                Giải thích
+                <textarea name="ConceptSummaries"
+                          rows="4"
+                          maxlength="@PdfPolicy.MaxAiConceptSummaryLength">@concept.Summary</textarea>
+            </label>
+
+            <label>
+                Câu hỏi
+                <input name="Questions"
+                       value="@concept.Question"
+                       maxlength="@PdfPolicy.MaxAiQuestionLength" />
+            </label>
+
+            <label>
+                Đáp án
+                <textarea name="Answers"
+                          rows="3"
+                          maxlength="@PdfPolicy.MaxAiAnswerLength">@concept.Answer</textarea>
+            </label>
+        </section>
+    }
+
+    @if (Model.CanAccept)
+    {
+        <button class="pdf-primary-action" type="submit">
+            <i class="bi bi-check2-circle"></i>
+            @(Model.IsDraft ? "Duyệt và lưu đầy đủ vào ghi chú trang" : "Cập nhật lại ghi chú trang")
+        </button>
+    }
+</form>
+
+@if (Model.IsDraft)
+{
+    <form class="pdf-review-actions mt-3" asp-action="Discard"
+          asp-route-id="@Model.AnalysisId"
+          method="post">
+        <button class="btn btn-outline-danger" type="submit">
+            <i class="bi bi-x-circle"></i> Bỏ kết quả này
+        </button>
+    </form>
+}

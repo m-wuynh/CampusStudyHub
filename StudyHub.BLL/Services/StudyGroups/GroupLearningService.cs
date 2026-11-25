@@ -1,18 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using StudyHub.BLL.DTOs;
 using StudyHub.BLL.Services.Auth;
-using StudyHub.BLL.Services.Pdf.Sharing;
-using StudyHub.BLL.Services.Pdf;
 using StudyHub.BLL.DTOs.StudyGroups;
 using StudyHub.BLL.Services.StudyGroups;
-using StudyHub.DAL.Entities.Pdf;
 using StudyHub.DAL.Entities;
 using StudyHub.DAL.Repositories.Common;
 using System.Data;
 
 namespace StudyHub.BLL.Services.StudyGroups;
 
-public sealed class GroupLearningService(ICurrentUser currentUser, IRepository data, IPdfSharingService pdfSharingService) : IGroupLearningService
+public sealed class GroupLearningService(ICurrentUser currentUser, IRepository data) : IGroupLearningService
 {
     public Task<GroupLearningData> GetAsync(long groupId, DateOnly? week, CancellationToken ct)
     {
@@ -422,56 +419,8 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
             "Flashcard",
             x.Title,
             x.OwnerUserId,
-            x.OwnerUser.DisplayName,
-            null))
+            x.OwnerUser.DisplayName))
         .ToListAsync(ct);
-
-    if (available)
-    {
-        var pdfs = await data.Query<PdfDocument>(false)
-            .AsNoTracking()
-            .Where(document =>
-                document.OwnerUserId == userId &&
-                !document.IsDeleted &&
-                !data.Query<PdfDocumentShare>(false).Any(share =>
-                    share.DocumentId == document.DocumentId &&
-                    share.StudyGroupId == groupId &&
-                    share.IsActive))
-            .Join(
-                data.Query<User>(false).AsNoTracking(),
-                document => document.OwnerUserId,
-                owner => owner.UserId,
-                (document, owner) => new SharedResourceData(
-                    document.DocumentId,
-                    "Pdf",
-                    document.Title,
-                    document.OwnerUserId,
-                    owner.DisplayName,
-                    null))
-            .ToListAsync(ct);
-        result.AddRange(pdfs);
-    }
-    else
-    {
-        var pdfs = await (
-            from share in data.Query<PdfDocumentShare>(false).AsNoTracking()
-            join document in data.Query<PdfDocument>(false).AsNoTracking()
-                on share.DocumentId equals document.DocumentId
-            join owner in data.Query<User>(false).AsNoTracking()
-                on document.OwnerUserId equals owner.UserId
-            where share.StudyGroupId == groupId &&
-                  share.IsActive &&
-                  !document.IsDeleted
-            select new SharedResourceData(
-                document.DocumentId,
-                "Pdf",
-                document.Title,
-                document.OwnerUserId,
-                owner.DisplayName,
-                share.PdfDocumentShareId))
-            .ToListAsync(ct);
-        result.AddRange(pdfs);
-    }
 
     return result
         .OrderBy(x => x.Title)
@@ -491,37 +440,6 @@ public sealed class GroupLearningService(ICurrentUser currentUser, IRepository d
         false,
         async manage =>
         {
-            if (string.Equals(kind, "Pdf", StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    if (shared)
-                    {
-                        await pdfSharingService.ShareAsync(
-                            resourceId, groupId, userId, ct);
-                    }
-                    else
-                    {
-                        await pdfSharingService.UnshareAsync(
-                            resourceId, groupId, userId, manage, ct);
-                    }
-                }
-                catch (PdfException ex)
-                {
-                    var statusCode = ex.StatusCode;
-                    var code = statusCode switch
-                    {
-                        403 => "forbidden",
-                        404 => "not_found",
-                        409 => "update_conflict",
-                        _ => "invalid_action"
-                    };
-                    throw new StudyGroupWorkflowException(code, ex.Message);
-                }
-
-                return;
-            }
-
             if (!string.Equals(kind, "Flashcard", StringComparison.OrdinalIgnoreCase))
             {
                 throw Missing();

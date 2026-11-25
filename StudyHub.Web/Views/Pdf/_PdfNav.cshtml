@@ -1,0 +1,39 @@
+@{
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var libraryActive = action is not "Upload" and not "Trash";
+}
+
+<link rel="stylesheet" href="~/css/pdf/pdf.css" asp-append-version="true" />
+
+<div class="pdf-module-bar">
+    <a class="pdf-module-brand" asp-controller="Pdf" asp-action="Index">
+        <span class="pdf-brand-icon"><i class="bi bi-journal-richtext"></i></span>
+        <span>
+            <strong>Study Library</strong>
+            <small>Học từ tài liệu của bạn</small>
+        </span>
+    </a>
+
+    <nav class="pdf-nav" aria-label="Điều hướng tài liệu">
+        <a class="@(libraryActive ? "active" : null)"
+           asp-controller="Pdf" asp-action="Index">
+            <i class="bi bi-grid-1x2"></i><span>Thư viện</span>
+        </a>
+        <a class="@(action == "Upload" ? "active" : null)"
+           asp-controller="Pdf" asp-action="Upload">
+            <i class="bi bi-cloud-arrow-up"></i><span>Tải lên</span>
+        </a>
+        <a class="@(action == "Trash" ? "active" : null)"
+           asp-controller="Pdf" asp-action="Trash">
+            <i class="bi bi-trash3"></i><span>Thùng rác</span>
+        </a>
+    </nav>
+</div>
+
+@if (TempData["Success"] is string message)
+{
+    <div class="pdf-toast" role="status">
+        <i class="bi bi-check-circle-fill"></i>
+        <span>@message</span>
+    </div>
+}

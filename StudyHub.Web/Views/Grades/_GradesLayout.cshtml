@@ -1,0 +1,84 @@
+@using StudyHub.BLL.DTOs
+@{
+    // Khung chung của mọi màn "Điểm số & Mục tiêu": CSS, anti-forgery token, thanh tab, chọn sổ điểm và script.
+    // Mỗi màn chỉ cần đặt Layout = "_GradesLayout" và các ViewData dưới đây:
+    //   GradesNav        : khóa tab đang mở (overview | grades | goals | statistics)
+    //   NavGradeBookId   : sổ điểm đang chọn, giữ lại khi chuyển tab
+    //   GradesBookPicker : (tùy chọn) GradesPageDto để hiện ô chọn sổ điểm bên phải thanh tab
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var navKey = ViewData["GradesNav"] as string ?? "grades";
+    var gradeBookId = ViewData["NavGradeBookId"] as long?;
+    var picker = ViewData["GradesBookPicker"] as GradesPageDto;
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "Index";
+
+    string Css(string key) => key == navKey ? "nav-link active" : "nav-link";
+    string? Current(string key) => key == navKey ? "page" : null;
+}
+
+<link rel="stylesheet" href="~/css/grades.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/violet-theme.css" asp-append-version="true" />
+
+@Html.AntiForgeryToken()
+
+<div id="grades-view" style="max-width:1280px; margin:0 auto;">
+    <!-- ═══ THANH TAB ═══ -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <nav aria-label="Các màn Điểm số và mục tiêu">
+            <ul class="nav sv-tabs mb-0" id="grades-tabs">
+                <li class="nav-item">
+                    <a class="@Css("overview")" aria-current="@Current("overview")" asp-controller="Grades" asp-action="Overview">
+                        <i class="bi bi-calendar3 me-1"></i> Tổng quan năm học
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="@Css("grades")" aria-current="@Current("grades")" asp-controller="Grades" asp-action="Index" asp-route-gradeBookId="@gradeBookId">
+                        <i class="bi bi-table me-1"></i> Bảng điểm
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="@Css("goals")" aria-current="@Current("goals")" asp-controller="Grades" asp-action="Goals" asp-route-gradeBookId="@gradeBookId">
+                        <i class="bi bi-bullseye me-1"></i> Mục tiêu học tập
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="@Css("statistics")" aria-current="@Current("statistics")" asp-controller="Grades" asp-action="Statistics" asp-route-gradeBookId="@gradeBookId">
+                        <i class="bi bi-bar-chart-line me-1"></i> Phân tích học tập
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        @* Chọn sổ điểm: gửi GET lại chính action đang mở. *@
+        @if (picker != null && picker.GradeBooks.Any()) {
+            <form method="get" asp-controller="Grades" asp-action="@currentAction" class="d-flex align-items-center gap-2 m-0">
+                <label for="grade-book-picker" class="mb-0" style="font-size:12px; color:var(--sh-slate-500); font-weight:600;">Sổ điểm</label>
+                <select id="grade-book-picker" name="gradeBookId" class="sh-input" style="font-size:12px; width:auto; padding:6px 12px;" onchange="this.form.submit()">
+                    @foreach (var book in picker.GradeBooks) {
+                        if (book.GradeBookId == picker.SelectedGradeBookId) {
+                            <option value="@book.GradeBookId" selected>@book.Name</option>
+                        } else {
+                            <option value="@book.GradeBookId">@book.Name</option>
+                        }
+                    }
+                </select>
+            </form>
+        }
+    </div>
+
+    @RenderBody()
+</div>
+
+@* Sidebar chỉ tự sáng khi URL đúng bằng /Grades; các màn con (/Grades/Goals...) vẫn thuộc mục này nên bật thủ công sau khi site.js chạy xong. *@
+<script>
+    window.addEventListener('load', function () {
+        var item = document.getElementById('sidebar-nav-grades');
+        if (item) item.classList.add('active');
+    });
+</script>
+
+@section Scripts {
+    <script src="~/js/grades/grades-table.js" asp-append-version="true"></script>
+    <script src="~/js/grades/goals.js" asp-append-version="true"></script>
+    @RenderSection("Scripts", required: false)
+}

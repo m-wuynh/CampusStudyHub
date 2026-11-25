@@ -169,21 +169,21 @@ else if (panel == "questions")
 }
 else if (panel == "resources")
 {
-    var resources = data.Resources.Where(r => r.Kind is "Flashcard" or "Pdf").ToList();
-    <div class="gl-actions mb-3">@Button("flashcard-share", "+ Chia sẻ flashcard") @Button("pdf-share", "+ Chia sẻ tài liệu")</div>
+    var resources = data.Resources.Where(r => r.Kind == "Flashcard").ToList();
+    <div class="gl-actions mb-3">@Button("flashcard-share", "+ Chia sẻ flashcard")</div>
     <div class="gl-list">
     @foreach (var resource in resources)
     {
-        var url = resource.Kind == "Pdf" ? Url.Content($"~/Pdf/Documents/{resource.Id}?shareId={resource.ShareId}") : Url.Action("Read", "GroupResources", new { groupId = Model.Group.Id, kind = resource.Kind, id = resource.Id });
-        <article class="gl-card"><h3>@resource.Title</h3><div class="gl-meta">@(resource.Kind == "Pdf" ? "PDF" : "Flashcard") · @resource.OwnerName</div>
+        var url = Url.Action("Read", "GroupResources", new { groupId = Model.Group.Id, kind = resource.Kind, id = resource.Id });
+        <article class="gl-card"><h3>@resource.Title</h3><div class="gl-meta">Flashcard · @resource.OwnerName</div>
             <div class="gl-actions">
-                <a class="btn-primary-sh" href="@url">@(resource.Kind == "Pdf" ? "Xem tài liệu" : "Mở flashcard")</a>
+                <a class="btn-primary-sh" href="@url">Mở flashcard</a>
                 @if (data.CanManage || resource.OwnerUserId == data.CurrentUserId) { @Button("resource-unshare", "Gỡ chia sẻ", resource.Id, "data-kind", resource.Kind) }
             </div>
         </article>
     }
     </div>
-    @if (resources.Count == 0) { <p class="gl-empty">Nhóm chưa có tài liệu hoặc flashcard được chia sẻ.</p> }
+    @if (resources.Count == 0) { <p class="gl-empty">Nhóm chưa có flashcard được chia sẻ.</p> }
 }
 else if (panel == "progress")
 {

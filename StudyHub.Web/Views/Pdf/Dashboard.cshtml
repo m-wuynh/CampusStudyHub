@@ -1,0 +1,77 @@
+@model PdfDashboardDto
+
+@{
+    ViewData["Title"] = "Dashboard PDF";
+    var aiRemaining = Math.Max(0, Model.AiDailyLimit - Model.AiRequestsUsedToday);
+    var aiUsagePercent = Math.Min(
+        100,
+        Model.AiRequestsUsedToday * 100 / Model.AiDailyLimit);
+}
+
+<partial name="~/Views/Pdf/_PdfNav.cshtml" />
+
+<header class="pdf-head">
+    <div class="pdf-head-copy">
+        <span class="pdf-head-icon"><i class="bi bi-bar-chart-line"></i></span>
+        <div>
+            <p class="pdf-eyebrow">Tổng quan môn học</p>
+            <h1>@Model.SubjectName</h1>
+            <p>Tiến độ học tập từ tài liệu PDF.</p>
+        </div>
+    </div>
+
+    <a class="btn btn-outline-secondary"
+       asp-action="Folder"
+       asp-route-subjectId="@Model.UserSubjectId">
+        <i class="bi bi-folder2"></i> Về thư mục
+    </a>
+</header>
+
+<div class="pdf-stats">
+    <article>
+        <i class="bi bi-file-earmark-pdf"></i>
+        <strong>@Model.DocumentCount</strong>
+        <span>PDF</span>
+    </article>
+    <article>
+        <i class="bi bi-pencil-square"></i>
+        <strong>@Model.NotePageCount</strong>
+        <span>Trang có ghi chú</span>
+    </article>
+    <article>
+        <i class="bi bi-stars"></i>
+        <strong>@Model.AcceptedAnalysisCount</strong>
+        <span>Kết quả AI đã duyệt</span>
+    </article>
+</div>
+
+<div class="pdf-dashboard-grid">
+    <section class="pdf-panel pdf-usage-panel">
+        <div class="pdf-panel-title">
+            <i class="bi bi-stars"></i><h2>Lượt Gemini hôm nay</h2>
+        </div>
+        <div class="pdf-usage-number">
+            <strong>@Model.AiRequestsUsedToday/@Model.AiDailyLimit</strong>
+            <span>Đã dùng · còn @aiRemaining lượt</span>
+        </div>
+        <div class="progress" role="progressbar"
+             aria-label="Lượt AI đã dùng"
+             aria-valuenow="@Model.AiRequestsUsedToday"
+             aria-valuemin="0"
+             aria-valuemax="@Model.AiDailyLimit">
+            <div class="progress-bar" style="width:@aiUsagePercent%"></div>
+        </div>
+        <small>Lượt dùng áp dụng cho toàn bộ tài khoản và được làm mới mỗi ngày.</small>
+    </section>
+
+    <section class="pdf-panel">
+        <div class="pdf-panel-title">
+            <i class="bi bi-cpu"></i><h2>Token của môn học</h2>
+        </div>
+        <div class="pdf-token-row">
+            <span>Input <strong>@Model.TotalInputTokens.ToString("N0")</strong></span>
+            <span>Output <strong>@Model.TotalOutputTokens.ToString("N0")</strong></span>
+        </div>
+        <small>Cache không gọi lại Gemini nên không cộng token hoặc lượt dùng.</small>
+    </section>
+</div>

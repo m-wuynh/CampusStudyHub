@@ -260,6 +260,7 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                                                 data-bs-target="#editSetModal"
                                                 data-deck-id="@deck.DeckId"
                                                 data-title="@deck.Title"
+                                                data-subject-name="@deck.SubjectName"
                                                 data-description="@deck.Description">
                                             <i class="bi bi-pencil text-indigo"></i>
                                             Chỉnh sửa
@@ -391,6 +392,25 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                     </div>
 
                     <div class="mb-3">
+                        <label for="createDeckSubjectId" class="sh-label">Môn học</label>
+                        <select id="createDeckSubjectId"
+                                name="UserSubjectId"
+                                class="sh-input"
+                                required>
+                            <option value="">Chọn môn học</option>
+                            @foreach (var subject in Model.SubjectOptions)
+                            {
+                                <option value="@subject.UserSubjectId">@subject.Name</option>
+                            }
+                        </select>
+
+                        @if (Model.SubjectOptions.Count == 0)
+                        {
+                            <div class="form-text">Hãy thêm môn trong Sổ điểm trước.</div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
                         <label class="sh-label">
                             Mô tả
                         </label>
@@ -463,6 +483,11 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                                maxlength="200"
                                class="sh-input"
                                required />
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="sh-label">Môn học</div>
+                        <p id="editDeckSubjectName" class="mb-0">Chưa gắn môn</p>
                     </div>
 
                     <div class="mb-3">

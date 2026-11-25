@@ -1,4 +1,4 @@
-using StudyHub.BLL.Services.Pdf.Trash;
+using StudyHub.BLL.Services.Pdf.Documents;
 
 namespace StudyHub.Web.BackgroundServices;
 
@@ -6,68 +6,35 @@ public sealed class PdfTrashBackgroundService(
     IServiceScopeFactory scopeFactory,
     ILogger<PdfTrashBackgroundService> logger) : BackgroundService
 {
-    private static readonly TimeSpan RunInterval = TimeSpan.FromHours(24);
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await RunSafelyAsync(stoppingToken);
+        using var timer = new PeriodicTimer(TimeSpan.FromHours(12));
 
-        using var timer = new PeriodicTimer(RunInterval);
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        do
         {
-            await RunSafelyAsync(stoppingToken);
-        }
-    }
-
-    private async Task RunSafelyAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            var pdfCount = 0;
-            var fileCount = 0;
-            bool hasMore;
-
-            do
+            try
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
-                var purgeService = scope.ServiceProvider
-                    .GetRequiredService<PdfTrashPurgeService>();
-                var result = await purgeService.PurgeExpiredBatchAsync(
-                    DateTime.UtcNow,
-                    cancellationToken: cancellationToken);
-                pdfCount += result.PdfCount;
-                fileCount += result.FileCount;
-                hasMore = result.HasMore;
-            }
-            while (hasMore);
+                var service = scope.ServiceProvider
+                    .GetRequiredService<PdfDocumentService>();
+                var deleted = await service.PurgeExpiredAsync(stoppingToken);
 
-            int orphanFileCount;
-            await using (var scope = scopeFactory.CreateAsyncScope())
-            {
-                var purgeService = scope.ServiceProvider
-                    .GetRequiredService<PdfTrashPurgeService>();
-                orphanFileCount = await purgeService.DeleteOrphanPdfFilesAsync(
-                    DateTime.UtcNow,
-                    cancellationToken);
+                if (deleted > 0)
+                {
+                    logger.LogInformation(
+                        "Permanently deleted {Count} expired PDF documents.",
+                        deleted);
+                }
             }
-
-            if (pdfCount > 0 || fileCount > 0 || orphanFileCount > 0)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                logger.LogInformation(
-                    "Đã dọn rác Pdf: {PdfCount} PDF, {FileCount} file theo metadata và " +
-                    "{OrphanFileCount} file mồ côi.",
-                    pdfCount,
-                    fileCount,
-                    orphanFileCount);
+                break;
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Could not clean the PDF trash.");
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // Ứng dụng đang dừng.
-        }
-        catch (Exception exception)
-        {
-            logger.LogError(exception, "Dọn rác Pdf thất bại.");
-        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 }

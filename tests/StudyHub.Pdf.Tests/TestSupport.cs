@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using StudyHub.BLL.Services.Auth;
 using StudyHub.BLL.Services.Pdf.Documents;
+using StudyHub.BLL.Services.Pdf.Ai;
+using StudyHub.BLL.DTOs.Pdf;
 using StudyHub.DAL.Persistence;
 using StudyHub.DAL.Repositories.Auth;
 using StudyHub.DAL.Repositories.Common;
@@ -28,12 +30,21 @@ internal sealed class PdfTestContext : IAsyncDisposable
     public TestRepository Repository { get; }
     public TestCurrentUser CurrentUser { get; }
 
-    public async ValueTask DisposeAsync() => await Db.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await Db.DisposeAsync();
+    }
 }
 
-internal sealed class TestCurrentUser(long userId) : ICurrentUser
+internal sealed class TestCurrentUser : ICurrentUser
 {
-    public long UserId { get; set; } = userId;
+    public TestCurrentUser(long userId)
+    {
+        UserId = userId;
+    }
+
+    public long UserId { get; set; }
+
     public string DisplayName => "PDF tester";
 }
 
@@ -173,6 +184,7 @@ internal sealed class FakePdfStorage : IPdfFileStorage
 
     public int SaveCalls { get; private set; }
     public List<string> DeletedKeys { get; } = [];
+    public Func<string, Task>? BeforeDeleteAsync { get; set; }
 
     public async Task<StoredPdf> SaveAsync(
         Stream source,
@@ -181,7 +193,10 @@ internal sealed class FakePdfStorage : IPdfFileStorage
     {
         SaveCalls++;
         await source.CopyToAsync(Stream.Null, cancellationToken);
-        return new StoredPdf("00000000000000000000000000000000.pdf", fileName, validPdf.Length);
+        return new StoredPdf(
+            "00000000000000000000000000000000.pdf",
+            fileName,
+            validPdf.Length);
     }
 
     public Task<Stream> OpenReadAsync(
@@ -189,18 +204,37 @@ internal sealed class FakePdfStorage : IPdfFileStorage
         CancellationToken cancellationToken = default) =>
         Task.FromResult<Stream>(new MemoryStream(validPdf, writable: false));
 
-    public Task DeleteAsync(
+    public async Task DeleteAsync(
         string storageKey,
         CancellationToken cancellationToken = default)
     {
+        if (BeforeDeleteAsync is not null)
+        {
+            await BeforeDeleteAsync(storageKey);
+        }
+
         DeletedKeys.Add(storageKey);
-        return Task.CompletedTask;
     }
 
-    public Task<int> DeleteOrphansAsync(
-        IReadOnlyCollection<string> retainedStorageKeys,
-        DateTime olderThanUtc,
-        CancellationToken cancellationToken = default) => Task.FromResult(0);
+}
+
+internal sealed class FakePdfAiClient : IPdfAiClient
+{
+    public string Model => "fake-gemini";
+    public int Calls { get; private set; }
+    public Task<PdfAiResponse> AnalyzeAsync(
+        string text,
+        CancellationToken cancellationToken = default)
+    {
+        Calls++;
+
+        var result = new PdfAiResult(
+            "Tóm tắt",
+            ["Ý chính"],
+            [new PdfAiConcept("Khái niệm", "Giải thích", "Câu hỏi?", "Đáp án")]);
+
+        return Task.FromResult(new PdfAiResponse(result, 100, 40));
+    }
 }
 
 internal static class PdfTestData

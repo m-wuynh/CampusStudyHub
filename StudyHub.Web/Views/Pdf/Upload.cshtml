@@ -1,0 +1,51 @@
+@model PdfLibraryDto
+
+@{
+    ViewData["Title"] = "Tải PDF";
+    var selectedSubjectId = ViewBag.SubjectId as long?;
+}
+
+<partial name="~/Views/Pdf/_PdfNav.cshtml" />
+
+<div class="pdf-panel pdf-form pdf-upload">
+    <div class="pdf-upload-intro">
+        <i class="bi bi-cloud-arrow-up"></i>
+        <div>
+            <p class="pdf-eyebrow">Thêm tài liệu</p>
+            <h1>Tải và phân loại PDF</h1>
+            <p class="text-muted mb-0">File được kiểm tra định dạng, dung lượng và số trang trước khi lưu.</p>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        <label class="pdf-file-field">
+            File PDF
+            <input type="file"
+                   name="file"
+                   accept="application/pdf,.pdf"
+                   required />
+        </label>
+
+        <label>
+            Tiêu đề (có thể bỏ trống)
+            <input name="title" maxlength="@PdfPolicy.MaxTitleLength" />
+        </label>
+
+        <label>
+            Thư mục môn học
+            <select name="subjectId">
+                @foreach (var folder in Model.Folders)
+                {
+                    <option value="@folder.UserSubjectId"
+                            selected="@(folder.UserSubjectId == selectedSubjectId)">
+                        @folder.Name
+                    </option>
+                }
+            </select>
+        </label>
+
+        <button class="pdf-primary-action" type="submit">
+            <i class="bi bi-cloud-check"></i> Kiểm tra và tải lên
+        </button>
+    </form>
+</div>
