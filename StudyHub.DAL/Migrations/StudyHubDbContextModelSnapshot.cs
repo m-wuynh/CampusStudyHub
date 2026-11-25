@@ -108,6 +108,44 @@ namespace StudyHub.DAL.Migrations
                     b.ToTable("ActivityEvents");
                 });
 
+            modelBuilder.Entity("StudyHub.DAL.Entities.CalendarCategory", b =>
+                {
+                    b.Property<long>("CategoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("CategoryId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("CategoryId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CalendarCategories", (string)null);
+                });
+
             modelBuilder.Entity("StudyHub.DAL.Entities.Deadline", b =>
                 {
                     b.Property<long>("DeadlineId")
@@ -1600,10 +1638,9 @@ namespace StudyHub.DAL.Migrations
                     b.Property<string>("EventType")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(15)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(15)")
-                        .HasDefaultValue("Class");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasDefaultValue("Tự học");
 
                     b.Property<long?>("GoalId")
                         .HasColumnType("bigint");
@@ -2289,6 +2326,17 @@ namespace StudyHub.DAL.Migrations
                         .HasForeignKey("UserId")
                         .IsRequired()
                         .HasConstraintName("FK_ActivityEvents_User");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StudyHub.DAL.Entities.CalendarCategory", b =>
+                {
+                    b.HasOne("StudyHub.DAL.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
