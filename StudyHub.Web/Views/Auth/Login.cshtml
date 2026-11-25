@@ -127,6 +127,20 @@
         </div>
       }
 
+      @if (Model.DevelopmentLoginEnabled)
+      {
+        <form asp-controller="Account"
+              asp-action="Development"
+              asp-route-returnUrl="@Model.ReturnUrl"
+              method="post"
+              class="mt-3">
+          <button type="submit" class="google-button">
+            <i class="bi bi-person-workspace" aria-hidden="true"></i>
+            Đăng nhập phát triển
+          </button>
+        </form>
+      }
+
       <p class="text-center mb-0 mt-4" style="font-size:11px; color:var(--sh-slate-500); line-height:1.6;">
         Study Hub chỉ nhận tên, email và ảnh đại diện do Google cung cấp. Ứng dụng không nhận mật khẩu Google của bạn.
       </p>

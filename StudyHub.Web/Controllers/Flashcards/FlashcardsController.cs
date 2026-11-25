@@ -324,7 +324,8 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
     [HttpGet("{deckId:long}/Learn")]
     public async Task<IActionResult> Learn(
         long deckId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromQuery] bool resume = false)
     {
         var deck = await flashcardDeckService.GetDeckDetailAsync(
             deckId,
@@ -334,6 +335,20 @@ public sealed class FlashcardsController(IFlashcardDeckService flashcardDeckServ
         if(deck is null)
         {
             return NotFound();
+        }
+
+        if (resume)
+        {
+            var sessionId = await dbLearnSessionService.GetResumableSessionIdAsync(
+                deckId,
+                currentUser.UserId,
+                cancellationToken);
+            if (sessionId.HasValue)
+            {
+                return RedirectToAction(
+                    nameof(LearnSession),
+                    new { deckId, sessionId = sessionId.Value });
+            }
         }
 
         return View("LearnSetup", new FlashcardLearnViewModel

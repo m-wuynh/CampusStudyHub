@@ -9,6 +9,11 @@ namespace StudyHub.BLL.Services.Flashcards.Interfaces
 {
     public interface IDbLearnSessionService
     {
+        Task<Guid?> GetResumableSessionIdAsync(
+            long deckId,
+            long userId,
+            CancellationToken cancellationToken = default);
+
         Task<Guid?> StartOrResumeAsync(
             long deckId,
             long userId,
