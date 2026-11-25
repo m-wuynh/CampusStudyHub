@@ -7,150 +7,201 @@ namespace StudyHub.DAL.Persistence;
 public partial class StudyHubDbContext
 {
     public DbSet<PdfDocument> PdfDocuments => Set<PdfDocument>();
-    public DbSet<PdfDocumentShare> PdfDocumentShares => Set<PdfDocumentShare>();
-    public DbSet<PdfDocumentPageNote> PdfDocumentPageNotes => Set<PdfDocumentPageNote>();
-    public DbSet<PdfAnnotation> PdfAnnotations => Set<PdfAnnotation>();
+
+    public DbSet<PdfDocumentPageNote> PdfDocumentPageNotes =>
+        Set<PdfDocumentPageNote>();
+
+    public DbSet<PdfAiAnalysis> PdfAiAnalyses => Set<PdfAiAnalysis>();
 
     private static void ConfigurePdf(ModelBuilder modelBuilder)
     {
-        ConfigurePdfDocuments(modelBuilder);
-        ConfigurePdfShares(modelBuilder);
-        ConfigurePdfDocumentPageNotes(modelBuilder);
-        ConfigurePdfAnnotations(modelBuilder);
+        ConfigurePdfDocument(modelBuilder);
+        ConfigurePageNote(modelBuilder);
+        ConfigureAiAnalysis(modelBuilder);
     }
 
-    private static void ConfigurePdfDocuments(ModelBuilder modelBuilder)
+    private static void ConfigurePdfDocument(ModelBuilder modelBuilder)
     {
-        var entity = modelBuilder.Entity<PdfDocument>();
+        var document = modelBuilder.Entity<PdfDocument>();
 
-        entity.ToTable("PdfDocuments", table =>
+        document.ToTable("PdfDocuments", table =>
         {
             table.HasCheckConstraint(
                 "CK_PdfDocuments_PageCount",
                 "[PageCount] >= 1");
+
             table.HasCheckConstraint(
                 "CK_PdfDocuments_FileSizeBytes",
-                "[FileSizeBytes] >= 0");
+                "[FileSizeBytes] > 0");
         });
-        entity.HasKey(x => x.DocumentId);
 
-        entity.Property(x => x.Title).HasMaxLength(200);
-        entity.Property(x => x.StorageKey).HasMaxLength(200);
-        entity.Property(x => x.OriginalFileName).HasMaxLength(200);
-        entity.Property(x => x.OriginalFileNameKey).HasMaxLength(200);
-        entity.Property(x => x.CreatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
-        entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
-        entity.Property(x => x.RowVersion).IsRowVersion();
+        document.HasKey(item => item.DocumentId);
 
-        entity.HasIndex(x => x.StorageKey).IsUnique();
-        entity.HasIndex(x => new { x.OwnerUserId, x.OriginalFileNameKey })
-            .IsUnique()
-            .HasFilter("[OriginalFileNameKey] IS NOT NULL");
-        entity.HasIndex(x => new
+        document.Property(item => item.Title)
+            .HasMaxLength(PdfDocument.MaxTitleLength)
+            .IsRequired();
+
+        document.Property(item => item.OriginalFileName)
+            .HasMaxLength(PdfDocument.MaxFileNameLength)
+            .IsRequired();
+
+        document.Property(item => item.OriginalFileNameKey)
+            .HasMaxLength(PdfDocument.MaxFileNameLength)
+            .IsRequired();
+
+        document.Property(item => item.StorageKey)
+            .HasMaxLength(PdfDocument.MaxStorageKeyLength)
+            .IsRequired();
+
+        document.Property(item => item.CreatedAtUtc)
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+
+        document.Property(item => item.UpdatedAtUtc)
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+
+        document.Property(item => item.RowVersion)
+            .IsRowVersion();
+
+        document.HasIndex(item => item.StorageKey)
+            .IsUnique();
+
+        document.HasIndex(item => new
+            {
+                item.OwnerUserId,
+                item.OriginalFileNameKey
+            });
+
+        document.HasIndex(item => new
         {
-            x.OwnerUserId,
-            x.IsDeleted,
-            x.UpdatedAtUtc
+            item.OwnerUserId,
+            item.UserSubjectId,
+            item.IsDeleted,
+            item.UpdatedAtUtc
         });
 
-        entity.HasOne<User>()
+        document.HasOne<User>()
             .WithMany()
-            .HasForeignKey(x => x.OwnerUserId)
+            .HasForeignKey(item => item.OwnerUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        document.HasOne(item => item.UserSubject)
+            .WithMany(subject => subject.PdfDocuments)
+            .HasPrincipalKey(subject => new
+            {
+                subject.UserSubjectId,
+                subject.UserId
+            })
+            .HasForeignKey(item => new
+            {
+                item.UserSubjectId,
+                item.OwnerUserId
+            })
             .OnDelete(DeleteBehavior.NoAction);
     }
 
-    private static void ConfigurePdfShares(ModelBuilder modelBuilder)
+    private static void ConfigurePageNote(ModelBuilder modelBuilder)
     {
-        var entity = modelBuilder.Entity<PdfDocumentShare>();
+        var note = modelBuilder.Entity<PdfDocumentPageNote>();
 
-        entity.ToTable("PdfDocumentShares", table =>
-            table.HasCheckConstraint(
-                "CK_PdfDocumentShares_State",
-                """
-                ([IsActive] = 1 AND [UnsharedAtUtc] IS NULL)
-                OR
-                ([IsActive] = 0 AND [UnsharedAtUtc] IS NOT NULL)
-                """));
-        entity.HasKey(x => x.PdfDocumentShareId);
-        entity.Property(x => x.SharedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
-        entity.Property(x => x.RowVersion).IsRowVersion();
-
-        entity.HasIndex(x => new { x.DocumentId, x.StudyGroupId })
-            .IsUnique()
-            .HasFilter("[IsActive] = 1");
-        entity.HasIndex(x => new { x.StudyGroupId, x.IsActive });
-
-        entity.HasOne<PdfDocument>()
-            .WithMany()
-            .HasForeignKey(x => x.DocumentId)
-            .OnDelete(DeleteBehavior.NoAction);
-        entity.HasOne<StudyGroup>()
-            .WithMany()
-            .HasForeignKey(x => x.StudyGroupId)
-            .OnDelete(DeleteBehavior.NoAction);
-        entity.HasOne<User>()
-            .WithMany()
-            .HasForeignKey(x => x.SharedByUserId)
-            .OnDelete(DeleteBehavior.NoAction);
-    }
-
-    private static void ConfigurePdfDocumentPageNotes(ModelBuilder modelBuilder)
-    {
-        var entity = modelBuilder.Entity<PdfDocumentPageNote>();
-
-        entity.ToTable("PdfDocumentPageNotes", table =>
+        note.ToTable("PdfDocumentPageNotes", table =>
+        {
             table.HasCheckConstraint(
                 "CK_PdfDocumentPageNotes_PhysicalPage",
-                "[PhysicalPageNumber] >= 1"));
-        entity.HasKey(x => x.PdfDocumentPageNoteId);
-        entity.Property(x => x.RowVersion).IsRowVersion();
+                "[PhysicalPageNumber] >= 1");
+        });
 
-        entity.HasIndex(x => new
-        {
-            x.OwnerUserId,
-            x.DocumentId,
-            x.PhysicalPageNumber
-        }).IsUnique();
+        note.HasKey(item => item.PdfDocumentPageNoteId);
 
-        entity.HasOne<PdfDocument>()
+        note.Property(item => item.ContentText)
+            .HasMaxLength(PdfDocumentPageNote.MaxContentLength);
+
+        note.Property(item => item.UpdatedAtUtc)
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+
+        note.Property(item => item.RowVersion)
+            .IsRowVersion();
+
+        note.HasIndex(item => new
+            {
+                item.OwnerUserId,
+                item.DocumentId,
+                item.PhysicalPageNumber
+            })
+            .IsUnique();
+
+        note.HasOne<PdfDocument>()
             .WithMany()
-            .HasForeignKey(x => x.DocumentId)
-            .OnDelete(DeleteBehavior.NoAction);
-        entity.HasOne<User>()
+            .HasForeignKey(item => item.DocumentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        note.HasOne<User>()
             .WithMany()
-            .HasForeignKey(x => x.OwnerUserId)
+            .HasForeignKey(item => item.OwnerUserId)
             .OnDelete(DeleteBehavior.NoAction);
     }
 
-    private static void ConfigurePdfAnnotations(ModelBuilder modelBuilder)
+    private static void ConfigureAiAnalysis(ModelBuilder modelBuilder)
     {
-        var entity = modelBuilder.Entity<PdfAnnotation>();
+        var analysis = modelBuilder.Entity<PdfAiAnalysis>();
 
-        entity.ToTable("PdfAnnotations", table =>
+        analysis.ToTable("PdfAiAnalyses", table =>
         {
             table.HasCheckConstraint(
-                "CK_PdfAnnotations_PhysicalPage",
-                "[PhysicalPageNumber] >= 1");
+                "CK_PdfAiAnalyses_Pages",
+                "[FromPage] >= 1 AND [ToPage] >= [FromPage]");
+
             table.HasCheckConstraint(
-                "CK_PdfAnnotations_PayloadJson",
-                "ISJSON([PayloadJson]) = 1");
-        });
-        entity.HasKey(x => x.AnnotationId);
-        entity.Property(x => x.RowVersion).IsRowVersion();
-        entity.HasIndex(x => new
-        {
-            x.OwnerUserId,
-            x.DocumentId,
-            x.PhysicalPageNumber
+                "CK_PdfAiAnalyses_ResultJson",
+                "ISJSON([ResultJson]) = 1");
         });
 
-        entity.HasOne<PdfDocument>()
+        analysis.HasKey(item => item.AnalysisId);
+
+        analysis.Property(item => item.SourceHash)
+            .HasMaxLength(64)
+            .IsUnicode(false);
+
+        analysis.Property(item => item.Model)
+            .HasMaxLength(100);
+
+        analysis.Property(item => item.PromptVersion)
+            .HasMaxLength(20)
+            .IsUnicode(false);
+
+        analysis.Property(item => item.Status)
+            .HasMaxLength(12)
+            .IsUnicode(false);
+
+        analysis.Property(item => item.CreatedAtUtc)
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+
+        analysis.Property(item => item.UpdatedAtUtc)
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+
+        analysis.Property(item => item.RowVersion)
+            .IsRowVersion();
+
+        analysis.HasIndex(item => new
+        {
+            item.OwnerUserId,
+            item.DocumentId,
+            item.FromPage,
+            item.ToPage,
+            item.SourceHash,
+            item.Model,
+            item.PromptVersion
+        })
+            .IsUnique()
+            .HasFilter($"[Status] <> '{PdfAiAnalysis.Discarded}'");
+
+        analysis.HasOne<PdfDocument>()
             .WithMany()
-            .HasForeignKey(x => x.DocumentId)
-            .OnDelete(DeleteBehavior.NoAction);
-        entity.HasOne<User>()
+            .HasForeignKey(item => item.DocumentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        analysis.HasOne<User>()
             .WithMany()
-            .HasForeignKey(x => x.OwnerUserId)
+            .HasForeignKey(item => item.OwnerUserId)
             .OnDelete(DeleteBehavior.NoAction);
     }
 

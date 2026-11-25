@@ -156,17 +156,11 @@ khoảng 12-15 phút, sử dụng hai tài khoản để thể hiện rõ phân 
 - Moderator quản lý được Member và yêu cầu Pending.
 - Moderator không thể quản lý Owner hoặc một Moderator khác.
 
-### Hạn chế hiện tại - Tài nguyên nhóm
+### Tài nguyên nhóm
 
-Tab **Tài nguyên** hiện chỉ đọc Note, Document và Flashcard Deck đã có
-`StudyGroupId` của nhóm và `Visibility = 'Group'`. Giao diện và API chưa có thao tác
-gắn hoặc chia sẻ một tài nguyên vào nhóm; Note, PDF và Flashcard mới đều đang được
-tạo ở chế độ `Private`.
-
-Vì vậy không trình bày thao tác thêm tài nguyên như một luồng đã hoàn thiện. Nếu
-database đã có sẵn dữ liệu Group do seed hoặc chuẩn bị riêng, chỉ review phần hiển
-thị: thành viên Active thấy tài nguyên, còn người ngoài và người Pending không nhận
-dữ liệu nội bộ. Đây là phần cần phát triển tiếp để hoàn chỉnh feature.
+Tab **Tài nguyên** chỉ hỗ trợ chia sẻ Flashcard Deck. PDF thuộc workspace cá nhân và
+không có luồng share vào nhóm. Thành viên Active xem được deck của nhóm; người ngoài
+và người Pending không nhận dữ liệu nội bộ.
 
 ### Bước 7 - Tạo và chấp nhận lời mời
 

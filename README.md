@@ -1,7 +1,7 @@
 
 # Campus Study Hub
 
-Ứng dụng ASP.NET Core MVC hỗ trợ flashcards, lịch học, điểm số và nhóm học tập. Notes/PDF gồm M1 (thư viện PDF, Reader, annotation), M2 (Quill Notes, split view, capture và tham chiếu), M3 (group share, GroupNote snapshot và ChangeRequest approval) và M4 (StudyGroup gateway thật + workspace tích hợp).
+Ứng dụng ASP.NET Core MVC hỗ trợ flashcards, lịch học, điểm số, nhóm học tập và học từ PDF. Module PDF gồm thư mục ảo theo môn, Reader, ghi chú trang, tóm tắt Gemini có bước duyệt, note tổng hợp, concept map và dashboard.
 
 ## Kiến trúc ASP.NET Core 3 layer
 
@@ -77,27 +77,20 @@ Chạy bản ASP.NET Core:
 dotnet run --project StudyHub.Web/StudyHub.Web.csproj --launch-profile https
 ```
 
-Bundle Notes/PDF đã được đưa vào `StudyHub.Web/wwwroot/notes`; không cần cài npm để
-chạy bản tải về. Trước lần chạy M1 đầu tiên trên database hiện tại, chạy
-`Data/StudyHub_SQLServer/06_M1_NotesPdf.sql` trong SSMS. Chạy tiếp `07_M2_NotesReferences.sql`, `08_M3_GroupApproval.sql` rồi `09_M3_M4_Preflight.sql` theo đúng thứ tự.
-
-Kiểm thử nhanh M1: từ thư mục `CampusStudyHub`, chạy
-`dotnet run --project StudyHub.Web/StudyHub.Web.csproj --launch-profile https`, đăng
-nhập phát triển, mở **Ghi chú & Tài liệu**, tải PDF, mở Reader, thêm annotation, lưu
-bằng nút hoặc Ctrl+S, tải lại trang và xác nhận annotation vẫn còn. Các bước chi tiết
-nằm trong [`M1_Notes_PDF_TEST_VI.md`](M1_Notes_PDF_TEST_VI.md).
+Module PDF không cần npm hay PDF.js. Áp dụng EF Core migration, chạy Web rồi mở
+`/Pdf`. Luồng kiểm thử chính là tạo môn, upload PDF vào thư mục môn, ghi chú một
+trang, chọn tối đa 10 trang để Gemini phân tích, duyệt kết quả và kiểm tra note tổng
+hợp, concept map cùng dashboard.
 
 Ở môi trường `Development`, trang đăng nhập có nút **Đăng nhập phát triển**. Nút này
 tự tạo một tài khoản local trong database nên thành viên trong nhóm có thể chạy và
 kiểm thử ứng dụng mà không cần Google Client ID/Client Secret. Endpoint tương ứng bị
 vô hiệu hóa hoàn toàn khi ứng dụng không chạy ở môi trường `Development`.
 
-Chỉ khi cần kiểm thử đăng nhập Google thật, cấu hình secrets riêng trên máy:
-
-```powershell
-dotnet user-secrets set "Authentication:Google:ClientId" "YOUR_CLIENT_ID.apps.googleusercontent.com" --project StudyHub.Web/StudyHub.Web.csproj
-dotnet user-secrets set "Authentication:Google:ClientSecret" "YOUR_CLIENT_SECRET" --project StudyHub.Web/StudyHub.Web.csproj
-```
+Khi cần kiểm thử Google hoặc Gemini trên máy bảo vệ, điền trực tiếp các mục
+`Authentication:Google` và `Gemini:ApiKey` trong
+`StudyHub.Web/appsettings.Development.json`. Không commit key thật lên repository
+công khai và nên thu hồi key sau buổi bảo vệ.
 
 
 ## Feature nhóm học tập
@@ -111,10 +104,10 @@ dotnet user-secrets set "Authentication:Google:ClientSecret" "YOUR_CLIENT_SECRET
 - Workspace nhóm gồm Tổng quan, Thông báo, Chat, Buổi học, Bài tập, Hỏi đáp, Tiến độ, Tài nguyên và Thành viên. Người chưa được duyệt chỉ xem phần giới thiệu công khai.
 - Thông báo được tách khỏi chat và hỗ trợ ghim một thông báo quan trọng.
 - Chat cập nhật tức thời bằng SignalR; nếu không tải được SignalR client, giao diện tự chuyển sang REST và polling dự phòng.
-- Ghi chú, tài liệu và flashcard chỉ xuất hiện trong nhóm khi dữ liệu có đúng `StudyGroupId` và `Visibility = 'Group'`.
+- Tab tài nguyên nhóm chỉ chia sẻ Flashcard; PDF là dữ liệu học tập cá nhân.
 - Các thao tác thay đổi thành viên chạy trong transaction SQL và API dùng antiforgery token.
 
-Buổi học hỗ trợ đăng ký, điểm danh và tổng kết; bài tập có giao việc, phiên bản bài nộp và phản hồi. Thành viên chia sẻ/đọc ghi chú, PDF, flashcard trong nhóm, đặt câu hỏi theo chủ đề và xem tiến độ tuần. Xem [hướng dẫn Study Group nâng cấp](GROUP_LEARNING.md) để biết quy tắc chi tiết, migration và cách chạy kiểm thử.
+Buổi học hỗ trợ đăng ký, điểm danh và tổng kết; bài tập có giao việc, phiên bản bài nộp và phản hồi. Thành viên chia sẻ Flashcard, đặt câu hỏi theo chủ đề và xem tiến độ tuần. Xem [hướng dẫn Study Group nâng cấp](GROUP_LEARNING.md) để biết quy tắc chi tiết, migration và cách chạy kiểm thử.
 
 Sau khi pull code có thay đổi schema, áp dụng EF Core migrations:
 
