@@ -19,6 +19,29 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
 {
     public sealed class DbLearnSessionService(IRepository repository, IFlashcardService flashcardService) : IDbLearnSessionService
     {
+
+        public async  Task<Guid?> GetResumableSessionIdAsync(
+            long deckId,
+            long userId,
+            CancellationToken cancellationToken = default)
+        {
+            var session = await repository.Query<FlashcardLearnSession>()
+                .Where(s => s.DeckId == deckId &&
+                            s.UserId == userId &&
+                            s.CompletedAtUtc == null &&
+                            s.InvalidatedAtUtc == null)
+                .OrderByDescending(s => s.StartedAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (session is null || await HasCardsChangedAsync(session, cancellationToken))
+            {
+                return null;
+            }
+
+            return session.SessionId;
+        }
+
+
         public async Task<Guid?> StartOrResumeAsync(
             long deckId,
             long userId,
