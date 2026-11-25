@@ -336,7 +336,7 @@
         };
 
         try {
-            var response = await fetch('/Calendar/UpdateEvent/' + eventId, {
+            var response = await fetch('/Calendar/Update/' + eventId, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -349,7 +349,7 @@
                 }, 600);
             } else {
                 var errData = await response.json().catch(function() { return {}; });
-                var msg = errData.error || 'Có lỗi xảy ra khi cập nhật.';
+                var msg = errData.error || (response.status === 404 ? 'Không tìm thấy ca học này để cập nhật.' : 'Có lỗi xảy ra khi cập nhật.');
                 if (window.showToast) window.showToast(msg, 'error');
                 else alert(msg);
             }

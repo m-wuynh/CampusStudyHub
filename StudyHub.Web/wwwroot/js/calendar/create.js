@@ -2,30 +2,30 @@
    Calendar Module: Màn Thêm ca học (Create)
    Chứa toàn bộ JS cho form tạo sự kiện / lịch học mới
    ======================================================== */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
     // 1. Tự động tải danh sách loại sự kiện từ DB vào dropdown
     fetch('/Calendar/GetCategories')
-        .then(function(r) { return r.json(); })
-        .then(function(cats) {
+        .then(function (r) { return r.json(); })
+        .then(function (cats) {
             if (!cats || !cats.length) return;
             var sel = document.getElementById('event-category');
             if (!sel) return;
             var currentVal = sel.value;
-            sel.innerHTML = cats.map(function(c) {
+            sel.innerHTML = cats.map(function (c) {
                 return '<option value="' + c.name + '">' + c.name + '</option>';
             }).join('');
             if (currentVal) sel.value = currentVal;
         })
-        .catch(function(err) {
+        .catch(function (err) {
             console.error('Lỗi khi tải loại sự kiện:', err);
         });
 
     // 2. Tự động ẩn lỗi khi người dùng gõ tên sự kiện
     var titleInput = document.getElementById('event-title');
     if (titleInput) {
-        titleInput.addEventListener('input', function() {
+        titleInput.addEventListener('input', function () {
             var titleError = document.getElementById('event-title-error');
             if (this.value.trim().length > 0) {
                 if (titleError) titleError.classList.add('d-none');
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Hàm thêm dòng nhắc nhở
-window.addNotification = function(val, unit, channel) {
+window.addNotification = function (val, unit, channel) {
     if (val === undefined) val = 10;
     if (unit === undefined) unit = 'minutes';
     if (channel === undefined) channel = 'notification';
@@ -67,7 +67,7 @@ window.addNotification = function(val, unit, channel) {
 };
 
 // Hàm submit tạo ca học
-window.submitEvent = async function() {
+window.submitEvent = async function () {
     var titleInput = document.getElementById('event-title');
     var titleError = document.getElementById('event-title-error');
     var title = titleInput ? titleInput.value : '';
@@ -110,7 +110,7 @@ window.submitEvent = async function() {
     if (end.length === 5) end += ":00";
 
     var reminders = [];
-    document.querySelectorAll('#notifications-container .notif-row-purple').forEach(function(row) {
+    document.querySelectorAll('#notifications-container .notif-row-purple').forEach(function (row) {
         var inputs = row.querySelectorAll('input, select');
         if (inputs.length >= 3) {
             var channel = inputs[0].value;
@@ -146,9 +146,9 @@ window.submitEvent = async function() {
         });
         if (res.ok) {
             if (window.showToast) window.showToast('Đã thêm sự kiện vào lịch thành công!', 'success');
-            setTimeout(function() { window.location.href = '/Calendar'; }, 800);
+            setTimeout(function () { window.location.href = '/Calendar'; }, 800);
         } else {
-            var errData = await res.json().catch(function() { return null; });
+            var errData = await res.json().catch(function () { return null; });
             var msg = (errData && errData.error) ? errData.error : 'Lỗi khi thêm sự kiện';
             if (window.showToast) window.showToast(msg, 'error');
         }

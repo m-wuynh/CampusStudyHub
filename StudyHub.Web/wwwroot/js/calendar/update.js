@@ -2,7 +2,7 @@
    Calendar Module: Màn Cập nhật ca học (Update)
    Chứa toàn bộ JS cho form chỉnh sửa sự kiện / lịch học
    ======================================================== */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
     var eventIdEl = document.getElementById('event-id');
@@ -12,26 +12,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 1. Tải danh sách loại sự kiện từ DB vào dropdown
     fetch('/Calendar/GetCategories')
-        .then(function(r) { return r.json(); })
-        .then(function(cats) {
+        .then(function (r) { return r.json(); })
+        .then(function (cats) {
             if (!cats || !cats.length) return;
             if (!sel) return;
-            sel.innerHTML = cats.map(function(c) {
+            sel.innerHTML = cats.map(function (c) {
                 var isSel = (c.name === initialType);
                 return '<option value="' + c.name + '"' + (isSel ? ' selected' : '') + '>' + c.name + '</option>';
             }).join('');
         })
-        .catch(function(err) {
+        .catch(function (err) {
             console.error('Lỗi khi tải loại sự kiện:', err);
         });
 
     // 2. Nạp các nhắc nhở đã lưu từ server
     if (eventId) {
         fetch('/Calendar/GetEventReminders/' + eventId)
-            .then(function(r) { return r.json(); })
-            .then(function(reminders) {
+            .then(function (r) { return r.json(); })
+            .then(function (reminders) {
                 if (!reminders || !reminders.length) return;
-                reminders.forEach(function(item) {
+                reminders.forEach(function (item) {
                     var m = typeof item === 'object' ? item.minutes : item;
                     var ch = typeof item === 'object' ? item.channel : 'notification';
                     var unit = 'minutes';
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.addNotification(val, unit, ch);
                 });
             })
-            .catch(function(err) {
+            .catch(function (err) {
                 console.error('Lỗi khi tải thông báo:', err);
             });
     }
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 3. Ẩn lỗi khi người dùng nhập tên sự kiện
     var titleInput = document.getElementById('event-title');
     if (titleInput) {
-        titleInput.addEventListener('input', function() {
+        titleInput.addEventListener('input', function () {
             var titleError = document.getElementById('event-title-error');
             if (this.value.trim().length > 0) {
                 if (titleError) titleError.classList.add('d-none');
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Hàm thêm dòng thông báo nhắc nhở
-window.addNotification = function(val, unit, channel) {
+window.addNotification = function (val, unit, channel) {
     if (val === undefined) val = 10;
     if (unit === undefined) unit = 'minutes';
     if (channel === undefined) channel = 'notification';
@@ -102,7 +102,7 @@ window.addNotification = function(val, unit, channel) {
 };
 
 // Hàm submit cập nhật ca học
-window.submitEvent = async function() {
+window.submitEvent = async function () {
     var eventIdEl = document.getElementById('event-id');
     var eventId = eventIdEl ? eventIdEl.value : window.location.pathname.split('/').pop();
 
@@ -148,7 +148,7 @@ window.submitEvent = async function() {
     if (end.length === 5) end += ":00";
 
     var reminders = [];
-    document.querySelectorAll('#notifications-container .notif-row-purple').forEach(function(row) {
+    document.querySelectorAll('#notifications-container .notif-row-purple').forEach(function (row) {
         var inputs = row.querySelectorAll('input, select');
         if (inputs.length >= 3) {
             var channel = inputs[0].value;
@@ -188,17 +188,17 @@ window.submitEvent = async function() {
             // Xóa cache thông báo cũ
             try {
                 var toasted = JSON.parse(localStorage.getItem('sh_notif_toasted') || '[]');
-                toasted = toasted.filter(function(id) { return id != eventId && !String(id).startsWith(eventId + '_'); });
+                toasted = toasted.filter(function (id) { return id != eventId && !String(id).startsWith(eventId + '_'); });
                 localStorage.setItem('sh_notif_toasted', JSON.stringify(toasted));
 
                 var reads = JSON.parse(localStorage.getItem('sh_notif_read') || '[]');
-                reads = reads.filter(function(id) { return id != eventId && !String(id).startsWith(eventId + '_'); });
+                reads = reads.filter(function (id) { return id != eventId && !String(id).startsWith(eventId + '_'); });
                 localStorage.setItem('sh_notif_read', JSON.stringify(reads));
-            } catch(e) {}
+            } catch (e) { }
 
-            setTimeout(function() { window.location.href = '/Calendar'; }, 800);
+            setTimeout(function () { window.location.href = '/Calendar'; }, 800);
         } else {
-            var errData = await res.json().catch(function() { return null; });
+            var errData = await res.json().catch(function () { return null; });
             var msg = (errData && errData.error) ? errData.error : 'Lỗi khi cập nhật sự kiện';
             if (window.showToast) window.showToast(msg, 'error');
         }

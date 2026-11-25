@@ -177,6 +177,7 @@ public sealed class CalendarController(ICalendarService calendarService, ICalend
     }
 
     [HttpPost("Update/{id}")]
+    [HttpPost("UpdateEvent/{id}")]
     public async Task<IActionResult> UpdateEvent(long id, [FromBody] UpdateEventDto request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);

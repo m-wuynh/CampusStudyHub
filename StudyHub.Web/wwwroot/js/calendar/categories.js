@@ -1,7 +1,7 @@
 /* ========================================================
    Calendar Module: Màn Quản lý Loại sự kiện (Categories)
    ======================================================== */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
     var MAX_NAME_LEN = 100;
@@ -59,8 +59,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========================================================
     // 1. Danh sách Loại sự kiện: Xóa (Categories.cshtml)
     // ========================================================
-    document.querySelectorAll('.btn-delete-category').forEach(function(btn) {
-        btn.addEventListener('click', async function() {
+    document.querySelectorAll('.btn-delete-category').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
             var id = this.dataset.id;
             var name = this.dataset.name || '';
             var count = parseInt(this.dataset.count || '0', 10);
@@ -77,9 +77,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 var res = await fetch('/Calendar/Categories/Delete/' + id, { method: 'DELETE' });
                 if (res.ok) {
                     if (window.showToast) window.showToast('Đã xóa loại sự kiện "' + name + '"!', 'success');
-                    setTimeout(function() { window.location.reload(); }, 600);
+                    setTimeout(function () { window.location.reload(); }, 600);
                 } else {
-                    var errData = await res.json().catch(function() { return {}; });
+                    var errData = await res.json().catch(function () { return {}; });
                     if (window.showToast) window.showToast(errData.error || 'Lỗi khi xóa loại sự kiện', 'error');
                 }
             } catch (err) {
@@ -99,10 +99,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var descErr = document.getElementById('category-desc-error');
         var btnSave = document.getElementById('btn-save-category');
 
-        nameIn?.addEventListener('input', function() { validateForm(nameIn, descIn, nameErr, descErr); });
-        descIn?.addEventListener('input', function() { validateForm(nameIn, descIn, nameErr, descErr); });
+        nameIn?.addEventListener('input', function () { validateForm(nameIn, descIn, nameErr, descErr); });
+        descIn?.addEventListener('input', function () { validateForm(nameIn, descIn, nameErr, descErr); });
 
-        formCreate.addEventListener('submit', async function(e) {
+        formCreate.addEventListener('submit', async function (e) {
             e.preventDefault();
             if (!validateForm(nameIn, descIn, nameErr, descErr)) {
                 nameIn?.focus();
@@ -121,9 +121,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (res.ok) {
                     if (window.showToast) window.showToast('Đã thêm loại sự kiện thành công!', 'success');
-                    setTimeout(function() { window.location.href = '/Calendar/Categories'; }, 700);
+                    setTimeout(function () { window.location.href = '/Calendar/Categories'; }, 700);
                 } else {
-                    var errData = await res.json().catch(function() { return {}; });
+                    var errData = await res.json().catch(function () { return {}; });
                     var errorMsg = errData.error || 'Lỗi khi tạo loại sự kiện';
                     if (window.showToast) window.showToast(errorMsg, 'error');
                     if (nameErr) {
@@ -154,10 +154,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var btnSaveEdit = document.getElementById('btn-save-edit-category');
         var id = document.getElementById('edit-category-id')?.value;
 
-        nameEdit?.addEventListener('input', function() { validateForm(nameEdit, descEdit, nameErrEdit, descErrEdit); });
-        descEdit?.addEventListener('input', function() { validateForm(nameEdit, descEdit, nameErrEdit, descErrEdit); });
+        nameEdit?.addEventListener('input', function () { validateForm(nameEdit, descEdit, nameErrEdit, descErrEdit); });
+        descEdit?.addEventListener('input', function () { validateForm(nameEdit, descEdit, nameErrEdit, descErrEdit); });
 
-        formEdit.addEventListener('submit', async function(e) {
+        formEdit.addEventListener('submit', async function (e) {
             e.preventDefault();
             if (!validateForm(nameEdit, descEdit, nameErrEdit, descErrEdit)) {
                 nameEdit?.focus();
@@ -176,9 +176,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (res.ok) {
                     if (window.showToast) window.showToast('Cập nhật loại sự kiện thành công!', 'success');
-                    setTimeout(function() { window.location.href = '/Calendar/Categories'; }, 700);
+                    setTimeout(function () { window.location.href = '/Calendar/Categories'; }, 700);
                 } else {
-                    var errData = await res.json().catch(function() { return {}; });
+                    var errData = await res.json().catch(function () { return {}; });
                     var errorMsg = errData.error || 'Lỗi khi cập nhật loại sự kiện';
                     if (window.showToast) window.showToast(errorMsg, 'error');
                     if (nameErrEdit) {
