@@ -29,8 +29,3 @@ public class DeleteActivityRequest
     public long ActivityId { get; set; }
 }
 
-public class ToggleActivityRequest
-{
-    public long ActivityId { get; set; }
-}
-

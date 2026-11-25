@@ -14,10 +14,13 @@ public sealed class CalendarController(ICalendarService calendarService) : Contr
 {
     private long CurrentUserId => long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "1");
 
+    [AllowAnonymous]
     [HttpGet("")]
     public async Task<IActionResult> Index(DateOnly? date)
     {
         var selectedDate = date ?? DateOnly.FromDateTime(DateTime.Today);
+        if (User.Identity?.IsAuthenticated != true)
+            return View(new CalendarIndexViewModel(selectedDate, []));
         var firstDayOfMonth = new DateOnly(selectedDate.Year, selectedDate.Month, 1);
         var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
         

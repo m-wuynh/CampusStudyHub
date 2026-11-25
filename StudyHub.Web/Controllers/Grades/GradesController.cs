@@ -63,9 +63,13 @@ public sealed class GradesController : Controller
 
     // ── Index ────────────────────────────────────────────────────
 
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
     [HttpGet("")]
     public async Task<IActionResult> Index(long? gradeBookId, CancellationToken cancellationToken)
     {
+        if (User.Identity?.IsAuthenticated != true)
+            return View(new GradesIndexViewModel(new GradesPageDto(
+                [], null, null, [], new YearGradeSummaryDto(null, null, "", null, "", 0), [], [], [])));
         var userId = currentUser.UserId;
         var data = await gradeService.GetGradePageAsync(userId, gradeBookId, cancellationToken);
         return View(new GradesIndexViewModel(data));
@@ -298,21 +302,6 @@ public sealed class GradesController : Controller
         }
     }
 
-    [HttpPost("ReorderGoals")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ReorderGoals([FromBody] List<ReorderGoalDto> items, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await goalService.ReorderGoalsAsync(currentUser.UserId, items, cancellationToken);
-            return Json(new { ok = true });
-        }
-        catch (Exception ex)
-        {
-            return Json(new { ok = false, error = ToUserMessage(ex) });
-        }
-    }
-
     // ── Goal Activities ──────────────────────────────────────────
 
     [HttpPost("AddGoalActivity")]
@@ -353,21 +342,6 @@ public sealed class GradesController : Controller
         {
             await goalService.DeleteGoalActivityAsync(currentUser.UserId, req.ActivityId, cancellationToken);
             return Json(new { ok = true });
-        }
-        catch (Exception ex)
-        {
-            return Json(new { ok = false, error = ToUserMessage(ex) });
-        }
-    }
-
-    [HttpPost("ToggleGoalActivity")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ToggleGoalActivity([FromBody] ToggleActivityRequest req, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var isCompleted = await goalService.ToggleGoalActivityCompletionAsync(currentUser.UserId, req.ActivityId, cancellationToken);
-            return Json(new { ok = true, isCompleted });
         }
         catch (Exception ex)
         {

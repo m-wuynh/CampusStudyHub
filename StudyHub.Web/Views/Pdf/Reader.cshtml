@@ -1,0 +1,106 @@
+@model StudyHub.Web.ViewModels.Pdf.PdfReaderViewModel
+@{
+    ViewData["Title"] = Model.Title;
+    ViewData["PageTitle"] = "Đọc PDF";
+    ViewData["PageSubtitle"] = Model.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var viewerUrl = Url.Action("Viewer", "PdfDocuments",
+        new { id = Model.DocumentId, page = Model.CurrentPage, shareId = Model.ShareId });
+    var pageStateUrl = Url.Action("PageState", "PdfDocuments",
+        new { documentId = Model.DocumentId, shareId = Model.ShareId });
+    var isShared = Model.ShareId.HasValue;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pdf/pdf-base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/pdf/pdf-reader.css" asp-append-version="true" />
+}
+
+<div class="pdf pdf-reader container-fluid"
+     data-reader-shell data-page-state-url="@pageStateUrl"
+     data-document-id="@Model.DocumentId" data-current-page="@Model.CurrentPage"
+     data-page-count="@Model.PageCount" data-shared="@isShared.ToString().ToLowerInvariant()">
+    @if (!isShared)
+    {
+        <input type="checkbox" id="pdf-note-toggle" class="visually-hidden" checked />
+    }
+    <header class="pdf-reader-header">
+        <div class="pdf-reader-titlebar">
+            @if (isShared && Model.GroupId.HasValue)
+            {
+                <a class="pdf-reader-back" asp-controller="StudyGroups" asp-action="Details"
+                   asp-route-groupId="@Model.GroupId" asp-route-panel="resources"
+                   title="Quay lại tài nguyên nhóm" aria-label="Quay lại tài nguyên nhóm"><i class="bi bi-arrow-left"></i></a>
+            }
+            else
+            {
+                <a class="pdf-reader-back" asp-controller="Pdf" asp-action="Index"
+                   title="Quay lại thư viện" aria-label="Quay lại thư viện"><i class="bi bi-arrow-left"></i></a>
+            }
+            <div>
+                <h1>@Model.Title</h1>
+                <p>@Model.FileName <span>·</span> @Model.PageCount trang @if (isShared) { <strong>· Chỉ xem</strong> }</p>
+            </div>
+        </div>
+        <span class="pdf-reader-navigation-status" data-reader-nav-status role="status"></span>
+
+        @if (!isShared)
+        {
+            <div class="pdf-reader-header-actions">
+                <label for="pdf-note-toggle" class="btn btn-outline-primary btn-sm pdf-toggle-button"
+                       role="button" aria-controls="pdf-reader-note">
+                    <i class="bi bi-layout-sidebar-inset-reverse"></i>
+                    <span class="pdf-hide-label">Ẩn ghi chú</span><span class="pdf-show-label">Hiện ghi chú</span>
+                </label>
+            </div>
+        }
+    </header>
+
+    @if (TempData["Success"] is string success) { <div class="alert alert-success pdf-reader-alert" role="status">@success</div> }
+    @if (TempData["Error"] is string error) { <div class="alert alert-danger pdf-reader-alert" role="alert">@error</div> }
+
+    @if (isShared)
+    {
+        <div class="pdf-reader-view-only"><i class="bi bi-eye"></i> Tài liệu nhóm · Chế độ chỉ xem</div>
+    }
+
+    <div class="pdf-reader-grid @(isShared ? "is-view-only" : null)">
+        <main class="pdf-reader-frame">
+            <iframe id="pdf-pdf-viewer" title="Trình xem PDF: @Model.Title" src="@viewerUrl"></iframe>
+        </main>
+
+        @if (!isShared)
+        {
+            <aside class="pdf-reader-note" id="pdf-reader-note">
+                <div class="pdf-note-heading">
+                    <div><span>GHI CHÚ CÁ NHÂN</span><h2>Trang <strong data-note-page>@Model.CurrentPage</strong></h2></div>
+                    <i class="bi bi-pencil-square"></i>
+                </div>
+                <form asp-controller="PdfDocuments" asp-action="AutoSavePdfPageNote" method="post"
+                      class="pdf-note-form" data-pdf-autosave
+                      data-autosave-url="@Url.Action("AutoSavePdfPageNote", "PdfDocuments")">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="documentId" value="@Model.DocumentId" />
+                    <input type="hidden" name="pageNumber" value="@Model.CurrentPage" />
+                    <input type="hidden" name="versionToken" value="@Model.NoteVersionToken" />
+                    <label class="visually-hidden" for="pdf-page-note">Nội dung ghi chú</label>
+                    <textarea class="form-control" id="pdf-page-note" name="text"
+                              placeholder="Tóm tắt ý chính, công thức hoặc câu hỏi của trang này…"
+                              readonly="@Model.IsReadOnly">@Model.NoteText</textarea>
+                    @if (!Model.IsReadOnly)
+                    {
+                        <div class="pdf-autosave-line">
+                            <span class="small text-muted" data-autosave-status><i class="bi bi-cloud-check"></i> Mọi thay đổi sẽ tự động lưu.</span>
+                            <button class="btn btn-link btn-sm d-none" type="button" data-autosave-retry>Thử lại</button>
+                        </div>
+                    }
+                </form>
+            </aside>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/pdf/autosave.js" asp-append-version="true"></script>
+    <script src="~/js/pdf/reader-navigation.js" asp-append-version="true"></script>
+}

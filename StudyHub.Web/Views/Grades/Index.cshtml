@@ -9,52 +9,55 @@
 }
 
 <link rel="stylesheet" href="~/css/grades.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/violet-theme.css" asp-append-version="true" />
 
 @Html.AntiForgeryToken()
 
 <div id="grades-view" style="max-width:1280px; margin:0 auto;">
-    <partial name="_AlertMessagesPartial" />
+    @* Thông báo TempData (thành công / lỗi) *@
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="d-none js-tempdata-alert" data-type="error" data-message="@TempData["ErrorMessage"]"></div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="d-none js-tempdata-alert" data-type="success" data-message="@TempData["SuccessMessage"]"></div>
+    }
 
+    @{ ViewData["HasActiveGoals"] = data.GoalLadders.Any(l => !l.IsDetached && l.Goals.Any()); }
     <partial name="_GradeSummaryCardsPartial" model="data.Summary" />
 
     <!-- ── Tabs ── -->
-    <ul class="nav nav-tabs mb-4" style="border-bottom:2px solid var(--sh-slate-200);">
+    <ul class="nav sv-tabs mb-4" id="grades-tabs">
         <li class="nav-item">
-            <button class="nav-link active fw-bold px-4" id="tab-btn-grades"
-                    style="font-size:12px; color:var(--sh-indigo-600); border-bottom:2px solid var(--sh-indigo-600); border-top:0; border-left:0; border-right:0; background:transparent;"
+            <button type="button" class="nav-link active" id="tab-btn-grades"
                     onclick="gradeTab(this,'grades-tab')">
-                📊 Bảng điểm
+                <i class="bi bi-table me-1"></i> Bảng điểm
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link fw-semibold px-4" id="tab-btn-goals"
-                    style="font-size:12px; color:var(--sh-slate-500); border:0; background:transparent;"
+            <button type="button" class="nav-link" id="tab-btn-goals"
                     onclick="gradeTab(this,'goals-tab')">
-                🎯 Mục tiêu học tập
+                <i class="bi bi-bullseye me-1"></i> Mục tiêu học tập
             </button>
         </li>
     </ul>
 
     <!-- ═══ GRADES TAB ═══ -->
-    <partial name="_GradesTabPartial" model="data" />
+    <partial name="GradeTable/_GradeTablePartial" model="data" />
 
     <!-- ═══ GOALS TAB ═══ -->
-    <partial name="_GoalsTabPartial" model="data" />
+    <partial name="Goals/_GoalsTabPartial" model="data" />
 
     <!-- ═══ MODALS ═══ -->
-    <partial name="Modals/_GradeBookModals" model="data" />
-    <partial name="Modals/_StructureModals" model="data" />
+    <partial name="Modals/_GradeModals" model="data" />
     <partial name="Modals/_GoalModals" model="data" />
-    <partial name="Modals/_EnterGradesModal" model="data" />
 
     <!-- ═══ JSON SERVER STATE ═══ -->
     <partial name="_GradesJsonStatePartial" model="data" />
 </div>
 
 @section Scripts {
-    <script src="~/js/grades/grades-core.js" asp-append-version="true"></script>
-    <script src="~/js/grades/grades-wizard.js" asp-append-version="true"></script>
     <script src="~/js/grades/grades-table.js" asp-append-version="true"></script>
-    <script src="~/js/grades/grades-modal-entry.js" asp-append-version="true"></script>
-    <script src="~/js/grades/goals-ladder.js" asp-append-version="true"></script>
+    <script src="~/js/grades/goals.js" asp-append-version="true"></script>
 }

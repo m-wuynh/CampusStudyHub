@@ -1,12 +1,16 @@
 using System.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using StudyHub.DAL.Entities;
 using StudyHub.DAL.Persistence;
+using StudyHub.DAL.Repositories.Pdf;
 using StudyHub.DAL.Repositories.StudyGroups.Models;
 
 namespace StudyHub.DAL.Repositories.StudyGroups;
 
-public sealed partial class SqlGroupLearningRepository(StudyHubDbContext db) : IGroupLearningRepository
+public sealed partial class SqlGroupLearningRepository(
+    StudyHubDbContext db,
+    IPdfSharingService pdfSharingService) : IGroupLearningRepository
 {
     private static StudyGroupRepositoryException Missing() => new("not_found", "Không tìm thấy dữ liệu trong nhóm này.");
     private static StudyGroupRepositoryException Conflict(string message) => new("update_conflict", message);
@@ -30,11 +34,28 @@ public sealed partial class SqlGroupLearningRepository(StudyHubDbContext db) : I
     // Authorization, state checks and writes share one transaction to prevent stale membership/state races.
     private async Task WriteAsync(long groupId, long userId, bool manage, Func<bool, Task> action, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
-        var canManage = await AccessAsync(groupId, userId, manage, ct);
-        await action(canManage);
-        await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+        try
+        {
+            await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var canManage = await AccessAsync(groupId, userId, manage, ct);
+            await action(canManage);
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch (Exception exception) when (IsDeadlock(exception))
+        {
+            throw Conflict("Dữ liệu đang được cập nhật bởi thao tác khác. Hãy thử lại.");
+        }
+    }
+
+    private static bool IsDeadlock(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is SqlException { Number: 1205 }) return true;
+        }
+
+        return false;
     }
 
     private static void CheckRevision(int actual, int expected)

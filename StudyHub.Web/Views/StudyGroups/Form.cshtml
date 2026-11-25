@@ -1,0 +1,34 @@
+@model StudyGroupFormViewModel
+@{
+    var editing = Model.GroupId != null;
+    ViewData["Title"] = editing ? "Chỉnh sửa nhóm" : "Tạo nhóm học tập";
+    ViewData["PageTitle"] = ViewData["Title"];
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var subjects = Model.SubjectOptions.Select(s => s.Name).Concat(Model.Subjects).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s);
+}
+<div class="sh-card p-4 mx-auto" style="max-width:800px;">
+    <h1 class="h4 mb-4">@ViewData["Title"]</h1>
+    <form asp-controller="StudyGroups" asp-action="@(editing ? "Edit" : "Create")" asp-route-groupId="@Model.GroupId" method="post">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <div class="mb-3"><label asp-for="Name" class="sh-label">Tên nhóm</label><input asp-for="Name" class="sh-input" maxlength="150" required /></div>
+        <fieldset class="mb-3">
+            <legend class="sh-label">Môn học (tối đa 10 môn)</legend>
+            <div id="form-subject-options" class="d-flex flex-wrap gap-3">
+            @foreach (var subject in subjects)
+            {
+                <label><input type="checkbox" name="Subjects" value="@subject" checked="@Model.Subjects.Contains(subject, StringComparer.OrdinalIgnoreCase)" /> @subject</label>
+            }
+            </div>
+            <div class="d-flex gap-2 mt-2"><input id="new-subject" class="sh-input" maxlength="150" placeholder="Tên môn học mới" aria-label="Tên môn học mới" /><button id="add-subject" type="button" class="btn-secondary-sh">Thêm môn</button></div>
+        </fieldset>
+        <div class="mb-3"><label asp-for="Description" class="sh-label">Mô tả</label><textarea asp-for="Description" class="sh-input" rows="3" maxlength="2000"></textarea></div>
+        <div class="mb-3"><label asp-for="Goal" class="sh-label">Mục tiêu</label><input asp-for="Goal" class="sh-input" maxlength="500" /></div>
+        <div class="mb-3"><label asp-for="MeetingFormat" class="sh-label">Hình thức</label><select asp-for="MeetingFormat" class="sh-input"><option value="Online">Online</option><option value="Offline">Offline</option><option value="Hybrid">Kết hợp</option></select></div>
+        <div class="mb-3"><label asp-for="MeetingSchedule" class="sh-label">Lịch dự kiến</label><input asp-for="MeetingSchedule" class="sh-input" maxlength="250" /></div>
+        <div class="mb-3"><label asp-for="MaxMembers" class="sh-label">Giới hạn người</label><input asp-for="MaxMembers" type="number" min="2" max="500" class="sh-input" placeholder="Không giới hạn" /></div>
+        <div class="mb-3"><label asp-for="JoinMode" class="sh-label">Cách tham gia</label><select asp-for="JoinMode" class="sh-input"><option value="Approval">Công khai · Cần duyệt</option><option value="Open">Công khai · Vào ngay</option><option value="InviteOnly">Riêng tư · Chỉ qua lời mời</option></select></div>
+        <div class="mb-3"><label asp-for="Rules" class="sh-label">Nội quy nhóm</label><textarea asp-for="Rules" class="sh-input" rows="3" maxlength="2000"></textarea></div>
+        <div class="d-flex gap-2"><button type="submit" class="btn-primary-sh">@(editing ? "Lưu thay đổi" : "Tạo nhóm")</button><a asp-action="@(editing ? "Details" : "Index")" asp-route-groupId="@Model.GroupId" class="btn-secondary-sh">Hủy</a></div>
+    </form>
+</div>
+@section Scripts { <script src="~/js/group-form.js" asp-append-version="true"></script> }

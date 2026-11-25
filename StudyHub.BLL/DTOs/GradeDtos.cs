@@ -85,7 +85,34 @@ public sealed record GoalLadderDto(
     GoalDto? BaseGoal = null,
     List<GoalDto>? AdditionalGoals = null,
     string? AcademicYearName = null,
-    bool IsDetached = false);
+    bool IsDetached = false,
+    GoalJourneyDto? Journey = null);
+
+// ── Hành trình mục tiêu (GoalProgressLogs) ──────────────────
+/// <summary>Một mốc trong hành trình của môn. Điểm số đã làm tròn hiển thị; thời gian theo giờ ứng dụng.</summary>
+public sealed record GoalJourneyEventDto(
+    long Id,
+    string EventType,
+    string Category,
+    long? GoalId,
+    string? GoalTitle,
+    bool IsBaseGoal,
+    decimal? AverageScore,
+    decimal? PreviousValue,
+    decimal? TargetValue,
+    int? ProgressPercent,
+    string? StatusFrom,
+    string? StatusTo,
+    DateTime OccurredAtLocal)
+{
+    public const string CategoryScore = "score";
+    public const string CategoryGoal = "goal";
+}
+
+public sealed record GoalJourneyPointDto(DateTime AtLocal, decimal Average);
+
+/// <summary>Events: mới nhất trước. Points: tăng dần theo thời gian (vẽ biểu đồ ĐTB).</summary>
+public sealed record GoalJourneyDto(List<GoalJourneyEventDto> Events, List<GoalJourneyPointDto> Points);
 
 /// <summary>
 /// Represents a single rung on the Goal Ladder.
@@ -155,7 +182,6 @@ public sealed record UpdateGoalDto(
     decimal? TargetValue,
     DateOnly? EndDate);
 
-public sealed record ReorderGoalDto(long GoalId, int NewDisplayOrder);
 
 public sealed record CreateGoalActivityDto(
     long GoalId,
