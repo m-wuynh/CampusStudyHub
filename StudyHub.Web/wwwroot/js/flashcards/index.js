@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('editDeckDescription').value =
             description;
 
+        document.getElementById('editDeckSubjectName').textContent =
+            button.dataset.subjectName || 'Chưa gắn môn';
+
         form.action =
             `/Flashcards/${deckId}/Edit`;
     });

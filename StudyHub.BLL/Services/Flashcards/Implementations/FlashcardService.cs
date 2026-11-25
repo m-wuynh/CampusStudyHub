@@ -63,6 +63,17 @@ namespace StudyHub.BLL.Services.Flashcards.Implementations
                     "Deck không tồn tại hoặc không có quyền chỉnh sửa");
             }
 
+            if (deck.UserSubjectId is not long subjectId ||
+                !await repository.AnyAsync<UserSubject>(
+                    subject => subject.UserSubjectId == subjectId &&
+                               subject.UserId == currentUserId &&
+                               !subject.IsArchived,
+                    cancellationToken))
+            {
+                throw new InvalidOperationException(
+                    "Bộ thẻ cần gắn với môn học đang hoạt động để thêm thẻ mới.");
+            }
+
             var frontText = request.FrontText?.Trim();
             var backText = request.BackText?.Trim();
 
