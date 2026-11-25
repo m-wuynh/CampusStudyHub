@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-
 namespace StudyHub.DAL.Entities;
 
 public partial class Subject

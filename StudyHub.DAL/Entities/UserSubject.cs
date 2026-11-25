@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using StudyHub.DAL.Entities.Pdf;
 
 namespace StudyHub.DAL.Entities;
 
@@ -49,4 +50,6 @@ public partial class UserSubject
     public virtual Subject? Subject { get; set; }
 
     public virtual User User { get; set; } = null!;
+
+    public ICollection<PdfDocument> PdfDocuments { get; set; } = new List<PdfDocument>();
 }

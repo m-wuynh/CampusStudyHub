@@ -1,155 +1,63 @@
-@model StudyHub.Web.ViewModels.Pdf.PdfLibraryViewModel
+@model PdfLibraryDto
+
 @{
-    ViewData["Title"] = "PDF học tập";
-    ViewData["PageTitle"] = "PDF học tập";
-    ViewData["PageSubtitle"] = "Đọc, đánh dấu và ghi chú tài liệu";
-    Layout = "~/Views/Shared/_Layout.cshtml";
-    var firstPage = Math.Max(1, Model.PageNumber - 2);
-    var lastPage = Math.Min(Model.TotalPages, firstPage + 4);
-    firstPage = Math.Max(1, lastPage - 4);
+    ViewData["Title"] = "Tài liệu học tập";
 }
 
-@section Styles {
-    <link rel="stylesheet" href="~/css/pdf/pdf-base.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/pdf/index.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/pdf/library-tools.css" asp-append-version="true" />
-}
+<partial name="~/Views/Pdf/_PdfNav.cshtml" />
 
-<main class="pdf pdf-library container-fluid">
-    <header class="pdf-library-header">
+<header class="pdf-head">
+    <div class="pdf-head-copy">
+        <span class="pdf-head-icon"><i class="bi bi-collection"></i></span>
         <div>
-            <span class="pdf-library-eyebrow"><i class="bi bi-file-earmark-pdf"></i> THƯ VIỆN PDF</span>
-            <h1>Tài liệu của tôi</h1>
-            <p>Tìm kiếm, đọc và ghi chú tài liệu học tập của bạn.</p>
+            <p class="pdf-eyebrow">Không gian học tập</p>
+            <h1>Tài liệu học tập</h1>
+            <p>@Model.DocumentCount PDF được sắp xếp theo môn học.</p>
         </div>
-        <button class="pdf-library-upload" type="button" data-bs-toggle="modal" data-bs-target="#uploadPdfModal">
-            <i class="bi bi-cloud-arrow-up"></i> Tải PDF lên
-        </button>
-    </header>
+    </div>
 
+    <a class="pdf-primary-action" asp-action="Upload">
+        <i class="bi bi-cloud-arrow-up"></i> Tải PDF
+    </a>
+</header>
 
-    @if (TempData["Success"] is string success)
+<section class="pdf-grid">
+    @foreach (var folder in Model.Folders)
     {
-        <div class="alert alert-success pdf-library-alert" role="status">@success</div>
+        <article class="pdf-card" style="--accent:@folder.ColorHex">
+            <div class="pdf-card-head">
+                <span class="pdf-card-icon"><i class="bi bi-folder2-open"></i></span>
+                <span class="pdf-count-badge">@folder.DocumentCount PDF</span>
+            </div>
+            <h2>@folder.Name</h2>
+            <p>Thư mục tài liệu và kiến thức của môn học.</p>
+
+            <div class="pdf-actions">
+                <a asp-action="Folder"
+                   asp-route-subjectId="@folder.UserSubjectId">
+                    <i class="bi bi-folder2"></i> Tài liệu
+                </a>
+                <a asp-action="Dashboard"
+                   asp-route-subjectId="@folder.UserSubjectId">
+                    <i class="bi bi-bar-chart"></i> Thống kê
+                </a>
+            </div>
+        </article>
     }
-    @if (TempData["Error"] is string error)
+</section>
+
+<h2 class="pdf-section-title"><i class="bi bi-clock-history"></i> Mở gần đây</h2>
+
+<div class="pdf-list">
+    @foreach (var document in Model.RecentDocuments)
     {
-        <div class="alert alert-danger pdf-library-alert" role="alert">@error</div>
+        <partial name="~/Views/Pdf/_PdfDocumentRow.cshtml" model="document" />
     }
 
-    <form class="pdf-library-search" method="get" role="search">
-        <div class="pdf-library-search-box">
-            <i class="bi bi-search"></i>
-            <label class="visually-hidden" for="pdf-search">Tìm kiếm PDF</label>
-            <input id="pdf-search" name="q" value="@Model.SearchQuery" maxlength="100"
-                   placeholder="Tìm tên file hoặc ghi chú" />
+    @if (Model.RecentDocuments.Count == 0)
+    {
+        <div class="pdf-empty-state">
+            <div><i class="bi bi-file-earmark-plus"></i><strong>Chưa có tài liệu</strong><span>Tải PDF đầu tiên để bắt đầu.</span></div>
         </div>
-        <button type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
-        @if (!string.IsNullOrEmpty(Model.SearchQuery))
-        {
-            <a asp-action="Index">Xóa tìm kiếm</a>
-        }
-    </form>
-
-    <section class="pdf-library-summary" aria-label="Tổng quan thư viện">
-        <div><i class="bi bi-file-earmark-pdf-fill"></i><span><strong>@Model.PdfCount</strong> tài liệu</span></div>
-        <a asp-action="Trash"><i class="bi bi-trash3"></i><span>Thùng rác</span><i class="bi bi-chevron-right"></i></a>
-    </section>
-
-    <section class="pdf-library-content">
-        <div class="pdf-library-heading">
-            <div><span class="pdf-library-kicker">TỦ TÀI LIỆU</span><h2>PDF của tôi</h2></div>
-            <span class="pdf-library-result-count">Trang @Model.PageNumber / @Model.TotalPages</span>
-        </div>
-
-        @if (Model.Pdfs.Count == 0)
-        {
-            <div class="pdf-library-empty">
-                <span><i class="bi bi-file-earmark-arrow-up"></i></span>
-                <div><strong>Không có PDF phù hợp</strong><p>Thử đổi từ khóa hoặc tải một tài liệu mới.</p></div>
-            </div>
-        }
-        else
-        {
-            <div class="pdf-library-grid">
-                @foreach (var pdf in Model.Pdfs)
-                {
-                    <article class="pdf-library-card is-pdf">
-                        <a class="pdf-library-cover" asp-controller="PdfDocuments" asp-action="Reader"
-                           asp-route-id="@pdf.Id" asp-route-page="@pdf.SearchPage" aria-label="Mở @pdf.Title">
-                            <i class="bi bi-file-earmark-pdf-fill"></i><span>PDF</span>
-                        </a>
-                        <div class="pdf-library-card-body">
-                            <div class="pdf-library-card-badges"><span>PDF · @pdf.PageCount trang</span></div>
-                            <h3><a asp-controller="PdfDocuments" asp-action="Reader" asp-route-id="@pdf.Id"
-                                   asp-route-page="@pdf.SearchPage">@pdf.Title</a></h3>
-                            <p title="@pdf.FileName">@pdf.FileName</p>
-                            @if (pdf.SearchPage.HasValue)
-                            {
-                                <span class="pdf-library-match"><i class="bi bi-search"></i> Khớp ở trang @pdf.SearchPage</span>
-                            }
-                            <div class="pdf-library-card-actions">
-                                <a asp-controller="PdfDocuments" asp-action="Reader" asp-route-id="@pdf.Id"
-                                   asp-route-page="@pdf.SearchPage">Mở tài liệu</a>
-                                <button type="button" data-bs-toggle="modal" data-bs-target="#managePdf-@pdf.Id"
-                                        aria-label="Quản lý PDF @pdf.Title" title="Quản lý PDF"><i class="bi bi-three-dots"></i></button>
-                            </div>
-                        </div>
-                    </article>
-                    <partial name="_PdfManageModal" model="pdf" />
-                }
-            </div>
-        }
-
-        @if (Model.TotalPages > 1)
-        {
-            <nav class="pdf-pagination" aria-label="Phân trang PDF">
-                @if (Model.PageNumber > 1)
-                {
-                    <a asp-action="Index" asp-route-page="@(Model.PageNumber - 1)" asp-route-q="@Model.SearchQuery" aria-label="Trang trước"><i class="bi bi-chevron-left"></i></a>
-                }
-                else
-                {
-                    <span class="is-disabled" aria-hidden="true"><i class="bi bi-chevron-left"></i></span>
-                }
-                @for (var number = firstPage; number <= lastPage; number++)
-                {
-                    <a class="@(number == Model.PageNumber ? "is-active" : null)" asp-action="Index"
-                       asp-route-page="@number" asp-route-q="@Model.SearchQuery"
-                       aria-current="@(number == Model.PageNumber ? "page" : null)">@number</a>
-                }
-                @if (Model.PageNumber < Model.TotalPages)
-                {
-                    <a asp-action="Index" asp-route-page="@(Model.PageNumber + 1)" asp-route-q="@Model.SearchQuery" aria-label="Trang sau"><i class="bi bi-chevron-right"></i></a>
-                }
-                else
-                {
-                    <span class="is-disabled" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>
-                }
-            </nav>
-        }
-    </section>
-</main>
-
-<div class="modal fade pdf-library-modal" id="uploadPdfModal" tabindex="-1" aria-labelledby="uploadPdfTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h2 class="modal-title h5" id="uploadPdfTitle">Tải PDF lên</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
-        <form asp-controller="PdfDocuments" asp-action="UploadPdf" method="post" enctype="multipart/form-data"
-              data-pdf-upload data-max-file-bytes="@StudyHub.BLL.Services.Pdf.Documents.PdfPolicy.MaxFileBytes">
-            @Html.AntiForgeryToken()
-            <div class="modal-body">
-                <label class="form-label" for="upload-title">Tên hiển thị <span class="text-muted">(không bắt buộc)</span></label>
-                <input class="form-control mb-3" id="upload-title" name="title" maxlength="200" />
-                <label class="form-label" for="upload-file">File PDF</label>
-                <input class="form-control" id="upload-file" name="file" type="file" accept=".pdf,application/pdf" required />
-                <p id="upload-file-error" class="text-danger mt-2 mb-0" role="alert" hidden></p>
-                <p class="form-text mb-0">Tối đa 25 MiB và 5.000 trang. Không hỗ trợ PDF có mật khẩu.</p>
-            </div>
-            <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Hủy</button><button class="btn btn-primary" type="submit"><i class="bi bi-cloud-arrow-up"></i> Tải lên</button></div>
-        </form>
-    </div></div>
+    }
 </div>
-
-@section Scripts {
-    <script src="~/js/pdf/pdf-upload.js" asp-append-version="true"></script>
-}

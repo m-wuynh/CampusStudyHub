@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using StudyHub.BLL.DTOs;
 using StudyHub.BLL.Services.Auth;
 using StudyHub.BLL.DTOs.StudyGroups;
-using StudyHub.DAL.Entities.Pdf;
 using StudyHub.DAL.Entities;
 using StudyHub.DAL.Repositories.Common;
 using System.Data;
@@ -1148,36 +1147,6 @@ public sealed class StudyGroupService(ICurrentUser currentUser, IRepository data
                 .SetProperty(x => x.Visibility, "Private")
                 .SetProperty(x => x.UpdatedAtUtc, DateTime.UtcNow),
             ct);
-
-    // Revoke group access while preserving each owner's original personal PDF.
-    var unsharedAtUtc = DateTime.UtcNow;
-    var activeShares = data.Query<PdfDocumentShare>(false)
-        .Where(share =>
-            share.StudyGroupId == groupId &&
-            share.IsActive);
-    if (userId.HasValue)
-        activeShares = activeShares.Where(share => data.Query<PdfDocument>(false).Any(document =>
-            document.DocumentId == share.DocumentId && document.OwnerUserId == userId.Value));
-    var sharedDocumentIds = await activeShares.Select(share => share.DocumentId)
-        .Distinct()
-        .ToListAsync(ct);
-
-    await activeShares.ExecuteUpdateAsync(
-            setters => setters
-                .SetProperty(share => share.IsActive, false)
-                .SetProperty(share => share.UnsharedAtUtc, unsharedAtUtc),
-            ct);
-
-    if (sharedDocumentIds.Count > 0)
-    {
-        await data.Query<PdfDocument>(false)
-            .Where(document => sharedDocumentIds.Contains(document.DocumentId))
-            .ExecuteUpdateAsync(
-                setters => setters.SetProperty(
-                    document => document.UpdatedAtUtc,
-                    unsharedAtUtc),
-                ct);
-    }
 
     // Giữ nguyên xử lý đăng ký buổi học tương lai.
     var now = DateTimeOffset.UtcNow;

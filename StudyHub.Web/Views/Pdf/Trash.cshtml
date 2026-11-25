@@ -1,63 +1,48 @@
-@model StudyHub.Web.ViewModels.Pdf.PdfTrashViewModel
+@model IReadOnlyList<PdfTrashItemDto>
+
 @{
     ViewData["Title"] = "Thùng rác PDF";
-    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-@section Styles {
-    <link rel="stylesheet" href="~/css/pdf/pdf-base.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/pdf/index.css" asp-append-version="true" />
-}
+<partial name="~/Views/Pdf/_PdfNav.cshtml" />
 
-<main class="pdf pdf-library pdf-trash container py-4">
-    <a class="btn-secondary-sh pdf-trash-back" asp-action="Index">
-        <i class="bi bi-arrow-left"></i> Quay lại thư viện
-    </a>
-    <header class="pdf-trash-heading">
-        <h1>Thùng rác PDF</h1>
-        <p class="text-muted mb-0">Tài liệu được giữ 30 ngày trước khi tự động xóa vĩnh viễn.</p>
-    </header>
-
-
-    @if (TempData["Success"] is string success) { <div class="alert alert-success" role="status">@success</div> }
-    @if (TempData["Error"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
-
-    @if (Model.Pdfs.Count == 0)
-    {
-        <div class="pdf-library-empty">
-            <span><i class="bi bi-trash3"></i></span>
-            <div><strong>Thùng rác đang trống</strong><p>PDF bạn xóa sẽ xuất hiện ở đây trong thời hạn khôi phục.</p></div>
+<header class="pdf-head">
+    <div class="pdf-head-copy">
+        <span class="pdf-head-icon"><i class="bi bi-trash3"></i></span>
+        <div>
+            <p class="pdf-eyebrow">Quản lý tài liệu đã xóa</p>
+            <h1>Thùng rác</h1>
+            <p>PDF được giữ @PdfPolicy.TrashRetentionDays ngày trước khi tự động xóa vĩnh viễn.</p>
         </div>
-    }
-    else
+    </div>
+</header>
+
+<div class="pdf-list">
+    @foreach (var document in Model)
     {
-        <div class="pdf-library-grid">
-            @foreach (var pdf in Model.Pdfs)
-            {
-                <article class="pdf-library-card is-pdf">
-                    <div class="pdf-library-cover"><i class="bi bi-file-earmark-pdf-fill"></i><span>ĐÃ XÓA</span></div>
-                    <div class="pdf-library-card-body">
-                        <div class="pdf-library-card-badges"><span class="is-muted">Còn @pdf.DaysLeft ngày</span></div>
-                        <h3>@pdf.Title</h3>
-                        <p title="@pdf.FileName">@pdf.FileName</p>
-                        <div class="pdf-trash-actions">
-                            <form asp-controller="PdfDocuments" asp-action="RestorePdf" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@pdf.Id" />
-                                <input type="hidden" name="versionToken" value="@pdf.VersionToken" />
-                                <button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Khôi phục</button>
-                            </form>
-                            <form asp-controller="PdfDocuments" asp-action="PermanentlyDeletePdf" method="post"
-                                  data-confirm="PDF và toàn bộ ghi chú, đánh dấu sẽ bị xóa vĩnh viễn. Tiếp tục?">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@pdf.Id" />
-                                <input type="hidden" name="versionToken" value="@pdf.VersionToken" />
-                                <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-trash"></i> Xóa vĩnh viễn</button>
-                            </form>
-                        </div>
-                    </div>
-                </article>
-            }
-        </div>
+        <article class="pdf-trash-item">
+            <div class="pdf-trash-copy">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <div>
+                    <strong>@document.Title</strong>
+                    <span>@document.OriginalFileName</span>
+                    <small>Xóa sau @document.DeletePermanentlyAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                </div>
+            </div>
+
+            <form asp-controller="PdfDocuments"
+                  asp-action="Restore"
+                  asp-route-id="@document.DocumentId"
+                  method="post">
+                <button class="btn btn-outline-primary" type="submit">
+                    Khôi phục
+                </button>
+            </form>
+        </article>
     }
-</main>
+
+    @if (Model.Count == 0)
+    {
+        <div class="pdf-empty-state"><div><i class="bi bi-trash3"></i><strong>Thùng rác đang trống</strong><span>Tài liệu đã xóa sẽ xuất hiện tại đây trong @PdfPolicy.TrashRetentionDays ngày.</span></div></div>
+    }
+</div>

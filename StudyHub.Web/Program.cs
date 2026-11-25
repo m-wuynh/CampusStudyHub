@@ -255,7 +255,6 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseRouting();
 
 app.UseAuthentication();
-app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapStaticAssets().AllowAnonymous();

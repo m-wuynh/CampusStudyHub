@@ -1,107 +1,185 @@
-@model StudyHub.Web.ViewModels.Pdf.PdfReaderViewModel
+@model PdfReaderDto
+
 @{
     ViewData["Title"] = Model.Title;
-    ViewData["PageTitle"] = "Đọc PDF";
-    ViewData["PageSubtitle"] = Model.Title;
-    Layout = "~/Views/Shared/_Layout.cshtml";
-    var viewerUrl = Url.Action("Viewer", "PdfDocuments",
-        new { id = Model.DocumentId, page = Model.CurrentPage, shareId = Model.ShareId });
-    var pageStateUrl = Url.Action("PageState", "PdfDocuments",
-        new { documentId = Model.DocumentId, shareId = Model.ShareId });
-    var isShared = Model.ShareId.HasValue;
+    var fileUrl = Url.Action(
+        "File",
+        "PdfDocuments",
+        new { id = Model.DocumentId });
+    var aiRemaining = Math.Max(0, Model.AiDailyLimit - Model.AiRequestsUsedToday);
+    var aiUsagePercent = Math.Min(
+        100,
+        Model.AiRequestsUsedToday * 100 / Model.AiDailyLimit);
 }
 
-@section Styles {
-    <link rel="stylesheet" href="~/css/pdf/pdf-base.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/pdf/pdf-reader.css" asp-append-version="true" />
-}
+<partial name="~/Views/Pdf/_PdfNav.cshtml" />
 
-<div class="pdf pdf-reader container-fluid"
-     data-reader-shell data-page-state-url="@pageStateUrl"
-     data-document-id="@Model.DocumentId" data-current-page="@Model.CurrentPage"
-     data-page-count="@Model.PageCount" data-shared="@isShared.ToString().ToLowerInvariant()">
-    @if (!isShared)
-    {
-        <input type="checkbox" id="pdf-note-toggle" class="visually-hidden" checked />
-    }
-    <header class="pdf-reader-header">
-        <div class="pdf-reader-titlebar">
-            @if (isShared && Model.GroupId.HasValue)
-            {
-                <a class="pdf-reader-back" asp-controller="StudyGroups" asp-action="Details"
-                   asp-route-groupId="@Model.GroupId" asp-route-panel="resources"
-                   title="Quay lại tài nguyên nhóm" aria-label="Quay lại tài nguyên nhóm"><i class="bi bi-arrow-left"></i></a>
-            }
-            else
-            {
-                <a class="pdf-reader-back" asp-controller="Pdf" asp-action="Index"
-                   title="Quay lại thư viện" aria-label="Quay lại thư viện"><i class="bi bi-arrow-left"></i></a>
-            }
-            <div>
-                <h1>@Model.Title</h1>
-                <p>@Model.FileName <span>·</span> @Model.PageCount trang @if (isShared) { <strong>· Chỉ xem</strong> }</p>
-            </div>
+<header class="pdf-head">
+    <div class="pdf-head-copy">
+        <span class="pdf-head-icon"><i class="bi bi-file-earmark-pdf"></i></span>
+        <div>
+            <p class="pdf-eyebrow">Trình đọc tài liệu</p>
+            <h1>@Model.Title</h1>
+            <p>@Model.FileName · trang @Model.CurrentPage/@Model.PageCount</p>
         </div>
-        <span class="pdf-reader-navigation-status" data-reader-nav-status role="status"></span>
-
-        @if (!isShared)
-        {
-            <div class="pdf-reader-header-actions">
-                <label for="pdf-note-toggle" class="btn btn-outline-primary btn-sm pdf-toggle-button"
-                       role="button" aria-controls="pdf-reader-note">
-                    <i class="bi bi-layout-sidebar-inset-reverse"></i>
-                    <span class="pdf-hide-label">Ẩn ghi chú</span><span class="pdf-show-label">Hiện ghi chú</span>
-                </label>
-            </div>
-        }
-    </header>
-
-
-    @if (TempData["Success"] is string success) { <div class="alert alert-success pdf-reader-alert" role="status">@success</div> }
-    @if (TempData["Error"] is string error) { <div class="alert alert-danger pdf-reader-alert" role="alert">@error</div> }
-
-    @if (isShared)
-    {
-        <div class="pdf-reader-view-only"><i class="bi bi-eye"></i> Tài liệu nhóm · Chế độ chỉ xem</div>
-    }
-
-    <div class="pdf-reader-grid @(isShared ? "is-view-only" : null)">
-        <main class="pdf-reader-frame">
-            <iframe id="pdf-pdf-viewer" title="Trình xem PDF: @Model.Title" src="@viewerUrl"></iframe>
-        </main>
-
-        @if (!isShared)
-        {
-            <aside class="pdf-reader-note" id="pdf-reader-note">
-                <div class="pdf-note-heading">
-                    <div><span>GHI CHÚ CÁ NHÂN</span><h2>Trang <strong data-note-page>@Model.CurrentPage</strong></h2></div>
-                    <i class="bi bi-pencil-square"></i>
-                </div>
-                <form asp-controller="PdfDocuments" asp-action="AutoSavePdfPageNote" method="post"
-                      class="pdf-note-form" data-pdf-autosave
-                      data-autosave-url="@Url.Action("AutoSavePdfPageNote", "PdfDocuments")">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="documentId" value="@Model.DocumentId" />
-                    <input type="hidden" name="pageNumber" value="@Model.CurrentPage" />
-                    <input type="hidden" name="versionToken" value="@Model.NoteVersionToken" />
-                    <label class="visually-hidden" for="pdf-page-note">Nội dung ghi chú</label>
-                    <textarea class="form-control" id="pdf-page-note" name="text"
-                              placeholder="Tóm tắt ý chính, công thức hoặc câu hỏi của trang này…"
-                              readonly="@Model.IsReadOnly">@Model.NoteText</textarea>
-                    @if (!Model.IsReadOnly)
-                    {
-                        <div class="pdf-autosave-line">
-                            <span class="small text-muted" data-autosave-status><i class="bi bi-cloud-check"></i> Mọi thay đổi sẽ tự động lưu.</span>
-                            <button class="btn btn-link btn-sm d-none" type="button" data-autosave-retry>Thử lại</button>
-                        </div>
-                    }
-                </form>
-            </aside>
-        }
     </div>
+
+    <a class="btn btn-outline-secondary"
+       asp-controller="Pdf"
+       asp-action="Folder"
+       asp-route-subjectId="@Model.UserSubjectId">
+        <i class="bi bi-folder2"></i> Về thư mục
+    </a>
+</header>
+
+<div class="pdf-reader">
+    <section class="pdf-viewer-shell">
+        <div class="pdf-pager">
+            <a class="btn btn-outline-secondary @(Model.CurrentPage == 1 ? "disabled" : "")"
+               asp-action="Reader"
+               asp-route-id="@Model.DocumentId"
+               asp-route-page="@(Model.CurrentPage - 1)">
+                Trang trước
+            </a>
+
+            <form method="get">
+                <span class="pdf-page-label">Trang</span>
+                <input name="page"
+                       type="number"
+                       min="1"
+                       max="@Model.PageCount"
+                       value="@Model.CurrentPage" />
+                <span class="pdf-page-label">/ @Model.PageCount</span>
+                <button class="btn btn-outline-light" type="submit">Mở</button>
+            </form>
+
+            <a class="btn btn-outline-secondary @(Model.CurrentPage == Model.PageCount ? "disabled" : "")"
+               asp-action="Reader"
+               asp-route-id="@Model.DocumentId"
+               asp-route-page="@(Model.CurrentPage + 1)">
+                Trang sau
+            </a>
+        </div>
+
+        <div class="pdf-page-canvas"
+             data-pdf-page
+             data-pdf-url="@fileUrl"
+             data-page-number="@Model.CurrentPage">
+            <div class="pdf-page-loading" role="status">
+                <span class="spinner-border spinner-border-sm"></span>
+                Đang tải trang @Model.CurrentPage...
+            </div>
+            <canvas hidden aria-label="@Model.Title, trang @Model.CurrentPage"></canvas>
+        </div>
+    </section>
+
+    <aside>
+        <div class="pdf-panel pdf-note-panel">
+            <div class="pdf-panel-title">
+                <i class="bi bi-bookmark-check"></i><h2>Ghi chú có nguồn</h2>
+            </div>
+
+            <div class="pdf-note-source">
+                <i class="bi bi-link-45deg"></i>
+                <span>Đang gắn với <strong>trang @Model.CurrentPage</strong>. Chuyển trang bằng thanh phía trên trước khi ghi chú.</span>
+            </div>
+
+            @if (Model.NotePages.Count > 0)
+            {
+                <div class="pdf-note-pages">
+                    <span>Trang đã ghi chú</span>
+                    <div>
+                        @foreach (var notePage in Model.NotePages)
+                        {
+                            <a class="@(notePage == Model.CurrentPage ? "active" : null)"
+                               asp-action="Reader"
+                               asp-route-id="@Model.DocumentId"
+                               asp-route-page="@notePage">@notePage</a>
+                        }
+                    </div>
+                </div>
+            }
+
+            <form class="pdf-note-form"
+                  asp-action="SaveNote"
+                  asp-route-id="@Model.DocumentId"
+                  method="post">
+                <input type="hidden"
+                       name="page"
+                       value="@Model.CurrentPage" />
+                <textarea name="content"
+                          maxlength="@PdfPolicy.MaxNoteLength"
+                          rows="12"
+                          placeholder="Ý chính, công thức hoặc câu hỏi ở trang @Model.CurrentPage...">@Model.NoteText</textarea>
+                <button class="pdf-primary-action" type="submit">
+                    <i class="bi bi-check2"></i> Lưu cho trang @Model.CurrentPage
+                </button>
+            </form>
+
+            @if (!string.IsNullOrWhiteSpace(Model.NoteText))
+            {
+                <form asp-action="SaveNote"
+                      asp-route-id="@Model.DocumentId"
+                      method="post"
+                      onsubmit="return confirm('Xóa toàn bộ ghi chú của trang này?');">
+                    <input type="hidden" name="page" value="@Model.CurrentPage" />
+                    <input type="hidden" name="content" value="" />
+                    <button class="btn btn-outline-danger w-100" type="submit">
+                        <i class="bi bi-trash3"></i> Xóa ghi chú trang này
+                    </button>
+                </form>
+            }
+        </div>
+
+        <details class="pdf-panel pdf-ai-panel">
+            <summary>
+                <span><i class="bi bi-stars"></i> Tóm tắt bằng Gemini</span>
+                <small>@Model.AiRequestsUsedToday/@Model.AiDailyLimit lượt hôm nay</small>
+            </summary>
+
+            <div class="pdf-ai-usage">
+                <div>
+                    <strong>Còn @aiRemaining lượt AI hôm nay</strong>
+                    <span>Mỗi lần chọn tối đa @PdfPolicy.MaxAiPagesPerRequest trang.</span>
+                </div>
+                <div class="progress" role="progressbar"
+                     aria-label="Lượt AI đã dùng"
+                     aria-valuenow="@Model.AiRequestsUsedToday"
+                     aria-valuemin="0"
+                     aria-valuemax="@Model.AiDailyLimit">
+                    <div class="progress-bar" style="width:@aiUsagePercent%"></div>
+                </div>
+                <small>Đọc lại kết quả đã cache không tính thêm lượt.</small>
+            </div>
+
+            <form class="pdf-range"
+                  asp-action="Analyze"
+                  asp-route-id="@Model.DocumentId"
+                  method="post">
+                <label>
+                    Từ trang
+                    <input name="fromPage"
+                           type="number"
+                           min="1"
+                           max="@Model.PageCount"
+                           value="@Model.CurrentPage" />
+                </label>
+
+                <label>
+                    Đến trang
+                    <input name="toPage"
+                           type="number"
+                           min="1"
+                           max="@Model.PageCount"
+                           value="@Model.CurrentPage" />
+                </label>
+
+                <button class="pdf-primary-action" type="submit">
+                    <i class="bi bi-stars"></i> Tạo bản nháp AI
+                </button>
+            </form>
+        </details>
+    </aside>
 </div>
 
-@section Scripts {
-    <script src="~/js/pdf/autosave.js" asp-append-version="true"></script>
-    <script src="~/js/pdf/reader-navigation.js" asp-append-version="true"></script>
-}
+<script type="module" src="~/js/pdf/page-viewer.js" asp-append-version="true"></script>

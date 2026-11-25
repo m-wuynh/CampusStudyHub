@@ -19,8 +19,7 @@ public sealed record SharedResourceData(
     string Kind,
     string Title,
     long OwnerUserId,
-    string OwnerName,
-    long? ShareId = null);
+    string OwnerName);
 public sealed record ResourceCardData(string Front, string Back);
 public sealed record SharedContentData(string Kind, string Title, string? Body, string? ExternalUrl,
     string? StorageKey, IReadOnlyList<ResourceCardData> Cards);

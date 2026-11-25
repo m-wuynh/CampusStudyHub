@@ -109,26 +109,12 @@
       'Chia sẻ');
   }
 
-  function sharePdfResource() {
-    const pdfs = (state.availableResources || [])
-      .filter(resource => resource.kind === 'Pdf');
-    if (!pdfs.length) throw new Error('Bạn chưa có PDF phù hợp để chia sẻ vào nhóm này.');
-
-    return openForm('Chia sẻ tài liệu',
-      select('resource', 'Tài liệu PDF', pdfs.map(resource =>
-        option(resource.id, resource.title)).join('')) +
-      '<p class="gl-meta">Nhóm chỉ nhận file PDF gốc. Ghi chú, tô sáng, nét vẽ và annotation cá nhân không được chia sẻ.</p>',
-      data => submitForm('Share', { kind: 'Pdf', id: data.get('resource') }),
-      'Chia sẻ');
-  }
-
   async function dispatch(b) {
     const action = b.dataset.glAction;
     const id = Number(b.dataset.id);
     if (action === 'refresh') return reload();
     if (!state) throw new Error('Không tải được dữ liệu học tập. Vui lòng tải lại trang.');
     if (action === 'flashcard-share') return shareFlashcardResource();
-    if (action === 'pdf-share') return sharePdfResource();
     const session = state.sessions.find(x => x.id === id);
     const assignment = state.assignments.find(x => x.id === id);
     const question = state.questions.find(x => x.id === id);
@@ -201,5 +187,5 @@
   });
   weekInput.addEventListener('change', () => reload('progress'));
   const counter = document.getElementById('gl-resource-count');
-  if (counter && state) counter.textContent = String(state.resources.filter(r => r.kind === 'Flashcard' || r.kind === 'Pdf').length);
+  if (counter && state) counter.textContent = String(state.resources.filter(r => r.kind === 'Flashcard').length);
 })();
