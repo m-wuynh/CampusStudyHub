@@ -34,6 +34,7 @@
                            class="calendar-form-input"
                            placeholder="Ví dụ: Học thêm Toán, Ngoại khóa..."
                            required
+                           maxlength="100"
                            autofocus
                            autocomplete="off" />
                     <div id="category-name-error" class="category-field-error text-danger d-none">
@@ -52,6 +53,7 @@
                     <textarea id="category-desc"
                               class="calendar-form-input category-textarea"
                               rows="3"
+                              maxlength="500"
                               placeholder="Ghi chú chi tiết về loại sự kiện này..."></textarea>
                     <div id="category-desc-error" class="category-field-error text-danger d-none">
                         <i class="bi bi-exclamation-circle"></i>
@@ -74,5 +76,82 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/calendar/categories.js" asp-append-version="true"></script>
+<script>
+    /* ========================================================
+       VALIDATE VÀ XỬ LÝ TẠO LOẠI SỰ KIỆN TRỰC TIẾP TRONG VIEW
+       ======================================================== */
+    document.addEventListener('DOMContentLoaded', function() {
+        var form = document.getElementById('form-create-category');
+        var nameInput = document.getElementById('category-name');
+        var descInput = document.getElementById('category-desc');
+        var nameError = document.getElementById('category-name-error');
+
+        // Tắt thông báo lỗi đỏ khi người dùng gõ
+        if (nameInput) {
+            nameInput.addEventListener('input', function() {
+                nameInput.classList.remove('is-invalid');
+                if (nameError) nameError.classList.add('d-none');
+            });
+        }
+
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                // Bước 1: Lấy dữ liệu
+                var nameVal = nameInput ? nameInput.value.trim() : '';
+                var descVal = descInput ? descInput.value.trim() : '';
+
+                // Bước 2 (VALIDATE): Tên loại sự kiện bắt buộc nhập
+                if (!nameVal) {
+                    nameInput.classList.add('is-invalid');
+                    var span = nameError.querySelector('.category-error-text');
+                    if (span) span.textContent = 'Vui lòng nhập tên loại sự kiện!';
+                    nameError.classList.remove('d-none');
+                    nameInput.focus();
+                    return;
+                }
+
+                // Bước 3 (VALIDATE): Không vượt quá 100 ký tự
+                if (nameVal.length > 100) {
+                    nameInput.classList.add('is-invalid');
+                    var span = nameError.querySelector('.category-error-text');
+                    if (span) span.textContent = 'Tên loại sự kiện không được vượt quá 100 ký tự!';
+                    nameError.classList.remove('d-none');
+                    nameInput.focus();
+                    return;
+                }
+
+                // Bước 4: Gửi dữ liệu lên Server
+                var btn = document.getElementById('btn-save-category');
+                if (btn) btn.disabled = true;
+
+                try {
+                    var res = await fetch('/Calendar/Categories/Create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ Name: nameVal, Description: descVal })
+                    });
+
+                    if (res.ok) {
+                        if (window.showToast) window.showToast('Tạo loại sự kiện thành công!', 'success');
+                        setTimeout(function() {
+                            window.location.href = '/Calendar/Categories';
+                        }, 500);
+                    } else {
+                        var errData = await res.json().catch(function() { return {}; });
+                        var msg = errData.error || 'Có lỗi xảy ra khi tạo loại sự kiện.';
+                        if (window.showToast) window.showToast(msg, 'error');
+                        else alert(msg);
+                    }
+                } catch (err) {
+                    if (window.showToast) window.showToast('Lỗi kết nối máy chủ!', 'error');
+                    else alert('Lỗi kết nối máy chủ!');
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
+            });
+        }
+    });
+</script>
 }
