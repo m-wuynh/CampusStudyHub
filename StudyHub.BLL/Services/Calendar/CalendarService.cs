@@ -92,6 +92,12 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         return list.Select(r => r.Minutes).ToList();
     }
 
+    private static string NormalizeDbEventType(string? type)
+    {
+        var t = type?.Trim();
+        return string.IsNullOrWhiteSpace(t) ? "Tự học" : t;
+    }
+
     public async Task<ScheduleEventDto> CreateEventAsync(long userId, CreateEventDto request)
     {
         var startLocal = request.Date.ToDateTime(request.StartTime);
@@ -106,7 +112,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         {
             UserId = userId,
             Title = request.Title,
-            EventType = request.EventType,
+            EventType = NormalizeDbEventType(request.EventType),
             StartAtLocal = startLocal,
             EndAtLocal = endLocal,
             TimeZoneId = "SE Asia Standard Time",
@@ -199,7 +205,7 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
         var entity = await repository.FirstOrDefaultAsync<ScheduleEvent>(e => e.ScheduleEventId == request.Id && e.UserId == userId && !e.IsDeleted);
         if (entity == null) throw new KeyNotFoundException("Sự kiện không tồn tại.");
         entity.Title = request.Title;
-        entity.EventType = request.EventType;
+        entity.EventType = NormalizeDbEventType(request.EventType);
         entity.StartAtLocal = startDateTime;
         entity.EndAtLocal = endDateTime;
         entity.Location = request.Location;
@@ -333,6 +339,141 @@ public sealed class CalendarService(IRepository repository) : ICalendarService
                 e.GoalId,
                 e.IsCompleted
             )).ToList();
+    }
+
+    public async Task<List<CalendarCategoryDto>> GetCategoriesAsync(long userId)
+    {
+        var categories = await repository.ListAsync<CalendarCategory>(c => c.UserId == userId);
+
+        if (categories.Count == 0)
+        {
+            var defaults = new List<CalendarCategory>
+            {
+                new() { UserId = userId, Name = "Tự học", Description = "Các ca tự học cá nhân, ôn bài tại nhà", IsDefault = true, CreatedAtUtc = DateTime.UtcNow, UpdatedAtUtc = DateTime.UtcNow },
+                new() { UserId = userId, Name = "Bài tập / Nộp bài", Description = "Làm bài tập về nhà, nộp báo cáo, bài tập nhóm", IsDefault = true, CreatedAtUtc = DateTime.UtcNow, UpdatedAtUtc = DateTime.UtcNow },
+                new() { UserId = userId, Name = "Kiểm tra / Thi", Description = "Các bài kiểm tra định kỳ 15p, 1 tiết, thi học kỳ", IsDefault = true, CreatedAtUtc = DateTime.UtcNow, UpdatedAtUtc = DateTime.UtcNow },
+                new() { UserId = userId, Name = "Học nhóm", Description = "Các buổi học cùng bạn bè, học nhóm trên lớp", IsDefault = true, CreatedAtUtc = DateTime.UtcNow, UpdatedAtUtc = DateTime.UtcNow }
+            };
+
+            await repository.AddRangeAsync(defaults);
+            await repository.SaveChangesAsync();
+            categories = defaults;
+        }
+
+        var events = await repository.ListAsync<ScheduleEvent>(e => e.UserId == userId && !e.IsDeleted);
+
+        return categories
+            .OrderByDescending(c => c.IsDefault)
+            .ThenBy(c => c.Name)
+            .Select(c =>
+            {
+                var count = events.Count(e =>
+                    string.Equals(e.EventType, c.Name, StringComparison.OrdinalIgnoreCase));
+
+                return new CalendarCategoryDto(c.CategoryId, c.Name, c.Description, c.IsDefault, count);
+            })
+            .ToList();
+    }
+
+    public async Task<CalendarCategoryDto> CreateCategoryAsync(long userId, SaveCalendarCategoryDto request)
+    {
+        var name = (request.Name ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Tên loại sự kiện không được để trống.");
+
+        var existing = await repository.FirstOrDefaultAsync<CalendarCategory>(c =>
+            c.UserId == userId && c.Name.ToLower() == name.ToLower());
+
+        if (existing != null)
+            throw new InvalidOperationException("Loại sự kiện này đã tồn tại.");
+
+        var entity = new CalendarCategory
+        {
+            UserId = userId,
+            Name = name,
+            Description = request.Description?.Trim(),
+            IsDefault = false,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+
+        await repository.AddAsync(entity);
+        await repository.SaveChangesAsync();
+
+        return new CalendarCategoryDto(entity.CategoryId, entity.Name, entity.Description, entity.IsDefault, 0);
+    }
+
+    public async Task UpdateCategoryAsync(long userId, long categoryId, SaveCalendarCategoryDto request)
+    {
+        var name = (request.Name ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Tên loại sự kiện không được để trống.");
+
+        var category = await repository.FirstOrDefaultAsync<CalendarCategory>(c =>
+            c.CategoryId == categoryId && c.UserId == userId);
+
+        if (category == null)
+            throw new KeyNotFoundException("Không tìm thấy loại sự kiện cần chỉnh sửa.");
+
+        var duplicate = await repository.FirstOrDefaultAsync<CalendarCategory>(c =>
+            c.UserId == userId && c.CategoryId != categoryId && c.Name.ToLower() == name.ToLower());
+
+        if (duplicate != null)
+            throw new InvalidOperationException("Tên loại sự kiện đã được sử dụng.");
+
+        var oldName = category.Name;
+        category.Name = name;
+        category.Description = request.Description?.Trim();
+        category.UpdatedAtUtc = DateTime.UtcNow;
+
+        repository.Update(category);
+
+        if (!string.Equals(oldName, name, StringComparison.OrdinalIgnoreCase))
+        {
+            var affectedEvents = await repository.ListAsync<ScheduleEvent>(e =>
+                e.UserId == userId && !e.IsDeleted && e.EventType == oldName);
+
+            foreach (var ev in affectedEvents)
+            {
+                ev.EventType = NormalizeDbEventType(name);
+                ev.UpdatedAtUtc = DateTime.UtcNow;
+                repository.Update(ev);
+            }
+        }
+
+        await repository.SaveChangesAsync();
+    }
+
+    public async Task DeleteCategoryAsync(long userId, long categoryId)
+    {
+        var category = await repository.FirstOrDefaultAsync<CalendarCategory>(c =>
+            c.CategoryId == categoryId && c.UserId == userId);
+
+        if (category == null)
+            throw new KeyNotFoundException("Không tìm thấy loại sự kiện cần xóa.");
+
+        var totalCategories = await repository.CountAsync<CalendarCategory>(c => c.UserId == userId);
+        if (totalCategories <= 1)
+            throw new InvalidOperationException("Hệ thống phải có ít nhất một loại sự kiện, không thể xóa loại cuối cùng.");
+
+        var fallbackCategory = await repository.FirstOrDefaultAsync<CalendarCategory>(c =>
+            c.UserId == userId && c.CategoryId != categoryId);
+        var fallbackName = fallbackCategory?.Name ?? "Tự học";
+
+        var catName = category.Name;
+        var catNameLower = catName.ToLower();
+        var affectedEvents = await repository.ListAsync<ScheduleEvent>(e =>
+            e.UserId == userId && !e.IsDeleted && e.EventType.ToLower() == catNameLower);
+
+        foreach (var ev in affectedEvents)
+        {
+            ev.EventType = NormalizeDbEventType(fallbackName);
+            ev.UpdatedAtUtc = DateTime.UtcNow;
+            repository.Update(ev);
+        }
+
+        repository.Remove(category);
+        await repository.SaveChangesAsync();
     }
 }
 

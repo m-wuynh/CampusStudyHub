@@ -6,23 +6,20 @@
 
     string EventTypeLabel(string? type) => type switch
     {
-        "Exam" => "Kiểm tra",
-        "Class" => "Lịch học",
-        "Other" => "Bài tập",
-        _ => "Tự học"
+        "Kiểm tra / Thi"    => "Kiểm tra",
+        "Học nhóm"          => "Lịch học",
+        "Bài tập / Nộp bài" => "Bài tập",
+        _                   => string.IsNullOrWhiteSpace(type) ? "Tự học" : type
     };
     string EventTypePill(string? type) => type switch
     {
-        "Exam" => "is-rose",
-        "Class" => "is-emerald",
-        "Other" => "is-amber",
-        _ => ""
+        "Kiểm tra / Thi"    => "is-rose",
+        "Học nhóm"          => "is-emerald",
+        "Bài tập / Nộp bài" => "is-amber",
+        _                   => ""
     };
 
-    int weeklyTotal = Model.WeeklyTotalEvents;
-    int weeklyCompleted = Model.WeeklyCompletedEvents;
-    int weeklyMissed = Model.WeeklyMissedEvents;
-    int weeklyPct = weeklyTotal == 0 ? 0 : (weeklyCompleted * 100) / weeklyTotal;
+
 }
 
 <link rel="stylesheet" href="~/css/violet-theme.css" asp-append-version="true" />
@@ -126,40 +123,7 @@
     </div>
   </div>
 
-  <!-- ── 3. Hiệu suất tuần ── -->
-  <div class="mb-4">
-    <div class="sv-section-head">
-      <div>
-        <h3 class="sv-section-title">Hiệu suất học tập </h3>
-				<p class="sv-section-sub">Hãy kiên trì thêm một chút, thành quả đang ở phía trước!</p>
-      </div>
-    </div>
-    <div class="row g-3">
-      <div class="col-12 col-md-6">
-        <div class="sv-stat">
-          <span class="sv-stat-icon is-emerald"><i class="bi bi-check-circle-fill"></i></span>
-          <div class="sv-stat-body">
-            <p class="sv-stat-label">Ca đã hoàn thành</p>
-            <p class="sv-stat-value is-big">@weeklyCompleted<span style="font-size:12px; color:var(--sh-slate-400); font-weight:500;"> / @weeklyTotal ca</span></p>
-            <div class="d-flex align-items-center gap-2 mt-2">
-              <div class="sv-progress flex-grow-1"><span class="is-emerald" style="width:@weeklyPct%;"></span></div>
-              <span style="font-size:11px; font-weight:700; color:var(--sh-emerald-600);">@weeklyPct%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-md-6">
-        <div class="sv-stat">
-          <span class="sv-stat-icon is-rose"><i class="bi bi-exclamation-triangle-fill"></i></span>
-          <div class="sv-stat-body">
-            <p class="sv-stat-label">Ca học bị bỏ lỡ</p>
-            <p class="sv-stat-value is-big" style="color:var(--sh-rose-600);">@weeklyMissed<span style="font-size:12px; color:var(--sh-slate-400); font-weight:500;"> ca học</span></p>
-            <p class="sv-stat-sub">Quá thời gian</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+
 
   <!-- ── 4. Mục tiêu học tập + Lịch hôm nay ── -->
   <div class="row g-4 mb-4">

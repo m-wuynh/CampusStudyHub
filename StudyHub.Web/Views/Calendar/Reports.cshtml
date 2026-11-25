@@ -1,0 +1,257 @@
+@model StudyHub.Web.ViewModels.Calendar.CalendarReportsViewModel
+@{
+    ViewData["Title"]        = "Báo cáo & Thống kê học tập";
+    ViewData["PageTitle"]    = "Báo cáo & Thống kê";
+    ViewData["PageSubtitle"] = "Theo dõi tiến độ, hiệu suất và nhận lời khuyên học tập thông minh";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/calendar/reports.css" asp-append-version="true" />
+}
+
+<div class="reports-container">
+    <!-- Breadcrumb back link -->
+    <a href="/Calendar" class="reports-back-link">
+        <i class="bi bi-arrow-left"></i>
+        <span>Quay lại Lịch học</span>
+    </a>
+
+    <!-- Header Section with Time Filters -->
+    <div class="reports-header">
+        <div class="reports-header-left">
+            <div class="reports-header-icon">
+                <i class="bi bi-bar-chart-line-fill"></i>
+            </div>
+            <div>
+                <h1 class="reports-title">Báo cáo &amp; Thống kê học tập</h1>
+                <p class="reports-subtitle">Phân tích chuyên sâu thời khóa biểu, tỷ lệ hoàn thành và nhận định học tập</p>
+            </div>
+        </div>
+
+        <div class="reports-filter-group">
+            <div class="reports-filter-tabs">
+                <button type="button" class="reports-tab-btn @(Model.Range == "this-week" ? "active" : "")" data-range="this-week">
+                    Tuần này
+                </button>
+
+                <button type="button" class="reports-tab-btn @(Model.Range == "this-month" ? "active" : "")" data-range="this-month">
+                    Tháng này
+                </button>
+				<button type="button" class="reports-tab-btn @(Model.Range == "this-year" ? "active" : "")" data-range="this-year">
+					Năm này
+				</button>
+            </div>
+            <div class="reports-range-indicator">
+                <i class="bi bi-calendar-range"></i>
+                <span id="reports-date-range">@Model.DateRangeText</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="reports-content-area">
+        <!-- ──  Thẻ chỉ số tổng quan (KPIs học tập) ── -->
+        <div class="reports-section-title-wrap">
+            <h2 class="reports-section-title"> Thẻ chỉ số tổng quan (KPIs học tập)</h2>
+        </div>
+
+        <div class="row g-3 g-md-4 mb-4">
+            <!-- KPI 1: Tổng số ca học -->
+            <div class="col-12 col-md-4">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-card-top">
+                            <span class="kpi-card-label">Tổng số ca học</span>
+                            <div class="kpi-icon-wrap kpi-icon-indigo">
+                                <i class="bi bi-calendar3"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-card-value">
+                            <span id="kpi-total-events">@Model.TotalEvents</span>
+                            <span class="kpi-card-unit">ca</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="kpi-card-sub">
+                            <span>Trung bình</span>
+                            <span id="kpi-avg-day" class="kpi-card-sub-highlight">@Model.AvgPerDay</span>
+                            <span>ca/ngày</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI 2: Tỷ lệ hoàn thành -->
+            <div class="col-12 col-md-4">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-card-top">
+                            <span class="kpi-card-label">Tỷ lệ hoàn thành</span>
+                            <div class="kpi-icon-wrap kpi-icon-emerald">
+                                <i class="bi bi-check2-circle"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-card-value">
+                            <span id="kpi-completion-pct">@Model.CompletionPct</span>
+                            <span class="kpi-card-unit">%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="kpi-card-sub">
+                            <span id="kpi-completed-events" class="kpi-card-sub-highlight">@Model.CompletedEvents</span>
+                            <span>/</span>
+                            <span id="kpi-total-events-sub">@Model.TotalEvents</span>
+                            <span>ca hoàn thành</span>
+                        </p>
+                        <div class="kpi-progress-track">
+                            <div id="kpi-progress-fill" class="kpi-progress-fill" data-initial-pct="@Model.CompletionPct"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI 3: Ca học quá hạn -->
+            <div class="col-12 col-md-4">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-card-top">
+                            <span class="kpi-card-label">Ca học quá hạn</span>
+                            <div class="kpi-icon-wrap kpi-icon-rose">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-card-value">
+                            <span id="kpi-missed-events">@Model.MissedEvents</span>
+                            <span class="kpi-card-unit">ca</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p id="kpi-missed-sub" class="kpi-card-sub @(Model.MissedEvents > 0 ? "kpi-card-sub-rose" : "")">
+                            @(Model.MissedEvents > 0 ? "Nhắc nhở học sinh cần bổ sung lại kiến thức" : "Tuyệt vời! Không có ca quá hạn nào")
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION B: Thống kê theo Loại sự kiện (Category Breakdown Table) ── -->
+        <div class="reports-section-title-wrap mt-4 mb-3">
+            <h2 class="reports-section-title">Thống kê theo Loại sự kiện</h2>
+            <span class="reports-section-badge">Bảng phân tích chi tiết</span>
+        </div>
+
+        <div class="reports-table-card mb-4 shadow-sm">
+            <div class="table-responsive">
+                <table class="table reports-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="col-cat-name">Loại sự kiện</th>
+                            <th class="col-cat-total text-center">Số ca học</th>
+                            <th class="col-cat-share text-center">Tỷ trọng</th>
+                            <th class="col-cat-completion">Tiến độ hoàn thành</th>
+                            <th class="col-cat-missed text-center">Quá hạn</th>
+                            <th class="col-cat-status text-center">Đánh giá</th>
+                        </tr>
+                    </thead>
+                    <tbody id="category-stats-tbody">
+                        @if (Model.CategoryStats.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox me-1"></i> Chưa có dữ liệu loại sự kiện.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var cat in Model.CategoryStats)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="reports-table-dot"></span>
+                                            <span class="fw-semibold text-dark">@cat.CategoryName</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold text-dark">@cat.TotalEvents</span>
+                                        <span class="text-muted small">ca</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-light text-secondary border">@cat.PercentageOfTotal%</span>
+                                    </td>
+                                    <td>
+                                        <div class="reports-table-prog-wrap">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="small text-muted">
+                                                    <strong class="text-dark">@cat.CompletedEvents</strong>/@cat.TotalEvents ca
+                                                </span>
+                                                <span class="small fw-bold text-primary">@cat.CompletionPct%</span>
+                                            </div>
+                                            <div class="reports-table-prog-track">
+                                                <div class="reports-table-prog-fill" data-pct="@cat.CompletionPct"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (cat.MissedEvents > 0)
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger fw-semibold">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>@cat.MissedEvents ca
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">—</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge category-stat-badge category-badge-@cat.StatusBadgeType">
+                                            @cat.StatusBadge
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── SECTION C: Đánh giá & Lời khuyên học tập thông minh (Smart Insight) ── -->
+        <div class="insight-card">
+            <div class="insight-top-bar">
+                <div class="insight-header-title">
+                    <div class="insight-sparkle-icon">
+                        <i class="bi bi-stars"></i>
+                    </div>
+                    <div>
+                        <h3 class="insight-heading"> Đánh giá &amp; Lời khuyên học tập </h3>
+                    </div>
+                </div>
+                <span id="insight-badge" class="badge insight-badge insight-badge-@Model.InsightBadgeType">
+                    @Model.InsightBadge
+                </span>
+            </div>
+
+            <div class="insight-content">
+                <h4 id="insight-title" class="insight-title-text">@Model.InsightTitle</h4>
+                <p id="insight-message" class="insight-body-text">@Model.InsightMessage</p>
+
+                <div class="insight-rec-box">
+                    <i class="bi bi-lightbulb-fill insight-rec-icon"></i>
+                    <div class="insight-rec-content">
+                        <div class="insight-rec-label">Lời khuyên dành cho bạn</div>
+                        <p id="insight-rec" class="insight-rec-text">@Model.InsightRecommendation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/calendar/reports.js" asp-append-version="true"></script>
+}

@@ -8,7 +8,7 @@
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/calendar.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/calendar/index.css" asp-append-version="true" />
 }
 
 <div id="calendar-view" class="calendar-view-container">
@@ -43,11 +43,21 @@
       </div>
     </div>
 
-    <!-- Add Event Button -->
-    <a href="/Calendar/Create" class="btn-hero-add text-decoration-none shadow-sm d-inline-flex align-items-center gap-2">
-      <i class="bi bi-plus-lg"></i>
-      <span>Thêm sự kiện</span>
-    </a>
+    <!-- Action Buttons -->
+    <div class="d-flex align-items-center gap-2">
+      <a href="/Calendar/Reports" class="btn-manage-categories text-decoration-none shadow-sm d-inline-flex align-items-center gap-1.5" title="Báo cáo & Thống kê học tập">
+        <i class="bi bi-bar-chart-line text-primary"></i>
+        <span>Báo cáo</span>
+      </a>
+      <a href="/Calendar/Categories" class="btn-manage-categories text-decoration-none shadow-sm d-inline-flex align-items-center gap-1.5" title="Quản lý Loại sự kiện">
+        <i class="bi bi-tags"></i>
+        <span>Loại sự kiện</span>
+      </a>
+      <a href="/Calendar/Create" class="btn-hero-add text-decoration-none shadow-sm d-inline-flex align-items-center gap-2">
+        <i class="bi bi-plus-lg"></i>
+        <span>Thêm sự kiện</span>
+      </a>
+    </div>
   </div>
 
   <!-- ROW 2: Hero Progress Banner (Purple Card) -->
@@ -65,26 +75,34 @@
 
       <!-- Percentage Big Text -->
       <div class="hero-card-percent fw-bold mb-3" id="calendar-progress-percent">
-        0% (0/0 ca)
+        @(Model.WeeklyProgress?.CompletionPct ?? 0)% (@(Model.WeeklyProgress?.CompletedEvents ?? 0)/@(Model.WeeklyProgress?.TotalEvents ?? 0) ca)
       </div>
 
       <!-- Progress Track & Bar -->
       <div class="hero-progress-track mb-3">
-        <div id="calendar-progress-bar" class="hero-progress-fill"></div>
+        <div id="calendar-progress-bar" class="hero-progress-fill" style="width: @(Model.WeeklyProgress?.CompletionPct ?? 0)%;"></div>
       </div>
 
       <!-- 3 Pill Badges -->
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <div class="hero-stat-pill" id="stat-completed-badge">
-          <i class="bi bi-check2 me-1 fs-6"></i><span>0 hoàn thành</span>
+          <i class="bi bi-check2 me-1 fs-6"></i><span>@(Model.WeeklyProgress?.CompletedEvents ?? 0) hoàn thành</span>
         </div>
         <div class="hero-stat-pill" id="stat-pending-badge">
-          <i class="bi bi-clock me-1"></i><span>0 sắp tới</span>
+          <i class="bi bi-clock me-1"></i><span>@(Model.WeeklyProgress?.UpcomingEvents ?? 0) sắp tới</span>
         </div>
         <div class="hero-stat-pill" id="stat-missed-badge">
-          <i class="bi bi-exclamation-triangle me-1"></i><span>0 quá hạn</span>
+          <i class="bi bi-exclamation-triangle me-1"></i><span>@(Model.WeeklyProgress?.MissedEvents ?? 0) quá hạn</span>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ROW 2.5: Filter Chips Bar (Bộ nút lọc nhanh theo Loại sự kiện) -->
+  <div class="calendar-filter-bar mb-3 d-flex align-items-center gap-2 flex-wrap">
+    <span class="filter-bar-label fw-semibold text-muted small"><i class="bi bi-funnel me-1"></i>Lọc theo loại:</span>
+    <div class="d-flex align-items-center gap-1.5 flex-wrap" id="calendar-filter-chips">
+      <button type="button" class="btn-filter-chip is-active" data-type="all">Tất cả</button>
     </div>
   </div>
 
@@ -157,8 +175,9 @@
   </div>
 </div>
 
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@@fullcalendar/core@6.1.15/locales/vi.global.min.js"></script>
-    <script src="~/js/calendar.js" asp-append-version="true"></script>
+    <script src="~/js/calendar/index.js" asp-append-version="true"></script>
 }

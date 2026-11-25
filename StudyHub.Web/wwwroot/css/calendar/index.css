@@ -1,0 +1,797 @@
+/* ========================================================
+   Calendar Module: Màn Lịch chính (Index)
+   Chứa toàn bộ CSS chuẩn đẹp cho màn Xem Thời khóa biểu & Kế hoạch
+   ======================================================== */
+
+/* FullCalendar Container & Layout */
+.calendar-view-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 30px;
+}
+
+.calendar-main-card {
+    background: #ffffff;
+    border: 1px solid #f1f3f4;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    position: relative;
+    min-height: 800px;
+    overflow: hidden;
+}
+
+.calendar-grid-container {
+    height: 100%;
+}
+
+/* FullCalendar Typography & Colors */
+.fc {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #3c4043;
+}
+
+/* Grid Borders */
+.fc-theme-standard th, 
+.fc-theme-standard td, 
+.fc-theme-standard .fc-scrollgrid {
+    border-color: #dadce0;
+}
+
+.fc-scrollgrid {
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+}
+
+/* Toolbar (Top Area) */
+.fc-header-toolbar {
+    padding: 16px 24px;
+    margin-bottom: 0 !important;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    align-items: center;
+}
+
+.fc-toolbar-title {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+    margin-left: 18px !important;
+}
+
+/* Toolbar Buttons */
+.fc-button-primary {
+    background-color: #fff !important;
+    color: #374151 !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 10px !important;
+    text-transform: capitalize;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+    padding: 6px 14px !important;
+    font-size: 13.5px !important;
+    transition: all 0.15s ease;
+}
+
+.fc-button-primary:hover {
+    background-color: #f9fafb !important;
+    border-color: #d1d5db !important;
+}
+
+.fc-today-button {
+    border-radius: 20px !important;
+    padding: 6px 20px !important;
+    margin-right: 14px !important;
+    font-weight: 600 !important;
+}
+
+/* Segmented View Switcher (Tuần / Ngày) in Right Toolbar */
+.fc-header-toolbar .fc-toolbar-chunk:last-child .fc-button-group {
+    background: #f3f4f6;
+    padding: 4px;
+    border-radius: 20px;
+    border: none;
+    display: inline-flex;
+    gap: 2px;
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:last-child .fc-button {
+    background: transparent !important;
+    border: none !important;
+    color: #6b7280 !important;
+    font-weight: 500 !important;
+    border-radius: 16px !important;
+    padding: 6px 20px !important;
+    box-shadow: none !important;
+    font-size: 13.5px !important;
+    transition: all 0.15s ease;
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:last-child .fc-button:hover {
+    color: #111827 !important;
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:last-child .fc-button.fc-button-active,
+.fc-header-toolbar .fc-toolbar-chunk:last-child .fc-button:active {
+    background: #ffffff !important;
+    color: #7c3aed !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Day Headers */
+.fc-col-header-cell {
+    padding: 12px 0 8px 0;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.fc-col-header-cell-cushion {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none !important;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Custom date number inside header */
+.sh-date-num {
+    font-size: 20px;
+    font-weight: 700;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    border-radius: 50%;
+    display: inline-block;
+    text-align: center;
+    margin-top: 4px;
+    color: #111827;
+}
+
+/* Highlight Today (Purple Circle) */
+.fc-day-today .fc-col-header-cell-cushion {
+    color: #7c3aed !important;
+    font-weight: 700 !important;
+}
+
+.fc-day-today .sh-date-num {
+    background-color: #7c3aed !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+}
+
+/* Time Axis (Y-Axis) & Slot Heights - chuẩn 80px */
+.fc-timegrid-axis-cushion {
+    font-size: 10px;
+    color: #70757a;
+    font-weight: 500;
+    padding: 8px !important;
+}
+
+.fc-timegrid-slot-label-cushion {
+    font-size: 11px;
+    color: #70757a;
+    text-transform: uppercase;
+    position: relative;
+    top: 0px;
+}
+
+.fc-timegrid-slot.fc-timegrid-slot-lane {
+    height: 80px !important; 
+}
+
+.fc-timegrid-slot.fc-timegrid-slot-label {
+    height: 80px !important;
+    vertical-align: top !important;
+}
+
+.fc-timegrid-slot-minor {
+    border-top-style: none !important;
+}
+
+.fc-timegrid-slot-label-cushion {
+    padding-top: 4px !important;
+}
+
+/* Fix event overflow onto time axis */
+.fc-timegrid-col-events {
+    margin: 0 !important;
+}
+
+.fc-timegrid-now-indicator-arrow {
+    display: none;
+}
+
+.fc-timegrid-event-harness {
+    margin-right: 2px !important;
+}
+
+/* Events on Grid - Chuẩn 3 màu trạng thái */
+.fc-event {
+    border: none !important;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fc-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    z-index: 10 !important;
+}
+
+.fc-timegrid-event {
+    padding: 2px 4px;
+}
+
+.event-state-pending { 
+    background: #1a73e8 !important; 
+    color: #ffffff !important; 
+}
+
+.event-state-completed { 
+    background: #1e8e3e !important; 
+    color: #ffffff !important; 
+}
+
+.event-state-completed .fc-event-title {
+    text-decoration: line-through;
+}
+
+.event-state-missed { 
+    background: #d93025 !important; 
+    color: #ffffff !important; 
+}
+
+.fc-v-event .fc-event-title {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.fc-v-event .fc-event-time {
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+.event-completed {
+    background-color: rgba(30, 142, 62, 0.15) !important;
+    color: #1e8e3e !important;
+    text-decoration: line-through;
+    opacity: 0.8;
+    border-left: 3px solid #1e8e3e !important;
+}
+
+.event-search-dimmed {
+    opacity: 0.25 !important;
+    filter: grayscale(60%) !important;
+    transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.event-search-match {
+    opacity: 1 !important;
+    box-shadow: 0 0 0 2px #7c3aed, 0 4px 10px rgba(124, 58, 237, 0.35) !important;
+    z-index: 5 !important;
+    transition: all 0.2s ease;
+}
+
+.event-category-hidden {
+    display: none !important;
+}
+
+@keyframes eventHighlightPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7); }
+    50% { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+}
+
+.event-pulse {
+    animation: eventHighlightPulse 1s ease-in-out 3;
+    z-index: 20 !important;
+}
+
+/* ========================================================
+   Nút Thêm sự kiện & Quản lý loại trên Header
+   ======================================================== */
+.btn-hero-add {
+    background-color: #7c3aed;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 26px;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    border: none;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+
+.btn-hero-add:hover {
+    background-color: #6d28d9;
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+    transform: translateY(-1px);
+    color: #ffffff !important;
+}
+
+.btn-manage-categories {
+    background: #ffffff;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13.5px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+
+.btn-manage-categories:hover {
+    background: #f9fafb;
+    color: #7c3aed;
+    border-color: #d1d5db;
+}
+
+/* ========================================================
+   Thanh tìm kiếm Live Search
+   ======================================================== */
+.calendar-search-wrapper {
+    width: 100%;
+    position: relative;
+}
+
+.calendar-search-max {
+    max-width: 680px;
+}
+
+.calendar-search-input-group {
+    position: relative;
+    width: 100%;
+}
+
+.calendar-search-input-group .search-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #2563eb;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.calendar-search-input {
+    width: 100%;
+    height: 48px;
+    padding: 8px 42px 8px 48px;
+    font-size: 14.5px;
+    font-weight: 400;
+    color: #1f2937;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    outline: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease-in-out;
+}
+
+.calendar-search-input:hover {
+    border-color: #d1d5db;
+}
+
+.calendar-search-input:focus {
+    background-color: #ffffff;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+.calendar-search-clear {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #9ca3af !important;
+    cursor: pointer;
+    z-index: 2;
+    line-height: 1;
+}
+
+.calendar-search-clear:hover {
+    color: #374151 !important;
+}
+
+.calendar-search-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    max-height: 420px;
+    overflow-y: auto;
+    background-color: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+    z-index: 1080;
+}
+
+.search-dropdown-header {
+    background-color: #f9fafb;
+    border-bottom: 1px solid #f3f4f6;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.search-esc-badge {
+    font-size: 10px;
+}
+
+.calendar-search-results-list {
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    padding: 12px 18px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover {
+    background-color: #f9fafb;
+}
+
+.search-result-item.active {
+    background-color: #f5f3ff;
+}
+
+.result-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+
+.calendar-search-item-title {
+    font-size: 13.5px;
+}
+
+.calendar-search-item-badge {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.calendar-search-item-meta {
+    font-size: 11.5px;
+}
+
+.calendar-search-type-badge {
+    font-size: 10px;
+}
+
+.calendar-search-loc {
+    font-size: 11.5px;
+}
+
+/* ========================================================
+   Hero Progress Banner (Purple Card)
+   ======================================================== */
+.calendar-hero-card {
+    background: #7c3aed;
+    border-radius: 24px;
+    padding: 26px 32px;
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.2);
+    position: relative;
+}
+
+.hero-watermark-star {
+    position: absolute;
+    right: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 170px;
+    height: 170px;
+    color: rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.hero-card-z2 {
+    position: relative;
+    z-index: 2;
+}
+
+.hero-card-title {
+    font-size: 14.5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.88);
+    letter-spacing: 0.1px;
+}
+
+.hero-card-percent {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+}
+
+.hero-progress-track {
+    width: 100%;
+    max-width: 440px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.28);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.hero-progress-fill {
+    height: 100%;
+    background: #ffffff;
+    border-radius: 10px;
+    transition: width 0.4s ease;
+}
+
+.hero-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(4px);
+    color: #ffffff;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    user-select: none;
+    transition: background-color 0.15s ease;
+}
+
+.hero-stat-pill:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ========================================================
+   Filter Chips Bar
+   ======================================================== */
+.calendar-filter-bar {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 10px 18px;
+}
+
+.filter-bar-label {
+    color: #64748b;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.btn-filter-chip {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    line-height: 1.4;
+}
+
+.btn-filter-chip:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    border-color: #cbd5e1;
+}
+
+.btn-filter-chip.is-active {
+    background: #7c3aed;
+    color: #ffffff;
+    border-color: #7c3aed;
+    box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
+    font-weight: 600;
+}
+
+/* ========================================================
+   Event Popover Card
+   ======================================================== */
+.event-popover-card {
+    position: absolute;
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 8px;
+    width: 360px;
+    max-width: calc(100% - 20px);
+    max-height: calc(100% - 20px);
+    overflow-y: auto;
+    z-index: 1050;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: opacity 0.1s;
+}
+
+.btn-popover-complete {
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.btn-popover-icon {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    transition: all 0.15s ease;
+}
+
+.btn-popover-icon:hover {
+    background-color: #f1f5f9;
+    color: #1e293b;
+}
+
+.popover-color-box {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    margin-top: 6px;
+    flex-shrink: 0;
+}
+
+.popover-title-text {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #3c4043;
+}
+
+.popover-time-text {
+    font-size: 0.82rem;
+}
+
+.popover-body-details {
+    font-size: 0.88rem;
+}
+
+.popover-row-hidden {
+    display: none !important;
+}
+
+.popover-desc-text {
+    white-space: pre-wrap;
+    color: #3c4043;
+}
+
+.popover-text-dark {
+    color: #3c4043;
+}
+
+.popover-check-input {
+    cursor: pointer;
+}
+
+.popover-check-label {
+    cursor: pointer;
+    color: #3c4043;
+    user-select: none;
+}
+
+/* ========================================================
+   Tính năng Sao chép & Dán sự kiện (Copy & Paste)
+   ======================================================== */
+.fc-event {
+    position: relative;
+}
+
+.fc-event-copy-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    color: #334155;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    z-index: 5;
+    transition: all 0.15s ease;
+}
+
+.fc-event:hover .fc-event-copy-btn {
+    display: flex;
+}
+
+.fc-event-copy-btn:hover {
+    background: #ffffff;
+    color: #6366f1;
+    transform: scale(1.1);
+}
+
+.calendar-copying-active .fc-timegrid-slot,
+.calendar-copying-active .fc-daygrid-day {
+    cursor: copy !important;
+}
+
+.calendar-cursor-follower {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(14px, 14px);
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    display: none;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    user-select: none;
+    transition: opacity 0.15s ease;
+}
+
+.calendar-paste-banner {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 50px;
+    z-index: 1060;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    animation: pasteSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    font-size: 13px;
+}
+
+@keyframes pasteSlideUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.paste-banner-title {
+    max-width: 220px;
+    display: inline-block;
+}
+
+

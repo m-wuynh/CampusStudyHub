@@ -116,24 +116,24 @@ public sealed class DashboardController(
 
                 string typeLabel = ev.EventType switch
                 {
-                    "Exam" => "Kiểm tra",
-                    "Class" => "Lịch học",
-                    "Other" => "Bài tập",
-                    _ => "Tự học"
+                    "Kiểm tra / Thi"    => "Kiểm tra",
+                    "Học nhóm"          => "Lịch học",
+                    "Bài tập / Nộp bài" => "Bài tập",
+                    _                   => ev.EventType ?? "Tự học"
                 };
 
                 string badgeCss = ev.EventType switch
                 {
-                    "Exam" => "exam",
-                    "Class" => "group",
-                    "Other" => "homework",
-                    _ => "study"
+                    "Kiểm tra / Thi"    => "exam",
+                    "Học nhóm"          => "group",
+                    "Bài tập / Nộp bài" => "homework",
+                    _                   => "study"
                 };
 
                 var dto = new UpcomingEventSummaryDto(
                     ev.Id,
                     ev.Title,
-                    ev.EventType,
+                    ev.EventType ?? "Tự học",
                     typeLabel,
                     badgeCss,
                     startDt.ToString("dd/MM/yyyy"),
@@ -153,8 +153,8 @@ public sealed class DashboardController(
         var nextEvent = upcomingSummary.FirstOrDefault();
 
         // ── 4. Weekly Performance Widget Calculation ──────────────────
-        int diff = (7 + (now.DayOfWeek - DayOfWeek.Monday)) % 7;
-        var startOfWeek = today.AddDays(-1 * diff);
+        int diff = (int)now.DayOfWeek;
+        var startOfWeek = today.AddDays(-diff);
         var endOfWeek = startOfWeek.AddDays(6);
 
         var weeklyCandidateEvents = await calendarService.GetEventsAsync(userId, startOfWeek, endOfWeek);

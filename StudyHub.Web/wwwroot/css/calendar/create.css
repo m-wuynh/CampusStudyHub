@@ -1,0 +1,240 @@
+/* ========================================================
+   Calendar Module: Màn Thêm ca học (Create)
+   Chứa toàn bộ CSS cho form tạo sự kiện / lịch học mới
+   ======================================================== */
+
+.calendar-form-container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding-bottom: 40px;
+}
+
+/* Purple Hero Banner */
+.calendar-hero-card {
+    background: #7c3aed;
+    border-radius: 24px;
+    padding: 26px 32px;
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.2);
+    position: relative;
+}
+
+.calendar-hero-card-sm {
+    border-radius: 20px 20px 0 0;
+    padding: 24px 28px;
+}
+
+.hero-watermark-star {
+    position: absolute;
+    right: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 170px;
+    height: 170px;
+    color: rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.hero-watermark-star-sm {
+    width: 120px;
+    height: 120px;
+    right: 28px;
+}
+
+.hero-card-z2 {
+    position: relative;
+    z-index: 2;
+}
+
+.hero-back-link {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    transition: color 0.15s ease;
+}
+
+.hero-back-link:hover {
+    color: #ffffff;
+}
+
+.hero-heading-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hero-subtitle-text {
+    font-size: 13.5px;
+    color: rgba(255, 255, 255, 0.82);
+    margin-bottom: 0;
+}
+
+/* Form Card Container */
+.calendar-form-card {
+    background: #ffffff;
+    border-radius: 0 0 20px 20px;
+    border: 1px solid #e5e7eb;
+    border-top: none;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+.calendar-form-label {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.calendar-form-label i {
+    color: #7c3aed;
+    font-size: 15px;
+}
+
+.calendar-form-input {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 14px;
+    color: #1f2937;
+    background-color: #ffffff;
+    transition: all 0.15s ease;
+}
+
+.calendar-form-input:focus {
+    border-color: #7c3aed;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.calendar-field-error {
+    font-size: 12px;
+}
+
+/* Purple Notification & Reminder Row Styles */
+.notif-row-purple {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 12px;
+    transition: border-color 0.15s ease;
+}
+
+.notif-row-purple:hover {
+    border-color: #cbd5e1;
+}
+
+.notif-bell-icon {
+    color: #7c3aed;
+    font-size: 14px;
+}
+
+.notif-select-purple {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 13px;
+    color: #334155;
+    background: #ffffff;
+    outline: none;
+}
+
+.notif-select-purple:focus {
+    border-color: #7c3aed;
+}
+
+.notif-input-purple {
+    width: 65px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 13px;
+    text-align: center;
+    color: #334155;
+    background: #ffffff;
+    outline: none;
+}
+
+.notif-input-purple:focus {
+    border-color: #7c3aed;
+}
+
+.notif-remove-icon {
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.notif-remove-icon:hover {
+    transform: scale(1.15);
+}
+
+.btn-purple-add-notif {
+    background: transparent;
+    border: 1px dashed #7c3aed;
+    color: #7c3aed;
+    border-radius: 10px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.btn-purple-add-notif:hover {
+    background: #f5f3ff;
+    border-style: solid;
+}
+
+/* Action Buttons */
+.btn-purple-cancel {
+    background: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 8px 18px;
+    font-size: 13.5px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.btn-purple-cancel:hover {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+.btn-purple-primary {
+    background: #7c3aed;
+    color: #ffffff;
+    border: 1px solid #7c3aed;
+    border-radius: 10px;
+    padding: 8px 20px;
+    font-size: 13.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.btn-purple-primary:hover {
+    background: #6d28d9;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+}
