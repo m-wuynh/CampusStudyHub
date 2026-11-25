@@ -1,4 +1,4 @@
-using StudyHub.DAL.Repositories.StudyGroups.Models;
+using StudyHub.BLL.DTOs.StudyGroups;
 
 namespace StudyHub.Web.ViewModels.StudyGroups;
 

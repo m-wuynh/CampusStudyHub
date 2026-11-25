@@ -707,3 +707,138 @@
   .sv-table thead th,
   .sv-table tbody td { padding-left: 12px; padding-right: 12px; }
 }
+
+/* =====================================================================
+   Các màn tách riêng của Điểm số & Mục tiêu:
+   Tổng quan năm học, Mục tiêu (bộ lọc), Chi tiết môn, Hành trình, Phân tích
+   ===================================================================== */
+#grades-view .sv-tabs { flex-wrap: wrap; row-gap: 4px; }
+#grades-view .sv-tabs a.nav-link { text-decoration: none; display: inline-flex; align-items: center; min-height: 40px; }
+
+#grades-view .sv-card {
+  background: #fff;
+  border: 1px solid var(--sh-slate-200);
+  border-radius: var(--sv-radius);
+  box-shadow: var(--sv-shadow);
+  padding: 20px;
+  min-width: 0;
+}
+#grades-view .sv-card-title { font-size: 15px; font-weight: 700; color: var(--sv-ink); margin: 0 0 14px; }
+#grades-view .sv-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+#grades-view .sv-breadcrumb { font-size: 12px; color: var(--sh-slate-500); display: flex; flex-wrap: wrap; gap: 6px; }
+#grades-view .sv-breadcrumb a { color: var(--sv-700); text-decoration: none; font-weight: 600; }
+#grades-view .sv-breadcrumb a:hover { text-decoration: underline; }
+#grades-view .sv-subject-link { color: var(--sv-ink); text-decoration: none; }
+#grades-view .sv-subject-link:hover { color: var(--sv-700); text-decoration: underline; }
+#grades-view .sv-btn-sm { padding: 6px 12px; font-size: 12px; min-height: 36px; }
+
+/* Tổng quan năm học */
+#grades-view .sv-year-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+#grades-view .sv-year-card { display: flex; flex-direction: column; gap: 8px; }
+#grades-view .sv-year-avg span { font-size: 32px; font-weight: 700; color: var(--sv-ink); }
+#grades-view .sv-year-avg small { font-size: 12px; color: var(--sh-slate-500); margin-left: 6px; }
+#grades-view .sv-year-delta { font-size: 12px; font-weight: 600; color: var(--sh-slate-500); }
+#grades-view .sv-year-delta.is-up { color: var(--sh-emerald-700); }
+#grades-view .sv-year-delta.is-down { color: var(--sh-rose-700); }
+#grades-view .sv-year-meta { font-size: 12px; color: var(--sh-slate-600); }
+#grades-view .sv-progress > span.is-violet { background: var(--sv-600); }
+#grades-view .sv-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  min-height: 220px;
+  padding: 8px 8px 0;
+  border-bottom: 1px solid var(--sh-slate-200);
+  overflow-x: auto;
+}
+#grades-view .sv-bar-col {
+  flex: 1 1 60px;
+  min-width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--sh-slate-600);
+}
+#grades-view .sv-bar-col strong { color: var(--sv-ink); font-size: 13px; }
+#grades-view .sv-bar { width: 100%; max-width: 72px; border-radius: 8px 8px 0 0; background: var(--sv-500); }
+#grades-view .sv-bar-col span { padding-bottom: 8px; white-space: nowrap; }
+#grades-view .sv-attention {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--sh-amber-50);
+  color: var(--sv-ink);
+  text-decoration: none;
+  font-size: 13px;
+}
+#grades-view .sv-attention:hover { box-shadow: var(--sv-shadow-hover); color: var(--sv-ink); }
+#grades-view .sv-attention.is-late { background: var(--sh-rose-50); }
+#grades-view .sv-attention-sub { font-size: 12px; color: var(--sh-slate-600); margin-top: 2px; }
+
+/* Mục tiêu học tập: bộ lọc */
+#grades-view .sv-goal-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+#grades-view .sv-goal-filter {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--sh-slate-200);
+  background: #fff;
+  color: var(--sh-slate-700);
+  font-size: 13px;
+  font-weight: 600;
+}
+#grades-view .sv-goal-filter span {
+  display: inline-block;
+  min-width: 22px;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--sh-slate-100);
+  font-size: 11px;
+}
+#grades-view .sv-goal-filter:hover { border-color: var(--sv-400); color: var(--sv-700); }
+#grades-view .sv-goal-filter.active { background: var(--sv-600); border-color: var(--sv-600); color: #fff; }
+#grades-view .sv-goal-filter.active span { background: rgba(255, 255, 255, .25); }
+
+/* Chi tiết môn */
+#grades-view .sv-detail-table th { font-size: 11px; font-weight: 600; color: var(--sh-slate-500); text-transform: uppercase; letter-spacing: .04em; }
+#grades-view .sv-detail-table td { font-size: 13px; }
+#grades-view .sv-formula { background: var(--sh-slate-50); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--sh-slate-700); }
+#grades-view .sv-required-box { background: var(--sv-50); border-radius: 12px; padding: 14px 16px; }
+#grades-view .sv-required-label { font-size: 12px; font-weight: 600; color: var(--sv-700); }
+#grades-view .sv-required-value { font-size: 32px; font-weight: 700; color: var(--sv-800); line-height: 1.2; }
+#grades-view .sv-required-note { font-size: 12px; color: var(--sh-slate-600); }
+
+/* Hành trình mục tiêu (trang riêng) */
+#grades-view .sv-journey-page-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+#grades-view .sv-journey-col { min-width: 0; }
+
+/* Phân tích học tập */
+#grades-view .sv-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+#grades-view .sv-kpi-label { font-size: 12px; color: var(--sh-slate-500); }
+#grades-view .sv-kpi-value { font-size: 24px; font-weight: 700; color: var(--sv-ink); margin-top: 4px; }
+#grades-view .sv-kpi-sub { font-size: 12px; color: var(--sh-slate-500); }
+#grades-view .sv-track { position: relative; height: 12px; border-radius: 999px; background: var(--sv-100); }
+#grades-view .sv-track-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--sv-500); }
+#grades-view .sv-track-fill.is-amber { background: var(--sh-amber-500); }
+#grades-view .sv-track-fill.is-emerald { background: var(--sh-emerald-500); }
+#grades-view .sv-track-mark { position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: 2px; background: var(--sv-ink); }
+#grades-view .sv-source { font-size: 11px; color: var(--sh-slate-500); margin-top: 10px; }

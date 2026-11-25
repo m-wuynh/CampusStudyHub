@@ -31,7 +31,7 @@
                     <h3>Xóa tài liệu</h3>
                     <p>PDF đang chia sẻ phải được thu hồi tại tài nguyên nhóm trước khi xóa. PDF hợp lệ sẽ vào thùng rác và có thể khôi phục trong 30 ngày.</p>
                     <form asp-controller="PdfDocuments" asp-action="DeletePdf" method="post"
-                          onsubmit="return confirm('Chuyển PDF này vào thùng rác?');">
+                          data-confirm="Chuyển PDF này vào thùng rác?">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@Model.Id" />
                         <input type="hidden" name="versionToken" value="@Model.VersionToken" />

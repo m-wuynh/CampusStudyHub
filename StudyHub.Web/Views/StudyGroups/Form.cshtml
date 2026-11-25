@@ -8,27 +8,78 @@
 }
 <div class="sh-card p-4 mx-auto" style="max-width:800px;">
     <h1 class="h4 mb-4">@ViewData["Title"]</h1>
-    <form asp-controller="StudyGroups" asp-action="@(editing ? "Edit" : "Create")" asp-route-groupId="@Model.GroupId" method="post">
-        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
-        <div class="mb-3"><label asp-for="Name" class="sh-label">Tên nhóm</label><input asp-for="Name" class="sh-input" maxlength="150" required /></div>
+    <form id="group-form" asp-controller="StudyGroups" asp-action="@(editing ? "Edit" : "Create")" asp-route-groupId="@Model.GroupId" method="post" novalidate>
+        <div class="mb-3">
+            <label asp-for="Name" class="sh-label">Tên nhóm</label>
+            <input asp-for="Name" class="sh-input" maxlength="150" required aria-describedby="Name-error" />
+            <span asp-validation-for="Name" id="Name-error" class="group-field-error" aria-live="polite"></span>
+        </div>
         <fieldset class="mb-3">
-            <legend class="sh-label">Môn học (tối đa 10 môn)</legend>
-            <div id="form-subject-options" class="d-flex flex-wrap gap-3">
-            @foreach (var subject in subjects)
-            {
-                <label><input type="checkbox" name="Subjects" value="@subject" checked="@Model.Subjects.Contains(subject, StringComparer.OrdinalIgnoreCase)" /> @subject</label>
-            }
+            <legend id="group-subject-label" class="sh-label">Môn học</legend>
+            <div id="group-subject-select" class="subject-multiselect" data-subject-field="Subjects">
+                <button type="button" class="subject-multiselect-toggle" data-subject-toggle aria-expanded="false" aria-controls="group-subject-panel" aria-labelledby="group-subject-label group-subject-summary" aria-describedby="Subjects-error">
+                    <span id="group-subject-summary" data-subject-summary class="is-placeholder">Chọn môn học</span>
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                </button>
+                <div id="group-subject-panel" class="subject-multiselect-panel" data-subject-panel hidden>
+                    <div class="subject-multiselect-search">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input id="group-subject-search" type="search" data-subject-search maxlength="150" placeholder="Tìm hoặc nhập tên môn mới..." aria-label="Tìm môn học" aria-controls="form-subject-options" aria-describedby="group-subject-hint" autocomplete="off" />
+                    </div>
+                    <div id="form-subject-options" class="group-subject-picker" data-subject-options role="group" aria-labelledby="group-subject-label">
+                    @foreach (var subject in subjects)
+                    {
+                        <label class="group-subject-option" data-subject-initial data-subject-custom="@((Model.SubjectOptions.FirstOrDefault(s => s.Name.Equals(subject, StringComparison.OrdinalIgnoreCase))?.IsCustom ?? true) ? "true" : "false")">
+                            <input type="checkbox" name="Subjects" value="@subject" checked="@Model.Subjects.Contains(subject, StringComparer.OrdinalIgnoreCase)" /> <span>@subject</span>
+                        </label>
+                    }
+                    </div>
+                    <p id="group-subject-hint" class="subject-multiselect-hint" data-subject-hint aria-live="polite"></p>
+                </div>
+                <div data-subject-values></div>
             </div>
-            <div class="d-flex gap-2 mt-2"><input id="new-subject" class="sh-input" maxlength="150" placeholder="Tên môn học mới" aria-label="Tên môn học mới" /><button id="add-subject" type="button" class="btn-secondary-sh">Thêm môn</button></div>
+            <span asp-validation-for="Subjects" id="Subjects-error" class="group-field-error" aria-live="polite"></span>
+            <small class="text-muted">Bấm vào thẻ môn học để chọn hoặc bỏ chọn nhiều môn. Nếu không tìm thấy môn, nhấn Enter để thêm môn mới.</small>
         </fieldset>
-        <div class="mb-3"><label asp-for="Description" class="sh-label">Mô tả</label><textarea asp-for="Description" class="sh-input" rows="3" maxlength="2000"></textarea></div>
-        <div class="mb-3"><label asp-for="Goal" class="sh-label">Mục tiêu</label><input asp-for="Goal" class="sh-input" maxlength="500" /></div>
-        <div class="mb-3"><label asp-for="MeetingFormat" class="sh-label">Hình thức</label><select asp-for="MeetingFormat" class="sh-input"><option value="Online">Online</option><option value="Offline">Offline</option><option value="Hybrid">Kết hợp</option></select></div>
-        <div class="mb-3"><label asp-for="MeetingSchedule" class="sh-label">Lịch dự kiến</label><input asp-for="MeetingSchedule" class="sh-input" maxlength="250" /></div>
-        <div class="mb-3"><label asp-for="MaxMembers" class="sh-label">Giới hạn người</label><input asp-for="MaxMembers" type="number" min="2" max="500" class="sh-input" placeholder="Không giới hạn" /></div>
-        <div class="mb-3"><label asp-for="JoinMode" class="sh-label">Cách tham gia</label><select asp-for="JoinMode" class="sh-input"><option value="Approval">Công khai · Cần duyệt</option><option value="Open">Công khai · Vào ngay</option><option value="InviteOnly">Riêng tư · Chỉ qua lời mời</option></select></div>
-        <div class="mb-3"><label asp-for="Rules" class="sh-label">Nội quy nhóm</label><textarea asp-for="Rules" class="sh-input" rows="3" maxlength="2000"></textarea></div>
+        <div class="mb-3">
+            <label asp-for="Description" class="sh-label">Mô tả</label>
+            <textarea asp-for="Description" class="sh-input" rows="3" maxlength="2000" aria-describedby="Description-error"></textarea>
+            <span asp-validation-for="Description" id="Description-error" class="group-field-error" aria-live="polite"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Goal" class="sh-label">Mục tiêu</label>
+            <input asp-for="Goal" class="sh-input" maxlength="500" aria-describedby="Goal-error" />
+            <span asp-validation-for="Goal" id="Goal-error" class="group-field-error" aria-live="polite"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="MeetingFormat" class="sh-label">Hình thức</label>
+            <select asp-for="MeetingFormat" class="sh-input" aria-describedby="MeetingFormat-error"><option value="Online">Online</option><option value="Offline">Offline</option><option value="Hybrid">Kết hợp</option></select>
+            <span asp-validation-for="MeetingFormat" id="MeetingFormat-error" class="group-field-error" aria-live="polite"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="MeetingSchedule" class="sh-label">Lịch dự kiến</label>
+            <input asp-for="MeetingSchedule" class="sh-input" maxlength="250" aria-describedby="MeetingSchedule-error" />
+            <span asp-validation-for="MeetingSchedule" id="MeetingSchedule-error" class="group-field-error" aria-live="polite"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="MaxMembers" class="sh-label">Giới hạn người</label>
+            <input asp-for="MaxMembers" type="number" min="2" max="500" step="1" class="sh-input" placeholder="Không giới hạn" aria-describedby="MaxMembers-error" />
+            <span asp-validation-for="MaxMembers" id="MaxMembers-error" class="group-field-error" aria-live="polite"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="JoinMode" class="sh-label">Cách tham gia</label>
+            <select asp-for="JoinMode" class="sh-input" aria-describedby="JoinMode-error"><option value="Approval">Công khai · Cần duyệt</option><option value="Open">Công khai · Vào ngay</option><option value="InviteOnly">Riêng tư · Chỉ qua lời mời</option></select>
+            <span asp-validation-for="JoinMode" id="JoinMode-error" class="group-field-error" aria-live="polite"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Rules" class="sh-label">Nội quy nhóm</label>
+            <textarea asp-for="Rules" class="sh-input" rows="3" maxlength="2000" aria-describedby="Rules-error"></textarea>
+            <span asp-validation-for="Rules" id="Rules-error" class="group-field-error" aria-live="polite"></span>
+        </div>
         <div class="d-flex gap-2"><button type="submit" class="btn-primary-sh">@(editing ? "Lưu thay đổi" : "Tạo nhóm")</button><a asp-action="@(editing ? "Details" : "Index")" asp-route-groupId="@Model.GroupId" class="btn-secondary-sh">Hủy</a></div>
     </form>
 </div>
-@section Scripts { <script src="~/js/group-form.js" asp-append-version="true"></script> }
+@section Scripts {
+    <script src="~/js/subject-multiselect.js" asp-append-version="true"></script>
+    <script src="~/js/group-form.js" asp-append-version="true"></script>
+}

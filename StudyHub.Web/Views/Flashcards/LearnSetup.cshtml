@@ -7,10 +7,9 @@
 <div class="container py-4">
     @if (TempData["FlashcardError"] is string error)
     {
-        <div class="alert alert-danger" role="alert">
-            @error
-        </div>
+        <div class="alert alert-danger" role="alert">@error</div>
     }
+
     <a asp-controller="Flashcards"
        asp-action="Index"
        asp-route-deckId="@Model.DeckId"

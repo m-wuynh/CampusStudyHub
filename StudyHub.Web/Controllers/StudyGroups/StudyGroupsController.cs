@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using StudyHub.BLL.DTOs.StudyGroups;
 using StudyHub.BLL.Services.StudyGroups;
 using StudyHub.Web.Hubs;
 using StudyHub.Web.ViewModels.StudyGroups;
@@ -10,14 +11,12 @@ namespace StudyHub.Web.Controllers.StudyGroups;
 [Authorize]
 [AutoValidateAntiforgeryToken]
 [Route("Groups")]
-public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubContext<StudyGroupHub> hub) : Controller
+public sealed class StudyGroupsController(IStudyGroupService studyGroups, IGroupLearningService learning, IHubContext<StudyGroupHub> hub) : Controller
 {
-    [AllowAnonymous]
     [HttpGet("")]
     public async Task<IActionResult> Index([FromQuery(Name = "q")] string? searchText, CancellationToken cancellationToken) =>
-        View(new StudyGroupsIndexViewModel(User.Identity?.IsAuthenticated == true
-            ? await studyGroups.GetGroupsAsync(searchText?.Trim(), cancellationToken)
-            : [], searchText?.Trim()));
+        View(new StudyGroupsIndexViewModel(
+            await studyGroups.GetGroupsAsync(searchText?.Trim(), cancellationToken), searchText?.Trim()));
 
     [HttpGet("Create")]
     public async Task<IActionResult> Create(CancellationToken cancellationToken) =>
@@ -27,6 +26,7 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubCo
     public async Task<IActionResult> Create(StudyGroupFormViewModel model, CancellationToken cancellationToken)
     {
         model.GroupId = null;
+        NormalizeGroupFormErrors();
         if (ModelState.IsValid)
         {
             try
@@ -35,7 +35,7 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubCo
                 TempData["GroupSuccess"] = "Đã tạo nhóm học tập.";
                 return RedirectToAction(nameof(Details), new { groupId = group.Id });
             }
-            catch (StudyGroupException exception) { ModelState.AddModelError("", exception.Message); }
+            catch (StudyGroupException exception) { AddGroupFormError(exception); }
         }
         model.SubjectOptions = await studyGroups.GetSubjectOptionsAsync(cancellationToken);
         return View("Form", model);
@@ -63,6 +63,7 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubCo
         if (group is null) return NotFound();
         if (!group.IsOwner) return Forbid();
         model.GroupId = groupId;
+        NormalizeGroupFormErrors();
         if (ModelState.IsValid)
         {
             try
@@ -71,10 +72,45 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubCo
                 TempData["GroupSuccess"] = "Đã cập nhật nhóm học tập.";
                 return RedirectToAction(nameof(Details), new { groupId });
             }
-            catch (StudyGroupException exception) { ModelState.AddModelError("", exception.Message); }
+            catch (StudyGroupException exception) { AddGroupFormError(exception); }
         }
         model.SubjectOptions = await studyGroups.GetSubjectOptionsAsync(cancellationToken);
         return View("Form", model);
+    }
+
+    private void NormalizeGroupFormErrors()
+    {
+        if (ModelState.TryGetValue(nameof(StudyGroupFormViewModel.MaxMembers), out var entry) && entry.Errors.Count > 0)
+        {
+            entry.Errors.Clear();
+            ModelState.AddModelError(nameof(StudyGroupFormViewModel.MaxMembers), "Giới hạn người phải là số nguyên từ 2 đến 500.");
+        }
+    }
+
+    private void AddGroupFormError(StudyGroupException exception)
+    {
+        if (exception.Code is "invalid_member_limit" or "member_limit_too_low")
+            ModelState.AddModelError(nameof(StudyGroupFormViewModel.MaxMembers), exception.Message);
+        else
+            TempData["GroupError"] = exception.Message;
+    }
+
+    [HttpPost("{groupId:long}/Delete")]
+    public async Task<IActionResult> Delete(string groupId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await studyGroups.DeleteGroupAsync(groupId, cancellationToken);
+            TempData["GroupSuccess"] = "Đã xóa nhóm học tập.";
+            return RedirectToAction(nameof(Index));
+        }
+        catch (StudyGroupException exception)
+        {
+            if (exception.StatusCode == 403) return Forbid();
+            if (exception.StatusCode == 404) return NotFound();
+            TempData["GroupError"] = exception.Message;
+            return RedirectToAction(nameof(Details), new { groupId });
+        }
     }
 
     [HttpPost("{groupId:long}/Join")]
@@ -86,8 +122,8 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubCo
         Perform(groupId, async () => (await studyGroups.LeaveOrWithdrawAsync(groupId, cancellationToken)).Message, toIndex: true);
 
     [HttpPost("{groupId:long}/RequestUnban")]
-    public Task<IActionResult> RequestUnban(string groupId, CancellationToken cancellationToken) =>
-        Perform(groupId, async () => (await studyGroups.RequestUnbanAsync(groupId, cancellationToken)).Message);
+    public Task<IActionResult> RequestUnban(string groupId, [FromForm] RequestGroupUnbanRequest request, CancellationToken cancellationToken) =>
+        Perform(groupId, async () => (await studyGroups.RequestUnbanAsync(groupId, request.Reason, cancellationToken)).Message);
 
     [HttpPost("{groupId:long}/Messages")]
     public Task<IActionResult> AddMessage(string groupId, string? content, CancellationToken cancellationToken) =>
@@ -106,12 +142,22 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubCo
             return "Đã đăng thông báo.";
         }, "announcements");
 
+    [HttpPost("{groupId:long}/Announcements/{postId:long}/Pin")]
+    public Task<IActionResult> SetAnnouncementPin(string groupId, string postId, [FromForm] SetGroupAnnouncementPinRequest request, CancellationToken cancellationToken) =>
+        Perform(groupId, async () =>
+        {
+            await studyGroups.SetAnnouncementPinnedAsync(groupId, postId, request.IsPinned, cancellationToken);
+            return request.IsPinned ? "Đã ghim thông báo." : "Đã gỡ ghim thông báo.";
+        }, "announcements");
+
     [HttpPost("{groupId:long}/Members/{userId:long}")]
     public Task<IActionResult> ManageMember(string groupId, string userId, string memberAction, CancellationToken cancellationToken) =>
         Perform(groupId, async () =>
         {
             await studyGroups.ManageMemberAsync(groupId, userId, memberAction, cancellationToken);
-            return "Đã cập nhật thành viên.";
+            return memberAction == "unban"
+                ? "Đã gỡ cấm và đưa thành viên trở lại nhóm."
+                : "Đã cập nhật thành viên.";
         }, "members");
 
     [HttpPost("{groupId:long}/Invites")]
@@ -141,10 +187,22 @@ public sealed class StudyGroupsController(IStudyGroupService studyGroups, IHubCo
     }
 
     [HttpGet("{groupId:long}")]
-    public async Task<IActionResult> Details(string groupId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Details(string groupId, CancellationToken cancellationToken, DateOnly? week = null)
     {
         var group = await studyGroups.GetGroupAsync(groupId, cancellationToken);
-        return group is null ? NotFound() : View(new StudyGroupDetailsViewModel(group));
+        if (group is null) return NotFound();
+        var model = new StudyGroupDetailsViewModel(group);
+        if (group.IsMember)
+        {
+            try { model = model with { Learning = await learning.GetAsync(long.Parse(groupId), week, cancellationToken) }; }
+            catch (StudyGroupException exception)
+            {
+                if (exception.StatusCode == 403) return Forbid();
+                if (exception.StatusCode == 404) return NotFound();
+                TempData["GroupError"] = exception.Message;
+            }
+        }
+        return View(model);
     }
 
     [HttpGet("Invite/{inviteCode}")]

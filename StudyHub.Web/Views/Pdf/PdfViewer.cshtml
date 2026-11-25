@@ -89,8 +89,6 @@
         </nav>
     }
 
-    @if (TempData["Success"] is string success) { <div class="alert alert-success m-2 py-2" role="status">@success</div> }
-    @if (TempData["Error"] is string error) { <div class="alert alert-danger m-2 py-2" role="alert">@error</div> }
     <p id="pdf-status" class="pdf-viewer-status" role="status" data-read-only="@Model.IsReadOnly.ToString().ToLowerInvariant()">Đang mở trang PDF…</p>
     <div class="pdf-viewer-surface">
         <div class="pdf-pdf-page" id="pdf-page" data-file-url="@fileUrl" data-page="@Model.CurrentPage" data-archived="@Model.IsReadOnly.ToString().ToLowerInvariant()">
@@ -132,6 +130,8 @@
             <input type="hidden" name="pageNumber" value="@Model.CurrentPage" /><input type="hidden" name="shareId" value="@Model.ShareId" />
         </form>
     }
+    <partial name="_ToastMessages" />
+    <script src="~/js/site.js" asp-append-version="true"></script>
     <script type="module" src="~/js/pdf/pdf-marks.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -18,6 +18,7 @@
         <p class="text-muted mb-0">Tài liệu được giữ 30 ngày trước khi tự động xóa vĩnh viễn.</p>
     </header>
 
+
     @if (TempData["Success"] is string success) { <div class="alert alert-success" role="status">@success</div> }
     @if (TempData["Error"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
 
@@ -47,7 +48,7 @@
                                 <button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Khôi phục</button>
                             </form>
                             <form asp-controller="PdfDocuments" asp-action="PermanentlyDeletePdf" method="post"
-                                  onsubmit="return confirm('PDF và toàn bộ ghi chú, đánh dấu sẽ bị xóa vĩnh viễn. Tiếp tục?');">
+                                  data-confirm="PDF và toàn bộ ghi chú, đánh dấu sẽ bị xóa vĩnh viễn. Tiếp tục?">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@pdf.Id" />
                                 <input type="hidden" name="versionToken" value="@pdf.VersionToken" />

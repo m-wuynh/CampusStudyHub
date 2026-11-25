@@ -84,7 +84,7 @@ function openAddGoalForSubject(id) {
     const gbId = sub ? (sub.gradeBookId || sub.GradeBookId) : null;
     // Môn không thuộc sổ (dữ liệu cũ) không được tạo mục tiêu mới (Q03).
     if (!gbId) {
-        alert('Môn học này không thuộc sổ điểm nào nên không thể thêm mục tiêu mới.');
+        window.showToast('Môn học này không thuộc sổ điểm nào nên không thể thêm mục tiêu mới.', 'error');
         return;
     }
 
@@ -179,7 +179,7 @@ function editGoal(id, title, targetVal, isBase, isDone, deadline) {
 }
 
 async function confirmDeleteAdditionalGoal(goalId, targetVal) {
-    if (!confirm(`Xác nhận xóa nấc mục tiêu ${targetVal}?\n\nLưu ý: Các hoạt động đã hoàn thành sẽ được giữ lại trên Lịch học cá nhân để bảo tồn lịch sử học tập.`)) return;
+    if (!await window.showConfirm(`Xác nhận xóa nấc mục tiêu ${targetVal}?\n\nLưu ý: Các hoạt động đã hoàn thành sẽ được giữ lại trên Lịch học cá nhân để bảo tồn lịch sử học tập.`)) return;
     try {
         const token = window.GradesState ? window.GradesState.getCsrfToken() : (document.querySelector('input[name="__RequestVerificationToken"]')?.value || '');
         const resp = await fetch('/Grades/DeleteGoal', {
@@ -189,9 +189,9 @@ async function confirmDeleteAdditionalGoal(goalId, targetVal) {
         });
         const res = await resp.json();
         if (res.ok) window.location.reload();
-        else alert("Lỗi khi xóa: " + res.error);
+        else window.showToast("Lỗi khi xóa: " + res.error, 'error');
     } catch (e) {
-        alert("Lỗi kết nối khi xóa nấc mục tiêu.");
+        window.showToast("Lỗi kết nối khi xóa nấc mục tiêu.", 'error');
     }
 }
 
@@ -232,9 +232,9 @@ async function submitAddActivity(e) {
         });
         const res = await resp.json();
         if (res.ok) window.location.reload();
-        else alert("Lỗi: " + res.error);
+        else window.showToast("Lỗi: " + res.error, 'error');
     } catch (err) {
-        alert("Lỗi kết nối khi tạo hoạt động.");
+        window.showToast("Lỗi kết nối khi tạo hoạt động.", 'error');
     }
 }
 
@@ -264,14 +264,14 @@ async function submitEditActivity(e) {
         });
         const res = await resp.json();
         if (res.ok) window.location.reload();
-        else alert("Lỗi: " + res.error);
+        else window.showToast("Lỗi: " + res.error, 'error');
     } catch (err) {
-        alert("Lỗi kết nối khi sửa hoạt động.");
+        window.showToast("Lỗi kết nối khi sửa hoạt động.", 'error');
     }
 }
 
 async function deleteActivity(id) {
-    if (!confirm("Bạn có chắc chắn muốn xóa hoạt động này? Hoạt động cũng sẽ được gỡ khỏi Lịch học cá nhân.")) return;
+    if (!await window.showConfirm("Bạn có chắc chắn muốn xóa hoạt động này? Hoạt động cũng sẽ được gỡ khỏi Lịch học cá nhân.")) return;
     try {
         const token = window.GradesState ? window.GradesState.getCsrfToken() : (document.querySelector('input[name="__RequestVerificationToken"]')?.value || '');
         const resp = await fetch('/Grades/DeleteGoalActivity', {
@@ -281,9 +281,9 @@ async function deleteActivity(id) {
         });
         const res = await resp.json();
         if (res.ok) window.location.reload();
-        else alert("Lỗi: " + res.error);
+        else window.showToast("Lỗi: " + res.error, 'error');
     } catch (err) {
-        alert("Lỗi kết nối khi xóa hoạt động.");
+        window.showToast("Lỗi kết nối khi xóa hoạt động.", 'error');
     }
 }
 
@@ -301,3 +301,83 @@ function filterJourney(btn, subjectId, category) {
     const empty = panel.querySelector('.sv-journey-filter-empty');
     if (empty) empty.style.display = visible === 0 ? '' : 'none';
 }
+
+// ── Màn Mục tiêu học tập: lọc mục tiêu theo trạng thái ───────
+function filterGoals(btn) {
+    const filter = btn.dataset.filter;
+    document.querySelectorAll('.sv-goal-filter').forEach(b => b.classList.toggle('active', b === btn));
+    let visibleTotal = 0;
+    document.querySelectorAll('.subject-goal-section').forEach(section => {
+        let visible = 0;
+        section.querySelectorAll('.goal-card-full').forEach(card => {
+            const show = filter === 'all'
+                || (filter === 'overdue' ? card.dataset.goalOverdue === 'true' : card.dataset.goalStatus === filter);
+            card.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        // Môn không còn mục tiêu nào khớp bộ lọc thì ẩn cả khối môn (riêng "Tất cả" luôn hiện).
+        section.style.display = (filter === 'all' || visible > 0) ? '' : 'none';
+        visibleTotal += visible;
+    });
+    const empty = document.getElementById('goal-filter-empty');
+    if (empty) empty.style.display = (filter !== 'all' && visibleTotal === 0) ? '' : 'none';
+}
+
+// ── Màn Chi tiết môn: tính điểm cần đạt ở các cột còn trống ──
+// Cùng công thức và cách làm tròn với GradeCalculator (BLL): ĐTB làm tròn 2 chữ số, so mục tiêu bằng ĐTB làm tròn 1 chữ số.
+function roundAway(value, digits) {
+    const f = Math.pow(10, digits);
+    return Math.sign(value) * Math.round(Math.abs(value) * f + 1e-9) / f;
+}
+
+function requiredScoreFor(sum, known, remaining, target) {
+    if (remaining <= 0) return null;
+    for (let tenths = 0; tenths <= 100; tenths++) {
+        const score = tenths / 10;
+        const avg = roundAway((sum + score * remaining) / (known + remaining), 2);
+        if (roundAway(avg, 1) >= target - 1e-9) return score;
+    }
+    return undefined; // kể cả 10 điểm cũng không đạt
+}
+
+function updateRequiredScore() {
+    const box = document.getElementById('required-score-calc');
+    if (!box) return;
+    const sum = parseFloat(box.dataset.sum), known = parseFloat(box.dataset.known), remaining = parseFloat(box.dataset.remaining);
+    const targetInput = document.getElementById('required-target');
+    const target = Math.min(10, Math.max(0.1, parseFloat((targetInput.value || '').replace(',', '.')) || 0));
+    const result = requiredScoreFor(sum, known, remaining, target);
+    const big = document.getElementById('required-score-value');
+    const note = document.getElementById('required-score-note');
+    if (result === undefined) {
+        big.textContent = 'Không đạt được';
+        note.textContent = 'Kể cả 10 điểm ở mọi cột còn trống, ĐTB tối đa là ' + roundAway((sum + 10 * remaining) / (known + remaining), 2).toFixed(2) + '.';
+    } else if (result === 0) {
+        big.textContent = 'Chắc chắn đạt';
+        note.textContent = 'Dù các cột còn trống được 0 điểm, ĐTB hiển thị vẫn ≥ ' + target.toFixed(1) + '.';
+    } else {
+        const avg = roundAway((sum + result * remaining) / (known + remaining), 2);
+        big.textContent = '≥ ' + result.toFixed(1);
+        note.textContent = 'Với ' + result.toFixed(1) + ' điểm ở mỗi cột còn trống: ĐTB = ' + avg.toFixed(2) + ' → hiển thị ' + roundAway(avg, 1).toFixed(1) + '.';
+    }
+
+    const trialInput = document.getElementById('trial-score');
+    if (trialInput) {
+        const trial = Math.min(10, Math.max(0, parseFloat((trialInput.value || '').replace(',', '.')) || 0));
+        const trialAvg = roundAway((sum + trial * remaining) / (known + remaining), 2);
+        const shown = roundAway(trialAvg, 1);
+        document.getElementById('trial-avg').textContent = trialAvg.toFixed(2);
+        document.getElementById('trial-shown').textContent = shown.toFixed(1);
+        const pill = document.getElementById('trial-status');
+        const ok = shown >= target - 1e-9;
+        pill.textContent = ok ? 'Đạt ' + target.toFixed(1) : 'Chưa đạt ' + target.toFixed(1);
+        pill.className = 'sv-pill ' + (ok ? 'is-emerald' : 'is-amber');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('required-score-calc')) {
+        ['required-target', 'trial-score'].forEach(id => document.getElementById(id)?.addEventListener('input', updateRequiredScore));
+        updateRequiredScore();
+    }
+});

@@ -13,23 +13,23 @@
     <link rel="stylesheet" href="~/css/calendar.css" asp-append-version="true" />
 }
 
-<div style="max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+<div class="calendar-form-container">
 
     <!-- ROW 1: Purple Hero Banner matching Index -->
-    <div class="calendar-hero-card position-relative overflow-hidden text-white" style="padding: 24px 28px;">
+    <div class="calendar-hero-card calendar-hero-card-sm position-relative overflow-hidden text-white">
         <!-- Decorative 4-point Sparkle Star Watermark -->
-        <svg class="hero-watermark-star" viewBox="0 0 100 100" fill="currentColor" style="width: 140px; height: 140px; right: 24px;">
+        <svg class="hero-watermark-star hero-watermark-star-sm" viewBox="0 0 100 100" fill="currentColor">
             <path d="M50 0 C50 27.6 27.6 50 0 50 C27.6 50 50 72.4 50 100 C50 72.4 72.4 50 100 50 C72.4 50 50 27.6 50 0 Z" />
         </svg>
 
-        <div class="position-relative" style="z-index: 2;">
-            <a href="/Calendar" class="text-white text-decoration-none d-inline-flex align-items-center gap-1 opacity-75 mb-2" style="font-size: 13px;">
+        <div class="hero-card-z2">
+            <a href="/Calendar" class="hero-back-link">
                 <i class="bi bi-arrow-left"></i><span>Quay lại Lịch học</span>
             </a>
-            <h2 class="fw-bold mb-1 d-flex align-items-center gap-2" style="font-size: 22px; color: #ffffff;">
+            <h2 class="hero-heading-title">
                 <i class="bi bi-calendar-check"></i><span>Cập nhật sự kiện</span>
             </h2>
-            <p class="mb-0 text-white-50" style="font-size: 13.5px;">
+            <p class="hero-subtitle-text">
                 Chỉnh sửa thông tin thời gian, địa điểm và nhắc nhở cho sự kiện
             </p>
         </div>
@@ -44,6 +44,9 @@
                 <i class="bi bi-type"></i><span>Tên sự kiện <span class="text-danger">*</span></span>
             </label>
             <input id="event-title" type="text" class="calendar-form-input" placeholder="Ví dụ: Kiểm tra 1 tiết Toán" value="@Model.Title" />
+            <div id="event-title-error" class="calendar-field-error text-danger small mt-1 d-none">
+                <i class="bi bi-exclamation-circle-fill me-1"></i>Vui lòng nhập tên sự kiện
+            </div>
         </div>
         
         <!-- Ngày, Giờ bắt đầu, Giờ kết thúc -->
@@ -74,7 +77,7 @@
                 <label class="calendar-form-label" for="event-category">
                     <i class="bi bi-tag"></i><span>Loại sự kiện <span class="text-danger">*</span></span>
                 </label>
-                <select id="event-category" class="calendar-form-input" style="cursor: pointer;">
+                <select id="event-category" class="calendar-form-input">
                     @if (Model.EventType == "SelfStudy") {
                         <option value="SelfStudy" selected>📘 Tự học</option>
                     } else {
@@ -144,7 +147,7 @@
             const row = document.createElement('div');
             row.className = 'notif-row-purple d-flex align-items-center gap-2 flex-wrap';
             row.innerHTML = `
-                <i class="bi bi-bell-fill" style="color: #7c3aed; font-size: 1.05rem;"></i>
+                <i class="bi bi-bell-fill notif-bell-icon"></i>
                 <select class="notif-select-purple">
                     <option value="notification" ${channel === 'notification' ? 'selected' : ''}>Thông báo hệ thống</option>
                     <option value="email" ${channel === 'email' ? 'selected' : ''}>Email</option>
@@ -158,7 +161,7 @@
                     <option value="weeks" ${unit === 'weeks' ? 'selected' : ''}>tuần</option>
                 </select>
                 <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-auto" title="Xóa thông báo" onclick="this.closest('.notif-row-purple').remove()">
-                    <i class="bi bi-x-circle-fill" style="font-size: 1.1rem;"></i>
+                    <i class="bi bi-x-circle-fill notif-remove-icon"></i>
                 </button>
             `;
             container.appendChild(row);
@@ -204,10 +207,23 @@
                     </text>
                 }
             }
+
+            const titleInput = document.getElementById('event-title');
+            const titleError = document.getElementById('event-title-error');
+            if (titleInput) {
+                titleInput.addEventListener('input', function() {
+                    if (this.value && this.value.trim()) {
+                        if (titleError) titleError.classList.add('d-none');
+                        this.classList.remove('border-danger');
+                    }
+                });
+            }
         });
 
         async function submitEvent() {
-            const title = document.getElementById('event-title').value;
+            const titleInput = document.getElementById('event-title');
+            const titleError = document.getElementById('event-title-error');
+            const title = titleInput ? titleInput.value : '';
             const date = document.getElementById('event-date').value;
             let start = document.getElementById('event-start').value;
             let end = document.getElementById('event-end').value;
@@ -215,19 +231,32 @@
             const loc = document.getElementById('event-location').value;
             const desc = document.getElementById('event-description').value;
 
-            if (!title || !title.trim() || !date || !start || !end || !category) {
-                showToast('Vui lòng điền đủ thông tin bắt buộc', 'error');
+            // Kiểm tra riêng trường Tên sự kiện: hiện chữ đỏ ngay bên dưới và focus
+            if (!title || !title.trim()) {
+                if (titleError) titleError.classList.remove('d-none');
+                if (titleInput) {
+                    titleInput.classList.add('border-danger');
+                    titleInput.focus();
+                }
+                return;
+            } else {
+                if (titleError) titleError.classList.add('d-none');
+                if (titleInput) titleInput.classList.remove('border-danger');
+            }
+
+            if (!date || !start || !end || !category) {
+                showToast('Vui lòng điền đủ thông tin thời gian và loại sự kiện', 'error');
                 return;
             }
 
             if (end <= start) {
-				showToast('Giờ không hợp lệ , Vui lòng đặt lại', 'error');
+                showToast(`Giờ kết thúc (${end}) phải sau giờ bắt đầu (${start}) trong cùng ngày. `, 'error');
                 return;
             }
 
-            const selectedStart = new Date(`${date}T${start}`);
-            if (selectedStart < new Date(Date.now() - 60000)) {
-                showToast('Thời gian bắt đầu không thể ở trong quá khứ', 'error');
+            const selectedEnd = new Date(`${date}T${end}`);
+            if (selectedEnd < new Date(Date.now() - 60000)) {
+                showToast('Thời gian kết thúc ca học không thể ở trong quá khứ', 'error');
                 return;
             }
 
@@ -272,6 +301,18 @@
                 });
                 if (res.ok) {
                     showToast('Đã cập nhật sự kiện!', 'success');
+                    
+                    // Xóa ID sự kiện này khỏi bộ nhớ thông báo đã đọc/đã nổ để lịch mới được thông báo lại
+                    try {
+                        let toasted = JSON.parse(localStorage.getItem('sh_notif_toasted') || '[]');
+                        toasted = toasted.filter(id => id != @Model.Id && !String(id).startsWith('@Model.Id' + '_'));
+                        localStorage.setItem('sh_notif_toasted', JSON.stringify(toasted));
+
+                        let reads = JSON.parse(localStorage.getItem('sh_notif_read') || '[]');
+                        reads = reads.filter(id => id != @Model.Id && !String(id).startsWith('@Model.Id' + '_'));
+                        localStorage.setItem('sh_notif_read', JSON.stringify(reads));
+                    } catch(e) {}
+
                     // Navigate back to calendar view
                     setTimeout(() => window.location.href = '/Calendar', 1000);
                 } else {

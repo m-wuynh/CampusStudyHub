@@ -27,6 +27,7 @@
         </button>
     </header>
 
+
     @if (TempData["Success"] is string success)
     {
         <div class="alert alert-success pdf-library-alert" role="status">@success</div>
@@ -133,16 +134,22 @@
 <div class="modal fade pdf-library-modal" id="uploadPdfModal" tabindex="-1" aria-labelledby="uploadPdfTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
         <div class="modal-header"><h2 class="modal-title h5" id="uploadPdfTitle">Tải PDF lên</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
-        <form asp-controller="PdfDocuments" asp-action="UploadPdf" method="post" enctype="multipart/form-data">
+        <form asp-controller="PdfDocuments" asp-action="UploadPdf" method="post" enctype="multipart/form-data"
+              data-pdf-upload data-max-file-bytes="@StudyHub.BLL.Services.Pdf.Documents.PdfPolicy.MaxFileBytes">
             @Html.AntiForgeryToken()
             <div class="modal-body">
                 <label class="form-label" for="upload-title">Tên hiển thị <span class="text-muted">(không bắt buộc)</span></label>
                 <input class="form-control mb-3" id="upload-title" name="title" maxlength="200" />
                 <label class="form-label" for="upload-file">File PDF</label>
                 <input class="form-control" id="upload-file" name="file" type="file" accept=".pdf,application/pdf" required />
+                <p id="upload-file-error" class="text-danger mt-2 mb-0" role="alert" hidden></p>
                 <p class="form-text mb-0">Tối đa 25 MiB và 5.000 trang. Không hỗ trợ PDF có mật khẩu.</p>
             </div>
             <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Hủy</button><button class="btn btn-primary" type="submit"><i class="bi bi-cloud-arrow-up"></i> Tải lên</button></div>
         </form>
     </div></div>
 </div>
+
+@section Scripts {
+    <script src="~/js/pdf/pdf-upload.js" asp-append-version="true"></script>
+}

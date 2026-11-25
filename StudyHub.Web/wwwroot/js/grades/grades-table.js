@@ -1,8 +1,8 @@
 /**
- * Điểm số & Mục tiêu – Tab "Bảng điểm" (grades-table.js)
+ * Điểm số & Mục tiêu – màn "Bảng điểm" (grades-table.js). Các màn khác của module dùng chung GradesState và escapeHtml ở đây.
  * Gộp từ 4 file cũ, giữ nguyên thứ tự nạp: core → wizard → table → modal-entry.
  * Mục lục:
- *   1. CORE – trạng thái, chuyển tab, chuyển chế độ (xem / nhập / cấu trúc), đổi tên sổ
+ *   1. CORE – trạng thái, chuyển chế độ (xem / nhập / cấu trúc), đổi tên sổ
  *   2. WIZARD – tạo sổ điểm 2 bước
  *   3. TABLE – sửa/xóa điểm tại ô, sắp xếp cột và môn, mở modal sửa cột/môn
  *   4. MODAL NHẬP ĐIỂM – tách ";", kiểm tra 0–10, gọi SaveSubjectGrades
@@ -10,7 +10,7 @@
 
 
 // ══════════════════════════════════════════════════════════════════════
-// 1. CORE – trạng thái, chuyển tab, chuyển chế độ (xem / nhập / cấu trúc), đổi tên sổ
+// 1. CORE – trạng thái, chuyển chế độ (xem / nhập / cấu trúc), đổi tên sổ
 // (trước đây: grades-core.js)
 // ══════════════════════════════════════════════════════════════════════
 
@@ -38,30 +38,6 @@ window.GradesState = (function () {
 
 // Anti Forgery Token for AJAX
 const csrfToken = window.GradesState.getCsrfToken();
-
-// ── Tab switching ──────────────────────────────────────────
-function gradeTab(btn, tabId) {
-    // Giao diện tab do CSS (.sv-tabs trong violet-theme.css) đảm nhận; JS chỉ bật/tắt class active.
-    document.querySelectorAll('#grades-tabs .nav-link').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    const gradesTabEl = document.getElementById('grades-tab');
-    const goalsTabEl = document.getElementById('goals-tab');
-    if (gradesTabEl) gradesTabEl.style.display = tabId === 'grades-tab' ? 'block' : 'none';
-    if (goalsTabEl) goalsTabEl.style.display = tabId === 'goals-tab' ? 'block' : 'none';
-
-    try {
-        localStorage.setItem('activeGradeTab', tabId);
-        if (tabId === 'goals-tab') {
-            if (!window.location.hash.includes('goals')) {
-                history.replaceState(null, '', window.location.pathname + window.location.search + '#goals');
-            }
-        } else {
-            if (window.location.hash.includes('goals')) {
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-            }
-        }
-    } catch(e) {}
-}
 
 // ── Mode Switching ─────────────────────────────────────────
 function setUiMode(mode) {
@@ -142,10 +118,10 @@ async function updateGradeBookName(gradeBookId, name) {
                 scoreHeader.appendChild(badge);
             }
         } else {
-            alert("Lỗi: " + (result.message || "Không thể cập nhật tên"));
+            window.showToast("Lỗi: " + (result.message || "Không thể cập nhật tên"), 'error');
         }
     } catch (e) {
-        alert("Lỗi kết nối");
+        window.showToast("Lỗi kết nối", 'error');
     }
 }
 
@@ -156,27 +132,12 @@ function escapeHtml(str) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Check and trigger TempData alerts without inline script
-    document.querySelectorAll('.js-tempdata-alert').forEach(el => {
-        const type = el.getAttribute('data-type');
-        const msg = el.getAttribute('data-message');
-        // showToast (site.js) ghép message vào innerHTML; thông báo có thể chứa tên do người dùng nhập.
-        if (msg && window.showToast) {
-            window.showToast(escapeHtml(msg), type);
-        }
-    });
-
     const urlParams = new URLSearchParams(window.location.search);
     const editMode = urlParams.get('editMode');
     if (editMode === 'structure') {
         setUiMode('structure');
     } else if (editMode === 'score' || editMode === 'true') {
         setUiMode('score');
-    }
-
-    if (!editMode && (window.location.hash === '#goals' || localStorage.getItem('activeGradeTab') === 'goals-tab')) {
-        const goalsBtn = document.getElementById('tab-btn-goals');
-        if (goalsBtn) gradeTab(goalsBtn, 'goals-tab');
     }
 
     const wizardModal = document.getElementById('wizardGradeBookModal');
@@ -216,7 +177,7 @@ function wizardGoToStep(step) {
             if (window.showToast) {
                 window.showToast('Sổ điểm này đã tồn tại', 'error');
             } else {
-                alert('Sổ điểm này đã tồn tại');
+                window.showToast('Sổ điểm này đã tồn tại', 'error');
             }
             return;
         }
@@ -310,7 +271,7 @@ function openInlineEdit(spanEl, entryId, subjectId, columnId, currentScore) {
         const normalized = val.replace(',', '.');
         const num = /^\d+(\.\d+)?$/.test(normalized) ? parseFloat(normalized) : NaN;
         if (isNaN(num) || num < 0 || num > 10) {
-            alert('Điểm phải từ 0 đến 10.');
+            window.showToast('Điểm phải từ 0 đến 10.', 'error');
             input.focus();
             return;
         }
@@ -341,12 +302,12 @@ function openInlineEdit(spanEl, entryId, subjectId, columnId, currentScore) {
                 const gbId = window.GradesState ? window.GradesState.selectedGradeBookId : '';
                 window.location.href = window.location.pathname + (gbId ? "?gradeBookId=" + gbId + "&editMode=score" : "?editMode=score");
             } else {
-                alert("Lỗi: " + result.error);
+                window.showToast("Lỗi: " + result.error, 'error');
                 spanEl.innerHTML = originalHtml;
                 currentlyEditing = null;
             }
         } catch(e) {
-            alert("Lỗi kết nối");
+            window.showToast("Lỗi kết nối", 'error');
             spanEl.innerHTML = originalHtml;
             currentlyEditing = null;
         }
@@ -365,7 +326,7 @@ function openInlineEdit(spanEl, entryId, subjectId, columnId, currentScore) {
 }
 
 async function deleteGradeInline(entryId, btnEl) {
-    if(!confirm("Bạn có chắc chắn muốn xóa điểm này?")) return;
+    if (!await window.showConfirm("Bạn có chắc chắn muốn xóa điểm này?")) return;
     btnEl.disabled = true;
     try {
         const token = window.GradesState ? window.GradesState.getCsrfToken() : (document.querySelector('input[name="__RequestVerificationToken"]')?.value || '');
@@ -382,11 +343,11 @@ async function deleteGradeInline(entryId, btnEl) {
             const gbId = window.GradesState ? window.GradesState.selectedGradeBookId : '';
             window.location.href = window.location.pathname + (gbId ? "?gradeBookId=" + gbId + "&editMode=score" : "?editMode=score");
         } else {
-            alert("Lỗi: " + result.error);
+            window.showToast("Lỗi: " + result.error, 'error');
             btnEl.disabled = false;
         }
     } catch(e) {
-        alert("Lỗi kết nối");
+        window.showToast("Lỗi kết nối", 'error');
         btnEl.disabled = false;
     }
 }
@@ -424,9 +385,9 @@ async function moveColumn(colId, dir) {
         if(result.ok) {
             window.location.href = window.location.pathname + (gbId ? "?gradeBookId=" + gbId + "&editMode=structure" : "?editMode=structure");
         } else {
-            alert(result.error);
+            window.showToast(result.error, 'error');
         }
-    } catch(e) { alert("Lỗi kết nối"); }
+    } catch(e) { window.showToast("Lỗi kết nối", 'error'); }
 }
 
 async function moveSubject(subId, dir) {
@@ -460,9 +421,9 @@ async function moveSubject(subId, dir) {
         if(result.ok) {
             window.location.href = window.location.pathname + (gbId ? "?gradeBookId=" + gbId + "&editMode=structure" : "?editMode=structure");
         } else {
-            alert(result.error);
+            window.showToast(result.error, 'error');
         }
-    } catch(e) { alert("Lỗi kết nối"); }
+    } catch(e) { window.showToast("Lỗi kết nối", 'error'); }
 }
 
 // ── Column & Subject Edit Modals ─────────────────────────────────
@@ -621,7 +582,7 @@ function renderModalColumns() {
 
 async function saveModalGrades() {
     if (!modalCurrentSubjectId) {
-        alert("Vui lòng chọn môn học.");
+        window.showToast("Vui lòng chọn môn học.", 'error');
         return;
     }
 
@@ -647,7 +608,7 @@ async function saveModalGrades() {
             const token = tokens[i];
             const scoreNum = parseScoreToken(token);
             if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 10) {
-                alert(`Điểm "${token}" ở nhóm "${colName}" không hợp lệ. Điểm phải là số từ 0 đến 10.`);
+                window.showToast(`Điểm "${token}" ở nhóm "${colName}" không hợp lệ. Điểm phải là số từ 0 đến 10.`, 'error');
                 if (btn) btn.disabled = false;
                 inputEl.focus();
                 return;
@@ -682,11 +643,11 @@ async function saveModalGrades() {
         if (result.ok) {
             window.location.reload();
         } else {
-            alert("Lỗi khi lưu điểm: " + (result.message || "Không xác định"));
+            window.showToast("Lỗi khi lưu điểm: " + (result.message || "Không xác định"), 'error');
             if (btn) btn.disabled = false;
         }
     } catch (e) {
-        alert("Lỗi kết nối khi lưu điểm.");
+        window.showToast("Lỗi kết nối khi lưu điểm.", 'error');
         if (btn) btn.disabled = false;
     }
 }

@@ -1,3 +1,4 @@
+using StudyHub.DAL.Repositories.Pdf;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -5,14 +6,12 @@ using StudyHub.BLL.Services.Auth;
 using StudyHub.DAL.Entities;
 using StudyHub.DAL.Entities.Pdf;
 using StudyHub.DAL.Repositories.Common;
-using StudyHub.DAL.Repositories.Pdf;
+using StudyHub.BLL.Services.Pdf.Sharing;
 
 namespace StudyHub.BLL.Services.Pdf.Sharing;
 
 /// <summary>
 /// Xử lý toàn bộ business logic của việc chia sẻ / gỡ chia sẻ PDF vào nhóm học.
-/// Implements IPdfSharingService (contract ở DAL) để SqlGroupLearningRepository
-/// có thể inject mà không tạo circular dependency DAL → BLL.
 /// </summary>
 public sealed class PdfSharingService(
     IRepository repository,
@@ -36,8 +35,14 @@ public sealed class PdfSharingService(
 
         try
         {
-            await using var tx = await repository.BeginTransactionAsync(
-                IsolationLevel.Serializable, cancellationToken);
+            // GroupLearningRepository already wraps membership checks and the
+            // resource write in a serializable transaction. Reuse it instead
+            // of starting a second transaction on the same SQL connection.
+            var ownsTransaction = !repository.HasActiveTransaction;
+            await using var transaction = ownsTransaction
+                ? await repository.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken)
+                : null;
 
             // Recheck inside transaction để tránh race condition.
             await RequireNoActiveShareInGroupAsync(
@@ -47,7 +52,10 @@ public sealed class PdfSharingService(
                 documentId, groupId, actorUserId, cancellationToken);
 
             await repository.SaveChangesAsync(cancellationToken);
-            await tx.CommitAsync(cancellationToken);
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
         }
         catch (Exception ex) when (IsDeadlock(ex))
         {

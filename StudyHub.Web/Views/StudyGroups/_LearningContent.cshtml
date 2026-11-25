@@ -1,0 +1,201 @@
+@model StudyGroupDetailsViewModel
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    var data = Model.Learning;
+    var panel = ViewData["LearningPanel"] as string;
+    var now = DateTimeOffset.UtcNow;
+    string Date(DateTimeOffset value) => value.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm");
+    string Status(string value) => value switch { "Submitted" => "Đã nộp", "Completed" => "Hoàn thành", "NeedsRevision" => "Cần sửa", _ => value };
+    bool WebUrl(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https";
+    IHtmlContent Button(string action, string label, long? id = null, string? attribute = null, string? value = null)
+    {
+        var tag = new TagBuilder("button");
+        tag.Attributes["type"] = "button";
+        tag.Attributes["class"] = "btn-secondary-sh";
+        tag.Attributes["data-gl-action"] = action;
+        if (id.HasValue) tag.Attributes["data-id"] = id.Value.ToString();
+        if (attribute != null) tag.Attributes[attribute] = value ?? "";
+        tag.InnerHtml.Append(label);
+        return tag;
+    }
+}
+@if (data is null)
+{
+    <p class="gl-empty">Không tải được dữ liệu học tập. Vui lòng tải lại trang.</p>
+}
+else if (panel == "sessions")
+{
+    @if (data.CanManage) { @Button("session-new", "+ Tạo buổi học") }
+    <div class="gl-list">
+    @foreach (var session in data.Sessions.OrderByDescending(s => s.Status == "Scheduled" && s.EndsAtUtc > now).ThenBy(s => s.Status == "Scheduled" && s.EndsAtUtc > now ? s.StartsAtUtc.UtcTicks : -s.StartsAtUtc.UtcTicks))
+    {
+        var scheduled = session.Status == "Scheduled";
+        var started = session.StartsAtUtc <= now;
+        var registered = session.Attendees.Any(a => a.UserId == data.CurrentUserId);
+        var isCreator = session.CreatedByUserId == data.CurrentUserId;
+        var registrants = session.Attendees.Where(a => a.UserId != session.CreatedByUserId).ToList();
+        <article class="gl-card">
+            <h3>@session.Title</h3><span class="gl-badge">@(session.Status switch { "Scheduled" => "Đã lên lịch", "Completed" => "Đã kết thúc", _ => "Đã hủy" })</span>
+            <div class="gl-meta">@Date(session.StartsAtUtc) → @Date(session.EndsAtUtc)</div>
+            <p><strong>Mục tiêu:</strong> @session.Objective</p>
+            @if (!string.IsNullOrEmpty(session.Preparation)) { <p><strong>Chuẩn bị:</strong> @session.Preparation</p> }
+            @if (!string.IsNullOrEmpty(session.Location)) { <p>📍 @session.Location</p> }
+            @if ((registered || isCreator) && WebUrl(session.MeetingUrl)) { <a href="@session.MeetingUrl" target="_blank" rel="noopener noreferrer">Mở liên kết buổi học ↗</a> }
+            <div class="gl-meta">@registrants.Count đăng ký · @session.Attendees.Count(a => a.Attended) có mặt</div>
+            @if (registrants.Count > 0) { <details><summary>Người đăng ký</summary><p>@string.Join(" · ", registrants.Select(a => a.Name + (a.Attended ? " ✓" : "")))</p></details> }
+            @if (!string.IsNullOrEmpty(session.Summary)) { <p><strong>@(session.Status == "Cancelled" ? "Lý do hủy" : "Tổng kết"):</strong> @session.Summary</p> }
+            <div class="gl-actions">
+                @if (scheduled && !started && !isCreator) { @Button("session-register", registered ? "Hủy đăng ký" : "Đăng ký tham gia", session.Id, "data-registered", (!registered).ToString().ToLowerInvariant()) }
+                @if (data.CanManage && session.Status != "Cancelled" && started) { @Button("attendance", "Điểm danh", session.Id) }
+                @if (data.CanManage && scheduled && started) { @Button("session-complete", "Kết thúc & tổng kết", session.Id) }
+            </div>
+        </article>
+    }
+    </div>
+    @if (data.Sessions.Count == 0) { <p class="gl-empty">Chưa có buổi học. Người quản lý có thể tạo lịch học đầu tiên.</p> }
+}
+else if (panel == "assignments")
+{
+    @if (data.CanManage) { @Button("assignment-new", "+ Giao bài tập") }
+    <div class="gl-list">
+    @foreach (var assignment in data.Assignments)
+    {
+        var mine = assignment.Submissions.Where(s => s.UserId == data.CurrentUserId).OrderByDescending(s => s.Version).FirstOrDefault();
+        var canSubmit = assignment.CreatedByUserId != data.CurrentUserId && assignment.Status == "Open" && assignment.Assignees.Any(a => a.UserId == data.CurrentUserId) && mine?.Status != "Completed" && (assignment.AllowLateSubmission || assignment.DueAtUtc >= now);
+        var latestIds = assignment.Assignees.Select(a => assignment.Submissions.Where(s => s.UserId == a.UserId).OrderByDescending(s => s.Version).FirstOrDefault()?.Id).ToHashSet();
+        var session = data.Sessions.FirstOrDefault(s => s.Id == assignment.SessionId);
+        <article class="gl-card">
+            <h3>@assignment.Title</h3><span class="gl-badge">@(assignment.Status == "Open" ? "Đang mở" : "Đã đóng")</span>
+            @if (mine != null) { <span class="gl-badge">@Status(mine.Status)</span> }
+            <div class="gl-meta">Hạn nộp: @Date(assignment.DueAtUtc) · @(assignment.AllowLateSubmission ? "Cho phép nộp muộn" : "Không nhận bài muộn")</div>
+            @if (session != null) { <div class="gl-meta">Buổi học: @session.Title</div> }
+            <p>@assignment.Description</p>
+            <details><summary>Giao cho @assignment.Assignees.Count người</summary><p>@string.Join(" · ", assignment.Assignees.Select(a => a.Name))</p></details>
+            <div class="gl-actions">
+                @if (canSubmit) { @Button("submit", mine == null ? "Nộp bài" : "Nộp phiên bản mới", assignment.Id) }
+                @if (data.CanManage && assignment.Status == "Open") { @Button("assignment-edit", "Sửa bài tập", assignment.Id) @Button("assignment-close", "Đóng nhận bài", assignment.Id) }
+            </div>
+            <section class="gl-submission-thread" aria-label="Bài làm và nhận xét">
+            <h4>Bài làm và nhận xét (@assignment.Submissions.Count)</h4>
+            @foreach (var conversation in assignment.Submissions.GroupBy(s => s.UserId).OrderBy(g => g.Min(s => s.SubmittedAtUtc)).ThenBy(g => g.Key))
+            {
+                var first = conversation.OrderBy(s => s.SubmittedAtUtc).ThenBy(s => s.Version).ThenBy(s => s.Id).First();
+                var latestSubmission = conversation.OrderByDescending(s => s.Version).First();
+                var timeline = conversation.SelectMany(submission => new[]
+                {
+                    new { At = submission.SubmittedAtUtc, IsReview = false, Submission = submission },
+                    new { At = submission.ReviewedAtUtc ?? submission.SubmittedAtUtc, IsReview = true, Submission = submission }
+                }).Where(entry => !entry.IsReview || entry.Submission.ReviewedAtUtc.HasValue || !string.IsNullOrWhiteSpace(entry.Submission.Feedback))
+                  .OrderBy(entry => entry.At).ThenBy(entry => entry.IsReview).ThenBy(entry => entry.Submission.Version).ThenBy(entry => entry.Submission.Id);
+                <article class="gl-submission-comment gl-submission-conversation" data-submission-author="@conversation.Key">
+                    @foreach (var entry in timeline)
+                    {
+                        var submission = entry.Submission;
+                        var root = !entry.IsReview && submission.Id == first.Id;
+                        var author = entry.IsReview ? submission.ReviewerName ?? "Người quản lý" : submission.Name;
+                        <div class="@(root ? "gl-comment-root" : "gl-comment-reply")" data-event-kind="@(entry.IsReview ? "review" : "submission")" data-event-submission="@submission.Id">
+                            <span class="gl-comment-avatar @(entry.IsReview ? "gl-review-avatar" : "")" aria-hidden="true">@(string.IsNullOrWhiteSpace(author) ? "?" : author.Trim()[..1].ToUpperInvariant())</span>
+                            <div class="gl-comment-body">
+                                <div class="gl-comment-bubble @(entry.IsReview ? "gl-review-bubble" : "")">
+                                    <strong>@author</strong>
+                                    <p>@(entry.IsReview ? submission.Feedback : submission.Content)</p>
+                                    @if (!entry.IsReview && WebUrl(submission.ResourceUrl)) { <a href="@submission.ResourceUrl" target="_blank" rel="noopener noreferrer">Xem bài làm ↗</a> }
+                                    @if (entry.IsReview) { <span class="gl-badge">@Status(submission.Status)</span> }
+                                </div>
+                                <div class="gl-comment-meta">@Date(entry.At) · @(entry.IsReview ? "Nhận xét cho lần" : root ? "Lần nộp" : "Bài giải mới · Lần") @submission.Version@(!entry.IsReview && submission.IsLate ? " · Nộp muộn" : "")</div>
+                            </div>
+                        </div>
+                    }
+                    @if (data.CanManage && latestIds.Contains(latestSubmission.Id))
+                    {
+                        var submission = latestSubmission;
+                                <div class="gl-comment-body">
+                            <details class="gl-review-editor">
+                                <summary>@(submission.ReviewedAtUtc.HasValue ? "Chỉnh sửa nhận xét" : "Nhận xét / đánh giá")</summary>
+                                <form asp-controller="GroupLearning" asp-action="Review" asp-route-groupId="@Model.Group.Id" method="post" class="gl-review-form">
+                                    <input type="hidden" name="id" value="@assignment.Id" />
+                                    <input type="hidden" name="submissionId" value="@submission.Id" />
+                                    <input type="hidden" name="panel" value="assignments" />
+                                    <input type="hidden" name="week" value="@data.Progress.WeekStart.ToString("yyyy-MM-dd")" />
+                                    <label for="review-feedback-@submission.Id">Nhận xét bài làm của @submission.Name</label>
+                                    <textarea id="review-feedback-@submission.Id" name="Feedback" class="sh-input" rows="2" maxlength="4000" placeholder="Viết nhận xét...">@submission.Feedback</textarea>
+                                    <div class="gl-review-controls">
+                                        <label for="review-status-@submission.Id">Kết quả</label>
+                                        <select id="review-status-@submission.Id" name="Status" class="sh-input">
+                                            <option value="Completed" selected="@(submission.Status != "NeedsRevision")">Hoàn thành</option>
+                                            <option value="NeedsRevision" selected="@(submission.Status == "NeedsRevision")">Yêu cầu sửa</option>
+                                        </select>
+                                        <button type="submit" class="btn-primary-sh">Gửi nhận xét</button>
+                                    </div>
+                                </form>
+                            </details>
+                                </div>
+                    }
+                </article>
+            }
+            @if (assignment.Submissions.Count == 0) { <p class="gl-empty">Chưa có bài nộp.</p> }
+            </section>
+        </article>
+    }
+    </div>
+    @if (data.Assignments.Count == 0) { <p class="gl-empty">Chưa có bài tập được giao.</p> }
+}
+else if (panel == "questions")
+{
+    @Button("question-new", "+ Đặt câu hỏi")
+    <div class="gl-list">
+    @foreach (var question in data.Questions)
+    {
+        <article class="gl-card" data-question-search="@($"{question.Title} {question.Subject} {question.Body}")">
+            <h3>@question.Title</h3><span class="gl-badge">@question.Subject</span><span class="gl-badge">@(question.AcceptedAnswerId.HasValue ? "Đã giải quyết" : "Đang trao đổi")</span>
+            <div class="gl-meta">@question.AuthorName · @Date(question.CreatedAtUtc)</div><p>@question.Body</p>
+            <details><summary>@question.Answers.Count câu trả lời</summary>
+            @foreach (var answer in question.Answers)
+            {
+                <div class="gl-answer @(answer.Id == question.AcceptedAnswerId ? "accepted" : "")">
+                    <strong>@answer.AuthorName</strong>
+                    @if (answer.Id == question.AcceptedAnswerId) { <span class="gl-badge good">Câu trả lời được chọn</span> }
+                    <div class="gl-meta">@Date(answer.CreatedAtUtc)</div><p>@answer.Body</p>
+                    @if (data.CanManage || question.AuthorUserId == data.CurrentUserId) { @Button("answer-accept", answer.Id == question.AcceptedAnswerId ? "Bỏ chọn" : "Chọn câu trả lời", question.Id, "data-answer", answer.Id == question.AcceptedAnswerId ? "" : answer.Id.ToString()) }
+                </div>
+            }
+            </details>
+            <div class="gl-actions">@Button("answer", "Viết câu trả lời", question.Id)</div>
+        </article>
+    }
+    </div>
+    <p id="gl-question-empty" class="gl-empty" hidden="@(data.Questions.Count != 0)">@(data.Questions.Count == 0 ? "Chưa có câu hỏi. Hãy chia sẻ điều bạn đang thắc mắc." : "Không tìm thấy câu hỏi phù hợp.")</p>
+}
+else if (panel == "resources")
+{
+    var resources = data.Resources.Where(r => r.Kind is "Flashcard" or "Pdf").ToList();
+    <div class="gl-actions mb-3">@Button("flashcard-share", "+ Chia sẻ flashcard") @Button("pdf-share", "+ Chia sẻ tài liệu")</div>
+    <div class="gl-list">
+    @foreach (var resource in resources)
+    {
+        var url = resource.Kind == "Pdf" ? Url.Content($"~/Pdf/Documents/{resource.Id}?shareId={resource.ShareId}") : Url.Action("Read", "GroupResources", new { groupId = Model.Group.Id, kind = resource.Kind, id = resource.Id });
+        <article class="gl-card"><h3>@resource.Title</h3><div class="gl-meta">@(resource.Kind == "Pdf" ? "PDF" : "Flashcard") · @resource.OwnerName</div>
+            <div class="gl-actions">
+                <a class="btn-primary-sh" href="@url">@(resource.Kind == "Pdf" ? "Xem tài liệu" : "Mở flashcard")</a>
+                @if (data.CanManage || resource.OwnerUserId == data.CurrentUserId) { @Button("resource-unshare", "Gỡ chia sẻ", resource.Id, "data-kind", resource.Kind) }
+            </div>
+        </article>
+    }
+    </div>
+    @if (resources.Count == 0) { <p class="gl-empty">Nhóm chưa có tài liệu hoặc flashcard được chia sẻ.</p> }
+}
+else if (panel == "progress")
+{
+    var progress = data.Progress;
+    <div class="gl-metrics">
+        <div class="gl-metric"><strong>@progress.CompletedSessions</strong><span>Buổi học đã kết thúc</span></div>
+        <div class="gl-metric"><strong>@progress.Submitted/@progress.Assigned</strong><span>Lượt giao bài đã được nộp</span></div>
+    </div>
+    <div class="gl-card mt-3"><h3>@(data.CanManage ? "Tiến độ thành viên hiện tại" : "Tiến độ của bạn")</h3>
+        <div class="gl-table-scroll"><table class="gl-table"><thead><tr><th>Thành viên</th><th>Có mặt / đăng ký*</th><th>Đã nộp / được giao</th></tr></thead><tbody>
+        @foreach (var member in progress.Members) { <tr><td>@member.Name</td><td>@member.AttendedSessions/@member.RegisteredSessions</td><td>@member.Submitted/@member.Assigned</td></tr> }
+        </tbody></table></div>
+        <p class="gl-meta">* Chỉ tính buổi đã kết thúc trong tuần. Bài tập tính theo hạn nộp; mỗi người dùng phiên bản nộp mới nhất. Tổng nhóm giữ cả lịch sử thành viên đã rời nhóm.</p>
+    </div>
+}

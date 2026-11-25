@@ -6,18 +6,15 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+
+
 @if (TempData["FlashcardSuccess"] is string successMessage)
 {
-    <div class="alert alert-success mb-4">
-        @successMessage
-    </div>
+    <div class="alert alert-success mb-4" role="status">@successMessage</div>
 }
-
 @if (TempData["FlashcardError"] is string errorMessage)
 {
-    <div class="alert alert-danger mb-4">
-        @errorMessage
-    </div>
+    <div class="alert alert-danger mb-4" role="alert">@errorMessage</div>
 }
 
 <div id="flashcards-view" style="max-width:1280px; margin:0 auto;">
@@ -43,12 +40,12 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                 <i class="bi bi-plus-lg"></i>
                 <span>Tạo bộ thẻ</span>
             </button>
-        
+
     </div>
   </div>
 
 
-  
+
     <!-- Mini Dashboard -->
     <div class="row g-3 mb-4">
 
@@ -193,7 +190,7 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                                 Tạo bộ thẻ
                             </button>
                         }
-                    
+
                 </div>
             </div>
         }
@@ -423,7 +420,7 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                                   class="sh-input"
                                   rows="4"
                                   placeholder="Mô tả ngắn về bộ flashcard..."></textarea>
-                        
+
                     </div>
                 </div>
 
@@ -458,7 +455,7 @@ ViewData["PageSubtitle"] = "Quản lý và luyện tập với các bộ thẻ g
                   method="post">
 
                 @Html.AntiForgeryToken()
-                
+
 
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold"

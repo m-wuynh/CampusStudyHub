@@ -1,17 +1,21 @@
+using StudyHub.BLL.DTOs.StudyGroups;
 using StudyHub.BLL.DTOs;
 
 namespace StudyHub.BLL.Services.StudyGroups;
 
 public interface IStudyGroupService
 {
+    Task DeleteGroupAsync(string groupId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<GroupSubjectOptionResponse>> GetSubjectOptionsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<GroupSummaryResponse>> GetGroupsAsync(string? searchText = null, CancellationToken cancellationToken = default);
     Task<GroupDetailsResponse?> GetGroupAsync(string groupId, CancellationToken cancellationToken = default);
     Task<GroupMembershipResponse> JoinAsync(string groupId, CancellationToken cancellationToken = default);
     Task<GroupMembershipResponse> LeaveOrWithdrawAsync(string groupId, CancellationToken cancellationToken = default);
-    Task<GroupMembershipResponse> RequestUnbanAsync(string groupId, CancellationToken cancellationToken = default);
+    Task<GroupMembershipResponse> RequestUnbanAsync(string groupId, string? reason, CancellationToken cancellationToken = default);
     Task<GroupPostResponse> AddMessageAsync(string groupId, string content, CancellationToken cancellationToken = default);
     Task<GroupPostResponse> AddAnnouncementAsync(string groupId, string content, bool isPinned, CancellationToken cancellationToken = default);
+    Task SetAnnouncementPinnedAsync(string groupId, string postId, bool isPinned, CancellationToken cancellationToken = default);
     Task<GroupDetailsResponse> CreateGroupAsync(CreateGroupRequest request, CancellationToken cancellationToken = default);
     Task<GroupDetailsResponse> UpdateGroupAsync(string groupId, UpdateGroupRequest request, CancellationToken cancellationToken = default);
     Task ManageMemberAsync(string groupId, string targetUserId, string action, CancellationToken cancellationToken = default);

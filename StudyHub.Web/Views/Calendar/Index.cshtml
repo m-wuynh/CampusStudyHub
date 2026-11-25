@@ -7,22 +7,18 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div id="calendar-view" style="max-width:1280px; margin:0 auto; display: flex; flex-direction: column; gap: 20px;">
+@section Styles {
+    <link rel="stylesheet" href="~/css/calendar.css" asp-append-version="true" />
+}
 
-  @if (TempData["ErrorMessage"] != null)
-  {
-    <div class="alert alert-danger alert-dismissible fade show mb-0 shadow-sm" role="alert" style="border-radius: 12px;">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  }
+<div id="calendar-view" class="calendar-view-container">
 
   <!-- ROW 1: Search Bar & Add Event Button -->
   <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
     <!-- Search Bar -->
-    <div class="calendar-search-wrapper position-relative flex-grow-1" style="max-width: 680px;">
+    <div class="calendar-search-wrapper calendar-search-max position-relative flex-grow-1">
       <div class="calendar-search-input-group d-flex align-items-center">
-        <i class="bi bi-search search-icon" style="color: #2563eb; font-size: 16px;"></i>
+        <i class="bi bi-search search-icon"></i>
         <input type="text"
                id="calendar-search-input"
                class="calendar-search-input"
@@ -41,7 +37,7 @@
       <div id="calendar-search-dropdown" class="calendar-search-dropdown shadow-lg d-none">
         <div class="search-dropdown-header d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
           <span class="small fw-semibold text-muted" id="search-results-count">Kết quả tìm kiếm</span>
-          <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">ESC để đóng</span>
+          <span class="badge bg-secondary-subtle text-secondary search-esc-badge">ESC để đóng</span>
         </div>
         <div id="calendar-search-results-list" class="calendar-search-results-list"></div>
       </div>
@@ -61,7 +57,7 @@
       <path d="M50 0 C50 27.6 27.6 50 0 50 C27.6 50 50 72.4 50 100 C50 72.4 72.4 50 100 50 C72.4 50 50 27.6 50 0 Z" />
     </svg>
 
-    <div class="position-relative" style="z-index: 2;">
+    <div class="hero-card-z2">
       <!-- Title -->
       <div class="hero-card-title mb-1.5" id="calendar-progress-title">
         <i class="bi bi-calendar-check me-1"></i>Hãy bắt tay vào học ngay để biến mục tiêu thành hiện thực!
@@ -74,7 +70,7 @@
 
       <!-- Progress Track & Bar -->
       <div class="hero-progress-track mb-3">
-        <div id="calendar-progress-bar" class="hero-progress-fill" style="width: 0%;"></div>
+        <div id="calendar-progress-bar" class="hero-progress-fill"></div>
       </div>
 
       <!-- 3 Pill Badges -->
@@ -93,54 +89,54 @@
   </div>
 
   <!-- ROW 3: Calendar Container Card -->
-  <div class="sh-card p-0 overflow-hidden calendar-main-card" style="background: #fff; border: 1px solid #f1f3f4; border-radius: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); position: relative; min-height: 800px;">
-    <div id="calendar" style="height: 100%;"></div>
+  <div class="sh-card p-0 overflow-hidden calendar-main-card">
+    <div id="calendar" class="calendar-grid-container"></div>
 
     <!-- Event Popover (Hidden by default) -->
-    <div id="event-popover" class="position-absolute bg-white rounded-3 p-2 d-none" style="width: 360px; max-width: calc(100% - 20px); max-height: calc(100% - 20px); overflow-y: auto; z-index: 1050; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: opacity 0.1s;">
+    <div id="event-popover" class="event-popover-card d-none">
       <div class="d-flex justify-content-end mb-1 gap-1 align-items-center">
-        <button class="btn btn-sm btn-outline-secondary border py-1 px-2 d-flex align-items-center gap-1 me-auto" id="btn-toggle-complete" style="border-radius: 16px; font-size: 11px; font-weight: 600;">
+        <button class="btn btn-sm btn-outline-secondary border py-1 px-2 d-flex align-items-center gap-1 me-auto btn-popover-complete" id="btn-toggle-complete">
           <i class="bi bi-circle" id="popover-complete-icon"></i>
           <span id="popover-complete-text">Chưa hoàn thành</span>
         </button>
-        <button class="btn btn-sm btn-light border-0 rounded-circle" id="btn-edit-event" style="width: 32px; height: 32px;"><i class="bi bi-pencil"></i></button>
-        <button class="btn btn-sm btn-light border-0 rounded-circle" id="btn-delete-event" style="width: 32px; height: 32px;"><i class="bi bi-trash"></i></button>
-        <button class="btn btn-sm btn-light border-0 rounded-circle ms-1" onclick="document.getElementById('event-popover').classList.add('d-none')" style="width: 32px; height: 32px;"><i class="bi bi-x-lg"></i></button>
+        <button class="btn btn-sm btn-light border-0 rounded-circle btn-popover-icon" id="btn-edit-event"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-light border-0 rounded-circle btn-popover-icon" id="btn-delete-event"><i class="bi bi-trash"></i></button>
+        <button class="btn btn-sm btn-light border-0 rounded-circle btn-popover-icon ms-1" onclick="document.getElementById('event-popover').classList.add('d-none')"><i class="bi bi-x-lg"></i></button>
       </div>
 
       <div class="px-3 pb-3">
         <div class="d-flex gap-3 mb-2">
-          <div style="width: 14px; height: 14px; border-radius: 4px; margin-top: 6px; flex-shrink:0;" id="popover-color"></div>
+          <div class="popover-color-box" id="popover-color"></div>
           <div>
-            <h4 class="mb-1" id="popover-title" style="font-size: 1.2rem; font-weight: 500; color: #3c4043;"></h4>
-            <p class="mb-0 text-muted" id="popover-time" style="font-size: 0.82rem;"></p>
+            <h4 class="mb-1 popover-title-text" id="popover-title"></h4>
+            <p class="mb-0 text-muted popover-time-text" id="popover-time"></p>
           </div>
         </div>
 
-        <div class="d-flex flex-column gap-2 ms-1" style="font-size: 0.88rem;">
+        <div class="d-flex flex-column gap-2 ms-1 popover-body-details">
 
           <!-- Description -->
-          <div id="popover-desc-row" class="d-flex align-items-start gap-3 text-muted" style="display:none !important;">
+          <div id="popover-desc-row" class="d-flex align-items-start gap-3 text-muted popover-row-hidden">
             <i class="bi bi-text-left fs-5 flex-shrink-0"></i>
-            <span id="popover-desc" style="white-space: pre-wrap; color:#3c4043;"></span>
+            <span id="popover-desc" class="popover-desc-text"></span>
           </div>
 
           <!-- Location -->
-          <div id="popover-location-row" class="d-flex align-items-center gap-3 text-muted" style="display:none !important;">
+          <div id="popover-location-row" class="d-flex align-items-center gap-3 text-muted popover-row-hidden">
             <i class="bi bi-geo-alt fs-5 flex-shrink-0"></i>
-            <span id="popover-location" style="color:#3c4043;"></span>
+            <span id="popover-location" class="popover-text-dark"></span>
           </div>
 
           <!-- Event Type -->
           <div class="d-flex align-items-center gap-3 text-muted">
             <i class="bi bi-tag fs-5 flex-shrink-0"></i>
-            <span id="popover-type" style="color:#3c4043;"></span>
+            <span id="popover-type" class="popover-text-dark"></span>
           </div>
 
           <!-- Reminders -->
-          <div id="popover-reminders-row" class="d-flex align-items-start gap-3 text-muted" style="display:none !important;">
+          <div id="popover-reminders-row" class="d-flex align-items-start gap-3 text-muted popover-row-hidden">
             <i class="bi bi-bell fs-5 flex-shrink-0"></i>
-            <div id="popover-reminders-list" class="d-flex flex-column" style="color:#3c4043;"></div>
+            <div id="popover-reminders-list" class="d-flex flex-column popover-text-dark"></div>
           </div>
 
         </div>
@@ -150,8 +146,8 @@
       <div class="px-3 pb-3" id="popover-completion-row">
         <div class="pt-2 border-top">
           <div class="form-check mb-0">
-            <input class="form-check-input" type="checkbox" id="popover-is-completed" style="cursor: pointer;">
-            <label class="form-check-label" for="popover-is-completed" style="cursor: pointer; color: #3c4043; user-select: none;">
+            <input class="form-check-input popover-check-input" type="checkbox" id="popover-is-completed">
+            <label class="form-check-label popover-check-label" for="popover-is-completed">
               Đánh dấu hoàn thành
             </label>
           </div>
@@ -164,6 +160,5 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@@fullcalendar/core@6.1.15/locales/vi.global.min.js"></script>
-    <link rel="stylesheet" href="~/css/calendar.css" asp-append-version="true" />
     <script src="~/js/calendar.js" asp-append-version="true"></script>
 }

@@ -14,16 +14,6 @@ public sealed class GoogleAuthRepository(StudyHubDbContext context) : IGoogleAut
         CancellationToken cancellationToken = default) =>
         FindOrCreateAsync("Google", subject, displayName, email, avatarUrl, cancellationToken);
 
-    public Task<GoogleAccountData> FindOrCreateDevelopmentAsync(
-        CancellationToken cancellationToken = default) =>
-        FindOrCreateAsync(
-            "Development",
-            "local-development-user",
-            "Tài khoản phát triển",
-            "developer@studyhub.local",
-            null,
-            cancellationToken);
-
     private async Task<GoogleAccountData> FindOrCreateAsync(
         string provider,
         string subject,

@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   setupDropdown('topbar-quick-add-btn', 'quick-add-menu');
-  setupDropdown('topbar-notifications-btn', 'notifications-menu');
+  // topbar-notifications-btn is handled by Notification JS in _Layout.cshtml to dynamically load notifications
 
   // Close dropdowns on document click
   document.addEventListener('click', () => {
@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const toast = document.createElement('div');
     toast.className = `sh-toast`;
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
 
     let icon = '';
     let color = '';
@@ -82,12 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.innerHTML = `
       <div style="color: ${color}; font-size: 16px; display: flex; align-items: center; flex-shrink: 0;">${icon}</div>
       <div style="flex-grow: 1; min-width: 0;">
-        <span class="fw-semibold" style="font-size: 13px; color: var(--sh-slate-800); line-height: 1.4; display: block;">${message}</span>
+        <span class="fw-semibold sh-toast-message" style="font-size: 13px; color: var(--sh-slate-800); line-height: 1.4; display: block;"></span>
       </div>
-      <button type="button" class="btn-close ms-2" style="font-size: 9px; flex-shrink: 0;" aria-label="Close"></button>
+      <button type="button" class="sh-toast-close" aria-label="Đóng thông báo"><span aria-hidden="true">&times;</span></button>
     `;
 
-    const closeBtn = toast.querySelector('.btn-close');
+    toast.querySelector('.sh-toast-message').textContent = String(message ?? '');
+    const closeBtn = toast.querySelector('.sh-toast-close');
     if (closeBtn) {
       closeBtn.onclick = () => {
         toast.classList.remove('show');
@@ -110,6 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, duration);
   };
+
+  document.querySelectorAll('.js-tempdata-alert').forEach(element => {
+    const message = element.dataset.message;
+    if (message) window.showToast(message, element.dataset.type || 'info');
+    element.remove();
+  });
 
   // Mark notifications as read
   const markAllReadBtn = document.getElementById('mark-all-read-btn');
@@ -213,17 +221,64 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ── 11. Confirm Delete Modal Global Logic ── */
-  window.confirmDelete = function(itemName) {
-    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-    document.getElementById('delete-confirm-message').innerHTML = `Bạn có chắc muốn xóa <strong>${itemName}</strong> không? Hành động này không thể hoàn tác.`;
-    
-    document.getElementById('confirm-delete-btn').onclick = function() {
-      modal.hide();
-      window.showToast(`Đã xóa ${itemName} thành công`, 'success');
-    };
-    
-    modal.show();
+  let confirmationOpen = false;
+  window.showConfirm = function(message) {
+    const element = document.getElementById('deleteConfirmModal');
+    const confirmButton = document.getElementById('confirm-delete-btn');
+    if (confirmationOpen) return Promise.resolve(false);
+    if (!element || !confirmButton || !window.bootstrap?.Modal) {
+      window.showToast('Không mở được hộp xác nhận. Vui lòng tải lại trang.', 'error');
+      return Promise.resolve(false);
+    }
+    confirmationOpen = true;
+    document.getElementById('delete-confirm-message').textContent = String(message ?? '');
+    const modal = bootstrap.Modal.getOrCreateInstance(element);
+    const previousElement = document.querySelector('.modal.show:not(#deleteConfirmModal)');
+    const previousModal = previousElement ? bootstrap.Modal.getOrCreateInstance(previousElement) : null;
+    const trigger = document.activeElement;
+    return new Promise(resolve => {
+      let confirmed = false;
+      confirmButton.disabled = true;
+      element.addEventListener('shown.bs.modal', () => { confirmButton.disabled = false; }, { once: true });
+      const accept = () => { confirmed = true; confirmButton.disabled = true; modal.hide(); };
+      confirmButton.addEventListener('click', accept);
+      element.addEventListener('hidden.bs.modal', () => {
+        confirmButton.removeEventListener('click', accept);
+        confirmButton.disabled = false;
+        confirmationOpen = false;
+        if (!confirmed && previousModal) previousModal.show();
+        else if (!confirmed && trigger?.isConnected) trigger.focus();
+        resolve(confirmed);
+      }, { once: true });
+      if (previousModal) {
+        previousElement.addEventListener('hidden.bs.modal', () => modal.show(), { once: true });
+        previousModal.hide();
+      } else modal.show();
+    });
   };
+  window.confirmDelete = itemName => window.showConfirm(`Bạn có chắc muốn xóa ${itemName} không? Hành động này không thể hoàn tác.`);
+
+  const confirmedForms = new WeakSet();
+  const pendingForms = new WeakSet();
+  document.addEventListener('submit', async event => {
+    const form = event.target;
+    if (!form.matches('form[data-confirm]')) return;
+    if (confirmedForms.has(form)) { confirmedForms.delete(form); return; }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (pendingForms.has(form)) return;
+    pendingForms.add(form);
+    const submitter = event.submitter;
+    try {
+      if (await window.showConfirm(form.dataset.confirm) && form.isConnected) {
+        confirmedForms.add(form);
+        HTMLFormElement.prototype.requestSubmit.call(form, submitter?.isConnected ? submitter : undefined);
+      }
+    } finally {
+      confirmedForms.delete(form);
+      pendingForms.delete(form);
+    }
+  }, true);
 
   /* ── 12. Logout Modal ── */
   const logoutBtn = document.getElementById('sidebar-logout-btn');

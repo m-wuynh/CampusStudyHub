@@ -11,7 +11,7 @@ namespace StudyHub.Web.Controllers.StudyGroups;
     NoStore = true,
     Location = ResponseCacheLocation.None)]
 public sealed class GroupResourcesController(
-    GroupLearningService service) : Controller
+    IGroupLearningService service) : Controller
 {
     [HttpGet("{kind}/{id:long}")]
     public async Task<IActionResult> Read(

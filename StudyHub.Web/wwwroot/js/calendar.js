@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function doToggle() {
             if (isPast) {
-                alert('Ca học đã kết thúc, không thể thay đổi trạng thái.');
+                window.showToast('Ca học đã kết thúc, không thể thay đổi trạng thái.', 'error');
                 return;
             }
 
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     targetEl.classList.remove('event-state-completed', 'event-state-pending', 'event-state-missed');
                     targetEl.classList.add(originalState ? 'event-state-completed' : 'event-state-pending');
                 }
-                alert(err.message || 'Lỗi khi cập nhật trạng thái');
+                window.showToast(err.message || 'Lỗi khi cập nhật trạng thái', 'error');
                 desiredState = null;
             })
             .finally(function() {
@@ -467,15 +467,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Delete URL
         var delBtn = document.getElementById('btn-delete-event');
         if (delBtn) {
-            delBtn.onclick = function() {
-                if (confirm('Bạn có chắc chắn muốn xóa sự kiện này?')) {
+            delBtn.onclick = async function() {
+                if (await window.showConfirm('Bạn có chắc chắn muốn xóa sự kiện này?')) {
                     fetch('/Calendar/DeleteEvent/' + eventApi.id, { method: 'DELETE' })
                         .then(res => {
                             if (res.ok) {
                                 popover.classList.add('d-none');
                                 calendar.refetchEvents();
                             }
-                            else alert('Lỗi khi xóa!');
+                            else window.showToast('Lỗi khi xóa!', 'error');
                         });
                 }
             };
