@@ -57,7 +57,7 @@
             <label class="calendar-form-label" for="event-title">
                 <i class="bi bi-type"></i><span>Tên sự kiện <span class="text-danger">*</span></span>
             </label>
-            <input id="event-title" type="text" class="calendar-form-input" placeholder="Ví dụ: Kiểm tra 1 tiết Toán, Học nhóm giải tích..." />
+            <input id="event-title" type="text" class="calendar-form-input" required maxlength="200" placeholder="Ví dụ: Kiểm tra 1 tiết Toán, Học nhóm giải tích..." />
             <div id="event-title-error" class="calendar-field-error text-danger small mt-1 d-none">
                 <i class="bi bi-exclamation-circle-fill me-1"></i>Vui lòng nhập tên sự kiện
             </div>
@@ -69,19 +69,19 @@
                 <label class="calendar-form-label" for="event-date">
                     <i class="bi bi-calendar-event"></i><span>Ngày <span class="text-danger">*</span></span>
                 </label>
-                <input id="event-date" type="date" class="calendar-form-input" value="@defaultDateStr" min="@todayStr" />
+                <input id="event-date" type="date" class="calendar-form-input" required value="@defaultDateStr" min="@todayStr" />
             </div>
             <div class="col-md-3 col-6">
                 <label class="calendar-form-label" for="event-start">
                     <i class="bi bi-clock"></i><span>Bắt đầu <span class="text-danger">*</span></span>
                 </label>
-                <input id="event-start" type="time" class="calendar-form-input" value="@nowTimeStr" lang="en-US" />
+                <input id="event-start" type="time" class="calendar-form-input" required value="@nowTimeStr" lang="en-US" />
             </div>
             <div class="col-md-3 col-6">
                 <label class="calendar-form-label" for="event-end">
                     <i class="bi bi-clock-history"></i><span>Kết thúc <span class="text-danger">*</span></span>
                 </label>
-                <input id="event-end" type="time" class="calendar-form-input" value="@nowPlusOneHourStr" lang="en-US" />
+                <input id="event-end" type="time" class="calendar-form-input" required value="@nowPlusOneHourStr" lang="en-US" />
             </div>
         </div>
         
@@ -91,7 +91,7 @@
                 <label class="calendar-form-label" for="event-category">
                     <i class="bi bi-tag"></i><span>Loại sự kiện <span class="text-danger">*</span></span>
                 </label>
-                <select id="event-category" class="calendar-form-input">
+                <select id="event-category" class="calendar-form-input" required>
                     <option value="Tự học">Tự học</option>
                     <option value="Bài tập / Nộp bài">Bài tập / Nộp bài</option>
                     <option value="Kiểm tra / Thi">Kiểm tra / Thi</option>
@@ -102,7 +102,7 @@
                 <label class="calendar-form-label" for="event-location">
                     <i class="bi bi-geo-alt"></i><span>Địa điểm (tùy chọn)</span>
                 </label>
-                <input id="event-location" type="text" class="calendar-form-input" placeholder="Phòng học, Google Meet, thư viện..." />
+                <input id="event-location" type="text" class="calendar-form-input" maxlength="250" placeholder="Phòng học, Google Meet, thư viện..." />
             </div>
         </div>
         
@@ -124,7 +124,7 @@
             <label class="calendar-form-label" for="event-description">
                 <i class="bi bi-text-paragraph"></i><span>Ghi chú thêm</span>
             </label>
-            <textarea id="event-description" class="calendar-form-input" rows="4"
+            <textarea id="event-description" class="calendar-form-input" rows="4" maxlength="2000"
                       placeholder="Ghi chú chi tiết về tài liệu, nội dung bài học hoặc lưu ý quan trọng..."></textarea>
         </div>
         
@@ -139,5 +139,182 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/calendar/create.js" asp-append-version="true"></script>
+<script>
+    /* ========================================================
+       VALIDATE VÀ XỬ LÝ TẠO SỰ KIỆN TRỰC TIẾP TRONG VIEW
+       ======================================================== */
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tự động tải danh sách loại sự kiện từ server
+        fetch('/Calendar/GetCategories')
+            .then(function(res) { return res.json(); })
+            .then(function(categories) {
+                if (!categories || !categories.length) return;
+                var selectEl = document.getElementById('event-category');
+                if (!selectEl) return;
+                var currentVal = selectEl.value;
+                selectEl.innerHTML = categories.map(function(c) {
+                    return '<option value="' + c.name + '">' + c.name + '</option>';
+                }).join('');
+                if (currentVal) selectEl.value = currentVal;
+            })
+            .catch(function(err) {
+                console.error('Không thể tải loại sự kiện:', err);
+            });
+
+        // Tự động tắt viền đỏ cảnh báo khi người dùng bắt đầu nhập tên
+        var titleInput = document.getElementById('event-title');
+        if (titleInput) {
+            titleInput.addEventListener('input', function() {
+                var titleError = document.getElementById('event-title-error');
+                if (this.value.trim().length > 0) {
+                    if (titleError) titleError.classList.add('d-none');
+                    this.classList.remove('border-danger');
+                }
+            });
+        }
+    });
+
+    // Thêm một dòng hẹn giờ nhắc nhở
+    window.addNotification = function(val, unit, channel) {
+        if (val === undefined) val = 10;
+        if (unit === undefined) unit = 'minutes';
+        if (channel === undefined) channel = 'notification';
+
+        var container = document.getElementById('notifications-container');
+        if (!container) return;
+
+        var row = document.createElement('div');
+        row.className = 'notif-row-purple d-flex align-items-center gap-2 flex-wrap mb-1';
+        row.innerHTML = '\
+            <i class="bi bi-bell-fill notif-bell-icon"></i>\
+            <select class="notif-select-purple">\
+                <option value="notification"' + (channel === 'notification' ? ' selected' : '') + '>Thông báo hệ thống</option>\
+                <option value="email"' + (channel === 'email' ? ' selected' : '') + '>Email</option>\
+            </select>\
+            <span class="text-muted small">Trước:</span>\
+            <input type="number" min="0" class="notif-input-purple" value="' + val + '">\
+            <select class="notif-select-purple">\
+                <option value="minutes"' + (unit === 'minutes' ? ' selected' : '') + '>phút</option>\
+                <option value="hours"' + (unit === 'hours' ? ' selected' : '') + '>giờ</option>\
+                <option value="days"' + (unit === 'days' ? ' selected' : '') + '>ngày</option>\
+                <option value="weeks"' + (unit === 'weeks' ? ' selected' : '') + '>tuần</option>\
+            </select>\
+            <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-auto" title="Xóa thông báo" onclick="this.closest(\'.notif-row-purple\').remove()">\
+                <i class="bi bi-x-circle-fill notif-remove-icon"></i>\
+            </button>';
+        container.appendChild(row);
+    };
+
+    // ========================================================
+    // HÀM KIỂM TRA DỮ LIỆU (VALIDATE) VÀ GỬI LÊN SERVER
+    // ========================================================
+    window.submitEvent = async function() {
+        // Bước 1: Lấy dữ liệu từ các ô nhập
+        var titleInput = document.getElementById('event-title');
+        var titleError = document.getElementById('event-title-error');
+        var title = titleInput ? titleInput.value.trim() : '';
+        var date = document.getElementById('event-date')?.value;
+        var start = document.getElementById('event-start')?.value;
+        var end = document.getElementById('event-end')?.value;
+        var category = document.getElementById('event-category')?.value;
+        var location = document.getElementById('event-location')?.value || '';
+        var description = document.getElementById('event-description')?.value || '';
+
+        // Bước 2 (VALIDATE): Kiểm tra tên sự kiện bắt buộc nhập
+        if (!title) {
+            if (titleError) titleError.classList.remove('d-none');
+            if (titleInput) {
+                titleInput.classList.add('border-danger');
+                titleInput.focus();
+            }
+            if (window.showToast) window.showToast('Vui lòng nhập tên ca học!', 'error');
+            return;
+        }
+
+        // Bước 3 (VALIDATE): Kiểm tra đủ ngày giờ và loại sự kiện
+        if (!date || !start || !end || !category) {
+            if (window.showToast) window.showToast('Vui lòng điền đủ thông tin thời gian và loại sự kiện!', 'error');
+            return;
+        }
+
+        // Bước 4 (VALIDATE): Kiểm tra giờ kết thúc phải sau giờ bắt đầu
+        if (end <= start) {
+            if (window.showToast) {
+                window.showToast('Giờ kết thúc (' + end + ') phải sau giờ bắt đầu (' + start + ') trong cùng ngày!', 'error');
+            } else {
+                alert('Giờ kết thúc phải sau giờ bắt đầu!');
+            }
+            return;
+        }
+
+        // Bước 5 (VALIDATE): Kiểm tra ngày giờ không được ở quá khứ
+        var selectedStart = new Date(date + 'T' + start);
+        if (selectedStart < new Date(Date.now() - 60000)) {
+            if (window.showToast) {
+                window.showToast('Thời gian bắt đầu không thể ở trong quá khứ!', 'error');
+            } else {
+                alert('Thời gian bắt đầu không thể ở trong quá khứ!');
+            }
+            return;
+        }
+
+        // Chuẩn hóa giờ sang HH:mm:ss
+        if (start.length === 5) start += ":00";
+        if (end.length === 5) end += ":00";
+
+        // Thu thập các dòng nhắc nhở
+        var reminders = [];
+        document.querySelectorAll('#notifications-container .notif-row-purple').forEach(function(row) {
+            var inputs = row.querySelectorAll('input, select');
+            if (inputs.length >= 3) {
+                var channel = inputs[0].value;
+                var val = parseInt(inputs[1].value, 10);
+                var unit = inputs[2].value;
+                if (!isNaN(val) && val >= 0) {
+                    if (val > 0) {
+                        if (unit === 'hours') val *= 60;
+                        else if (unit === 'days') val *= 1440;
+                        else if (unit === 'weeks') val *= 10080;
+                    }
+                    reminders.push({ Channel: channel, Minutes: val });
+                }
+            }
+        });
+
+        // Bước 6: Đóng gói và gửi lên Server
+        var payload = {
+            Title: title,
+            EventType: category,
+            Date: date,
+            StartTime: start,
+            EndTime: end,
+            Location: location,
+            Description: description,
+            Reminders: reminders
+        };
+
+        try {
+            var response = await fetch('/Calendar/CreateEvent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                if (window.showToast) window.showToast('Tạo ca học thành công!', 'success');
+                setTimeout(function() {
+                    window.location.href = '/Calendar';
+                }, 600);
+            } else {
+                var errData = await response.json().catch(function() { return {}; });
+                var msg = errData.error || 'Có lỗi xảy ra khi tạo sự kiện.';
+                if (window.showToast) window.showToast(msg, 'error');
+                else alert(msg);
+            }
+        } catch (ex) {
+            if (window.showToast) window.showToast('Lỗi kết nối máy chủ!', 'error');
+            else alert('Lỗi kết nối máy chủ!');
+        }
+    };
+</script>
 }
